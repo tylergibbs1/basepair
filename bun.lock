@@ -9,6 +9,7 @@
         "@base-ui/react": "^1.6.0",
         "@medplum/core": "^5.1.24",
         "@medplum/fhirtypes": "^5.1.24",
+        "@trigger.dev/react-hooks": "^4.5.1",
         "@trigger.dev/sdk": "^4.5.1",
         "ai": "7.0.16",
         "class-variance-authority": "^0.7.1",
@@ -591,6 +592,8 @@
     "@trigger.dev/build": ["@trigger.dev/build@4.5.1", "", { "dependencies": { "@prisma/config": "^6.10.0", "@trigger.dev/core": "4.5.1", "mlly": "^1.7.1", "pkg-types": "^1.1.3", "resolve": "^1.22.8", "tinyglobby": "^0.2.2", "tsconfck": "3.1.3" } }, "sha512-pB+lVJv75YAaU5tV5DFtgJab/3atDnwTeULc+2Ytwtn6LGaiJvpjpLnU3MDnaTxrq6NxLjYPmvgrw0sIbXrZ1w=="],
 
     "@trigger.dev/core": ["@trigger.dev/core@4.5.1", "", { "dependencies": { "@bugsnag/cuid": "^3.1.1", "@electric-sql/client": "1.0.14", "@google-cloud/precise-date": "^4.0.0", "@jsonhero/path": "^1.0.21", "@opentelemetry/api": "1.9.1", "@opentelemetry/api-logs": "0.218.0", "@opentelemetry/core": "2.7.1", "@opentelemetry/exporter-logs-otlp-http": "0.218.0", "@opentelemetry/exporter-metrics-otlp-http": "0.218.0", "@opentelemetry/exporter-trace-otlp-http": "0.218.0", "@opentelemetry/host-metrics": "^0.38.3", "@opentelemetry/instrumentation": "0.218.0", "@opentelemetry/resources": "2.7.1", "@opentelemetry/sdk-logs": "0.218.0", "@opentelemetry/sdk-metrics": "2.7.1", "@opentelemetry/sdk-trace-base": "2.7.1", "@opentelemetry/sdk-trace-node": "2.7.1", "@opentelemetry/semantic-conventions": "1.41.1", "@s2-dev/streamstore": "0.22.10", "dequal": "^2.0.3", "eventsource": "^3.0.5", "eventsource-parser": "^3.0.0", "execa": "^8.0.1", "humanize-duration": "^3.27.3", "jose": "^5.4.0", "nanoid": "3.3.8", "prom-client": "^15.1.0", "socket.io": "4.7.4", "socket.io-client": "4.7.5", "std-env": "^3.8.1", "tinyexec": "^0.3.2", "uncrypto": "^0.1.3", "zod": "3.25.76", "zod-error": "1.5.0", "zod-validation-error": "^1.5.0" } }, "sha512-HAn5m63JwfWbvTS82/jmmjq4fCx5LyqhJ1hUUN75T1Ei8juB2yKGpT0JwRUfFZWpOQCfRZQ05CrEIseO7BIInA=="],
+
+    "@trigger.dev/react-hooks": ["@trigger.dev/react-hooks@4.5.1", "", { "dependencies": { "@trigger.dev/core": "^4.5.1", "swr": "^2.2.5" }, "peerDependencies": { "react": "^18.0 || ^19.0 || ^19.0.0-rc", "react-dom": "^18.0 || ^19.0 || ^19.0.0-rc" } }, "sha512-xax338aM3vWw19lWI6F932AhmhOA9Srr9hd6jHGKBmCVBNdLRwCKQsXB60lZ+KAClufiAt4ZWRYvHXYkZ/IRvA=="],
 
     "@trigger.dev/sdk": ["@trigger.dev/sdk@4.5.1", "", { "dependencies": { "@opentelemetry/api": "1.9.1", "@opentelemetry/semantic-conventions": "1.41.1", "@trigger.dev/core": "4.5.1", "chalk": "^5.2.0", "cronstrue": "^2.21.0", "debug": "^4.3.4", "evt": "^2.4.13", "slug": "^6.0.0", "ulid": "^2.3.0", "uncrypto": "^0.1.3", "ws": "^8.11.0" }, "peerDependencies": { "@ai-sdk/otel": ">=1.0.0-0 <2", "ai": "^5.0.0 || ^6.0.0 || >=7.0.0-canary <8", "react": "^18.0 || ^19.0", "zod": "^3.0.0 || ^4.0.0" }, "optionalPeers": ["@ai-sdk/otel", "ai", "react"] }, "sha512-nz+xaF3v8I6P4YMjamOA7vg5EHjxkE1z5VWiDHrQUn6p2kxVajYSHyNnuVyVlJBHL4Of9x1w4jNdf9t1KDo5Ow=="],
 
@@ -1627,6 +1630,8 @@
     "supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
 
     "supports-preserve-symlinks-flag": ["supports-preserve-symlinks-flag@1.0.0", "", {}, "sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w=="],
+
+    "swr": ["swr@2.4.2", "", { "dependencies": { "dequal": "^2.0.3", "use-sync-external-store": "^1.6.0" }, "peerDependencies": { "react": "^16.11.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-ej644Y2bvkIajfR32KGeSSdBXQW+ScjGjkybZgSE7kFpk9eGnV44XY9FJylXi+W75pavSX1PVNB57W5EbhGIYw=="],
 
     "systeminformation": ["systeminformation@5.31.14", "", { "os": "!aix", "bin": { "systeminformation": "lib/cli.js" } }, "sha512-nefRpMCsAI4m71/6JHH//KPaP/d5nTuRVxEtQ7N7SlBrX18DAcC+5Z1JKZYeN9Iw49qMx95BTo/gBMk3Y2H6+g=="],
 

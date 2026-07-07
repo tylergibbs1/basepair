@@ -10,13 +10,19 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useAlerts } from "@/components/console/alerts-provider"
 import { useCommand } from "@/components/console/command-provider"
 import { NewOrderDialog } from "@/components/console/new-order-dialog"
+import { SignalMetric } from "@/components/console/signal-metric"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
+import type { SignalStats } from "@/lib/alerts/types"
 import { getShortcut } from "@/lib/shortcuts"
 
 export function ConsoleTopbar({
   patients,
+  signalStats,
 }: {
   patients: OrderablePatient[]
+  /** Live signal-quality counts from Medplum; refreshed when the layout
+   *  re-renders (router.refresh after an order resolves). */
+  signalStats: SignalStats
 }) {
   const { openCount, query, setQuery } = useAlerts()
   const { searchInputRef, newOrderOpen, setNewOrderOpen, setPaletteOpen } =
@@ -33,7 +39,7 @@ export function ConsoleTopbar({
   // one place glass is allowed in the console.
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4 backdrop-blur-md backdrop-saturate-150 supports-[backdrop-filter]:bg-background/72">
-      <SidebarTrigger className="-ml-1" />
+      <SidebarTrigger className="-ml-1 relative after:absolute after:-inset-1.5" />
       <div className="flex items-baseline gap-2">
         <h1 className="font-heading text-base font-semibold tracking-tight">
           {onAudit ? "Audit" : "Alerts"}
@@ -47,6 +53,13 @@ export function ConsoleTopbar({
           </span>
         )}
       </div>
+      {/* The trust metric: proof Basepair only fires when it must, made visible.
+          Quiet and secondary to the heading; folds away when the bar gets tight
+          so it never crowds the search/actions. */}
+      <SignalMetric
+        stats={signalStats}
+        className="ml-4 hidden xl:flex"
+      />
       <div className="ml-auto flex items-center gap-2">
         {!onAudit && (
           <div className="relative w-full max-w-xs">

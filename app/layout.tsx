@@ -14,6 +14,7 @@ import { ShortcutsSheet } from "@/components/console/shortcuts-sheet"
 import { ConsoleTopbar } from "@/components/console/console-topbar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { getOpenAlerts } from "@/lib/alerts/from-medplum"
+import { getSignalStats } from "@/lib/alerts/audit"
 import { getOrderablePatients } from "@/lib/alerts/orderable"
 import { cn } from "@/lib/utils"
 
@@ -38,9 +39,10 @@ export default async function RootLayout({
   // the `/alerts/[id]` detail page, navigating between them never re-fetches
   // or re-mounts the shell (and the AlertsProvider keeps the optimistic queue
   // + undo state alive across the two routes).
-  const [alerts, patients] = await Promise.all([
+  const [alerts, patients, signalStats] = await Promise.all([
     getOpenAlerts(),
     getOrderablePatients(),
+    getSignalStats(),
   ])
 
   return (
@@ -69,7 +71,10 @@ export default async function RootLayout({
                       tabIndex={-1}
                       className="flex-1 overflow-y-auto outline-none"
                     >
-                      <ConsoleTopbar patients={patients} />
+                      <ConsoleTopbar
+                        patients={patients}
+                        signalStats={signalStats}
+                      />
                       {children}
                     </div>
                   </SidebarInset>

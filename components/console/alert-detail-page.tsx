@@ -157,7 +157,7 @@ function NotInQueue() {
         <p className="text-sm font-medium text-foreground">
           This alert isn&apos;t in the queue
         </p>
-        <p className="max-w-xs text-sm text-muted-foreground">
+        <p className="max-w-xs text-pretty text-sm text-muted-foreground">
           It may have already been approved or dismissed, or the link may be
           out of date.
         </p>
@@ -216,10 +216,10 @@ export function AlertDetailPage({ id }: { id: string }) {
                 <VerificationChip verified={alert.verification.verified} />
               </div>
               <div className="grid gap-0.5">
-                <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                <h2 className="text-balance text-2xl font-semibold tracking-tight text-foreground">
                   {alert.patientName}
                 </h2>
-                <p className="font-mono text-xs text-muted-foreground">
+                <p className="font-mono text-xs tabular-nums text-muted-foreground">
                   {alert.patientMrn}
                 </p>
               </div>
@@ -247,7 +247,7 @@ export function AlertDetailPage({ id }: { id: string }) {
                 >
                   Recommendation
                 </h3>
-                <p className="max-w-prose text-base leading-relaxed text-foreground">
+                <p className="max-w-prose text-pretty text-base leading-relaxed text-foreground">
                   {alert.recommendation}
                 </p>
               </section>
@@ -267,7 +267,7 @@ export function AlertDetailPage({ id }: { id: string }) {
                 </h3>
                 <ol>
                   <Step n={1} label="Genotype on file">
-                    <span className="font-mono">
+                    <span className="font-mono tabular-nums">
                       {alert.gene} {alert.diplotype}
                     </span>{" "}
                     <span className="text-muted-foreground">
@@ -288,7 +288,7 @@ export function AlertDetailPage({ id }: { id: string }) {
                     </span>
                   </Step>
                   <Step n={4} label="Guideline">
-                    <blockquote className="max-w-prose border-l-2 border-border pl-3 leading-relaxed text-foreground">
+                    <blockquote className="max-w-prose text-pretty border-l-2 border-border pl-3 leading-relaxed text-foreground">
                       <HighlightedGuideline
                         text={alert.guidelineText}
                         highlight={alert.verification.highlight}
@@ -316,7 +316,7 @@ export function AlertDetailPage({ id }: { id: string }) {
                       </span>
                     </div>
                     {alert.verification.rationale ? (
-                      <p className="mt-1.5 max-w-prose leading-relaxed text-foreground">
+                      <p className="mt-1.5 max-w-prose text-pretty leading-relaxed text-foreground">
                         {alert.verification.rationale}
                       </p>
                     ) : (
@@ -335,7 +335,7 @@ export function AlertDetailPage({ id }: { id: string }) {
               <dl className="grid gap-5">
                 <Field label="Drug">{alert.drug}</Field>
                 <Field label="Genotype">
-                  <span className="font-mono">
+                  <span className="font-mono tabular-nums">
                     {alert.gene} {alert.diplotype}
                   </span>
                 </Field>

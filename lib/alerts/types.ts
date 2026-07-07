@@ -30,6 +30,24 @@ export interface Alert {
   status: "pending"
 }
 
+/**
+ * Live signal-quality counts, sourced from Medplum (DetectedIssue + Task), never
+ * mocked. Basepair's core differentiator made visible and quantified: it only
+ * fires when it provably matches a guideline, so the suppression is on-screen.
+ *
+ * - `evaluated`   — total orders assessed (flagged + cleared).
+ * - `flagged`     — orders that produced a pharmacist alert.
+ * - `cleared`     — orders evaluated with nothing to flag (the suppression proof).
+ * - `falseAlarms` — flagged alerts a pharmacist dismissed as not clinically
+ *                   valid (target: 0).
+ */
+export interface SignalStats {
+  evaluated: number
+  flagged: number
+  cleared: number
+  falseAlarms: number
+}
+
 /** Result of the AI verification step (see lib/ai/verify.ts). */
 export interface Verification {
   /** Did the model confirm the guideline supports the recommendation? */

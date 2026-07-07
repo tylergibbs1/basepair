@@ -24,8 +24,8 @@ export function ShortcutsSheet() {
     <Dialog open={cheatsheetOpen} onOpenChange={setCheatsheetOpen}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Keyboard shortcuts</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-balance">Keyboard shortcuts</DialogTitle>
+          <DialogDescription className="text-pretty">
             The whole triage flow is keyboard-operable.
           </DialogDescription>
         </DialogHeader>

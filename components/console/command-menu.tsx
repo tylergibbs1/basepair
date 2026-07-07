@@ -55,7 +55,7 @@ export function CommandMenu() {
         <DialogOverlay />
         <DialogPrimitive.Popup
           data-slot="command-menu"
-          className="fixed top-[18%] left-1/2 z-50 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 overflow-hidden rounded-md bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/5 duration-100 outline-none sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+          className="fixed top-[18%] left-1/2 z-50 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 overflow-hidden rounded-md bg-popover text-popover-foreground shadow-[0_1px_1px_rgba(0,0,0,0.02),0_4px_8px_-4px_rgba(0,0,0,0.04),0_16px_24px_-8px_rgba(0,0,0,0.06)] ring-1 ring-foreground/5 duration-100 outline-none sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-top-1"
         >
           <DialogPrimitive.Title className="sr-only">
             Command palette
@@ -72,7 +72,10 @@ export function CommandMenu() {
               />
               {/* base-ui's Dialog moves focus to the first tabbable element on
                   open — the input — so no explicit autoFocus is needed. */}
-              <CommandInput placeholder="Search alerts or run a command…" />
+              <CommandInput
+                aria-label="Search alerts or run a command"
+                placeholder="Search alerts or run a command…"
+              />
             </div>
             <CommandList>
               <CommandEmpty>No matches.</CommandEmpty>

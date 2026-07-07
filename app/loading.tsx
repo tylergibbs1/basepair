@@ -1,9 +1,19 @@
-import { QueueSkeleton } from "@/components/console/queue-skeleton"
+import {
+  QueueFiltersSkeleton,
+  QueueSkeleton,
+} from "@/components/console/queue-skeleton"
 
 // Next 16 App Router: this file is automatically wrapped in a <Suspense>
-// boundary around the queue page, so it streams in instantly as the
-// navigation/streaming fallback while the route's data resolves. It mirrors the
-// loaded table row-for-row, so the real queue lands with no layout shift.
+// boundary around the queue *page* (page.tsx and its children, not the layout),
+// so it streams in instantly as the navigation/streaming fallback while the
+// route's data resolves. It must therefore mirror the page's full output —
+// `<QueueFilters />` then `<AlertQueue />` — so both the filter bar and the
+// table land with no layout shift.
 export default function Loading() {
-  return <QueueSkeleton />
+  return (
+    <>
+      <QueueFiltersSkeleton />
+      <QueueSkeleton />
+    </>
+  )
 }

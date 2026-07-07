@@ -1,11 +1,16 @@
 import type { Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { NuqsAdapter } from "nuqs/adapters/next/app"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { AppSidebar } from "@/components/console/app-sidebar"
 import { AlertsProvider } from "@/components/console/alerts-provider"
+import { CommandProvider } from "@/components/console/command-provider"
+import { GlobalKeys } from "@/components/console/global-keys"
+import { CommandMenu } from "@/components/console/command-menu"
+import { ShortcutsSheet } from "@/components/console/shortcuts-sheet"
 import { ConsoleTopbar } from "@/components/console/console-topbar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { getOpenAlerts } from "@/lib/alerts/from-medplum"
@@ -50,23 +55,33 @@ export default async function RootLayout({
         >
           Skip to content
         </a>
-        <ThemeProvider>
-          <SidebarProvider>
-            <AlertsProvider initialAlerts={alerts}>
-              <AppSidebar />
-              <SidebarInset className="h-svh overflow-hidden">
-                <div
-                  id="main-content"
-                  tabIndex={-1}
-                  className="flex-1 overflow-y-auto outline-none"
-                >
-                  <ConsoleTopbar patients={patients} />
-                  {children}
-                </div>
-              </SidebarInset>
-            </AlertsProvider>
-          </SidebarProvider>
-        </ThemeProvider>
+        {/* NuqsAdapter wraps the whole app subtree so every client island can
+            read/write URL search-param state (the queue's filters + sort). */}
+        <NuqsAdapter>
+          <ThemeProvider>
+            <SidebarProvider>
+              <AlertsProvider initialAlerts={alerts}>
+                <CommandProvider>
+                  <AppSidebar />
+                  <SidebarInset className="h-svh overflow-hidden">
+                    <div
+                      id="main-content"
+                      tabIndex={-1}
+                      className="flex-1 overflow-y-auto outline-none"
+                    >
+                      <ConsoleTopbar patients={patients} />
+                      {children}
+                    </div>
+                  </SidebarInset>
+                  {/* Keyboard layer + the surfaces its shortcuts open. */}
+                  <GlobalKeys />
+                  <CommandMenu />
+                  <ShortcutsSheet />
+                </CommandProvider>
+              </AlertsProvider>
+            </SidebarProvider>
+          </ThemeProvider>
+        </NuqsAdapter>
         <Toaster theme="light" position="bottom-right" />
       </body>
     </html>

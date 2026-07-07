@@ -1,33 +1,71 @@
 "use client"
 
 import * as React from "react"
+import { throttle, useQueryStates } from "nuqs"
 import { toast } from "sonner"
 
 import { sortAlerts, type Alert } from "@/lib/alerts/types"
+import {
+  alertFilterParsers,
+  applyAlertFilters,
+  type SeverityFilter,
+  type SortColumn,
+  type SortDirection,
+} from "@/lib/alerts/query-params"
 import {
   approveAlert,
   dismissAlert,
   reopenAlert,
 } from "@/lib/alerts/actions"
 
+/** Typing into the search box shouldn't spam browser history; throttle the URL
+ *  write so a burst of keystrokes collapses to one history-friendly update. The
+ *  input itself stays responsive because nuqs returns the pending value
+ *  synchronously (see `query` below), independent of when the URL catches up. */
+const SEARCH_THROTTLE_MS = 300
+
 interface AlertsContextValue {
   /** Pending alerts, sorted critical-first. Unfiltered, this is the source of
    *  truth for "is this alert still open" (the detail route checks membership
    *  here), so it must never be narrowed by the search query. */
   alerts: Alert[]
-  /** `alerts` narrowed to the current `query`. What the queue renders. */
+  /** `alerts` narrowed + ordered by the current URL filters. What the queue
+   *  renders. */
   filteredAlerts: Alert[]
   /** Genuinely open alerts, the true count, never the filtered subset. */
   openCount: number
-  /** Free-text queue filter, owned here so the topbar and queue stay in sync. */
+  /** Free-text queue filter, mirrored in the URL `q` param. */
   query: string
   setQuery: (query: string) => void
+  /** Active severity chips (URL `severity`); empty means "all severities". */
+  severity: SeverityFilter[]
+  /** Add/remove a severity from the filter (immediate URL write). */
+  toggleSeverity: (severity: SeverityFilter) => void
+  /** Reset the text + severity filters (leaves sort untouched). */
+  clearFilters: () => void
+  /** `true` when a text query or any severity chip is narrowing the queue. */
+  hasActiveFilters: boolean
+  /** Active sort column + direction (URL `sort`/`dir`). */
+  sort: SortColumn
+  dir: SortDirection
+  /** Click a column header: flip direction if it's already active, else switch
+   *  to it with that column's sensible default direction. */
+  setSort: (column: SortColumn) => void
   /** Look an alert up by id, which one is "open" is owned by the URL now, not
    *  React state, so the detail route reads it from here. Falls back to any
    *  alert we've seen so content survives a close animation after removal. */
   getAlert: (id: string) => Alert | null
   approve: (id: string) => void
   dismiss: (id: string) => void
+}
+
+/** The direction a column sorts by when you first click it. Severity and Fired
+ *  lead with the most urgent/recent; text columns read naturally A→Z. */
+const DEFAULT_SORT_DIR: Record<SortColumn, SortDirection> = {
+  severity: "desc",
+  patient: "asc",
+  drug: "asc",
+  fired: "desc",
 }
 
 const AlertsContext = React.createContext<AlertsContextValue | null>(null)
@@ -49,23 +87,63 @@ export function AlertsProvider({
   const [pending, setPending] = React.useState<Alert[]>(() =>
     sortAlerts(initialAlerts)
   )
-  const [query, setQuery] = React.useState("")
 
-  // Case-insensitive match across the columns a pharmacist scans by: patient,
-  // MRN, drug, gene, phenotype. Empty query is a passthrough so the queue keeps
-  // rendering the full sorted list.
-  const filteredAlerts = React.useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return pending
-    return pending.filter(
-      (a) =>
-        a.patientName.toLowerCase().includes(q) ||
-        a.patientMrn.toLowerCase().includes(q) ||
-        a.drug.toLowerCase().includes(q) ||
-        a.gene.toLowerCase().includes(q) ||
-        a.phenotype.toLowerCase().includes(q)
-    )
-  }, [pending, query])
+  // The queue's filter + sort state lives in the URL, so a view is shareable and
+  // survives refresh. `history: "replace"` keeps each keystroke/toggle from
+  // stacking a back-button entry; the search setter additionally throttles.
+  const [filters, setFilters] = useQueryStates(alertFilterParsers, {
+    history: "replace",
+  })
+  const { q: query, severity, sort, dir } = filters
+
+  // Filter + sort in one pure pass (shared with any server-side prefetch). Empty
+  // filters are a passthrough, so the queue keeps rendering the full list.
+  const filteredAlerts = React.useMemo(
+    () => applyAlertFilters(pending, filters),
+    [pending, filters]
+  )
+
+  const setQuery = React.useCallback(
+    (next: string) => {
+      // Responsive input, calm history: nuqs updates the returned value now and
+      // batches the URL write on a trailing 300ms throttle.
+      void setFilters(
+        { q: next },
+        { limitUrlUpdates: throttle(SEARCH_THROTTLE_MS) }
+      )
+    },
+    [setFilters]
+  )
+
+  const toggleSeverity = React.useCallback(
+    (sev: SeverityFilter) => {
+      void setFilters((prev) => ({
+        severity: prev.severity.includes(sev)
+          ? prev.severity.filter((s) => s !== sev)
+          : [...prev.severity, sev],
+      }))
+    },
+    [setFilters]
+  )
+
+  const clearFilters = React.useCallback(() => {
+    // Clear text + severity only; a chosen sort order is a view preference, not
+    // a filter, so it survives "Clear".
+    void setFilters({ q: "", severity: [] })
+  }, [setFilters])
+
+  const setSort = React.useCallback(
+    (column: SortColumn) => {
+      void setFilters((prev) =>
+        prev.sort === column
+          ? { dir: prev.dir === "asc" ? "desc" : "asc" }
+          : { sort: column, dir: DEFAULT_SORT_DIR[column] }
+      )
+    },
+    [setFilters]
+  )
+
+  const hasActiveFilters = query.trim() !== "" || severity.length > 0
 
   // Every alert id we have ever shown. Lets us tell a *brand-new* alert (e.g. one
   // a just-placed order produced, arriving via router.refresh) apart from one the
@@ -145,12 +223,33 @@ export function AlertsProvider({
       openCount: pending.length,
       query,
       setQuery,
+      severity,
+      toggleSeverity,
+      clearFilters,
+      hasActiveFilters,
+      sort,
+      dir,
+      setSort,
       getAlert: (id) =>
         byId.get(id) ?? pending.find((a) => a.id === id) ?? null,
       approve: (id) => removeWithUndo(id, "approved"),
       dismiss: (id) => removeWithUndo(id, "dismissed"),
     }),
-    [pending, filteredAlerts, query, byId, removeWithUndo]
+    [
+      pending,
+      filteredAlerts,
+      query,
+      setQuery,
+      severity,
+      toggleSeverity,
+      clearFilters,
+      hasActiveFilters,
+      sort,
+      dir,
+      setSort,
+      byId,
+      removeWithUndo,
+    ]
   )
 
   return (

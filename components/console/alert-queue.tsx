@@ -1,6 +1,14 @@
 "use client"
 
-import { ChevronRight, Inbox, SearchX } from "lucide-react"
+import * as React from "react"
+import {
+  ChevronDown,
+  ChevronRight,
+  ChevronsUpDown,
+  ChevronUp,
+  Inbox,
+  SearchX,
+} from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import { useRouter } from "next/navigation"
 
@@ -12,10 +20,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
 import { SeverityChip } from "@/components/ui/severity-chip"
 import { spring } from "@/lib/springs"
 import { formatFiredAt, type Alert } from "@/lib/alerts/types"
+import type { SortColumn } from "@/lib/alerts/query-params"
 import { useAlerts } from "@/components/console/alerts-provider"
+import { useCommand } from "@/components/console/command-provider"
+import { cn } from "@/lib/utils"
 
 /** Spoken severity for the row's accessible name, the most safety-critical
  *  datum, so a screen reader announces it up front. */
@@ -45,7 +57,16 @@ function EmptyState() {
   )
 }
 
-function NoMatchState({ query }: { query: string }) {
+/** Distinct from EmptyState: there *are* open alerts, but the active filters
+ *  (text query and/or severity chips) exclude every one. Reads as a dead-end the
+ *  pharmacist can back out of, so it surfaces a one-click way to clear. */
+function NoMatchState({
+  query,
+  onClear,
+}: {
+  query: string
+  onClear: () => void
+}) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-24 text-center">
       <div
@@ -56,13 +77,68 @@ function NoMatchState({ query }: { query: string }) {
       </div>
       <div className="grid gap-1">
         <p className="text-sm font-medium text-foreground">
-          No alerts match &ldquo;{query}&rdquo;
+          No alerts match your filters
         </p>
         <p className="max-w-xs text-sm text-muted-foreground">
-          Try a different patient, drug, gene, or phenotype.
+          {query
+            ? `Nothing matches “${query}” with the current severity filters.`
+            : "No open alert matches the active severity filters."}
         </p>
       </div>
+      <Button variant="outline" size="sm" onClick={onClear}>
+        Clear Filters
+      </Button>
     </div>
+  )
+}
+
+/**
+ * A sortable column header. The whole cell is the click target (`setSort`), the
+ * `<th>` carries `aria-sort` so assistive tech announces the order, and a
+ * chevron shows direction on the active column (a neutral up/down affordance
+ * fades in on hover for the others, hinting they're sortable without adding
+ * noise at rest).
+ */
+function SortableHead({
+  column,
+  label,
+  className,
+}: {
+  column: SortColumn
+  label: string
+  className?: string
+}) {
+  const { sort, dir, setSort } = useAlerts()
+  const active = sort === column
+
+  return (
+    <TableHead
+      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
+      className={cn("px-0", className)}
+    >
+      <button
+        type="button"
+        onClick={() => setSort(column)}
+        className="group/sort inline-flex h-12 w-full items-center gap-1 px-3 text-left font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      >
+        {label}
+        {active ? (
+          dir === "asc" ? (
+            <ChevronUp aria-hidden className="size-3.5 text-muted-foreground" />
+          ) : (
+            <ChevronDown
+              aria-hidden
+              className="size-3.5 text-muted-foreground"
+            />
+          )
+        ) : (
+          <ChevronsUpDown
+            aria-hidden
+            className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/sort:opacity-60"
+          />
+        )}
+      </button>
+    </TableHead>
   )
 }
 
@@ -73,13 +149,22 @@ function NoMatchState({ query }: { query: string }) {
  * `layout` prop springs the rows below up to close the gap. Motion carries the
  * state change; nothing moves for decoration.
  */
-function AlertRow({ alert }: { alert: Alert }) {
+function AlertRow({
+  alert,
+  onFocusRow,
+}: {
+  alert: Alert
+  /** Sync the keyboard cursor to whichever row takes focus (mouse, tab, or
+   *  the `j/k` handler focusing it), so `a`/`x` always act on the lit row. */
+  onFocusRow: (id: string) => void
+}) {
   const router = useRouter()
   const href = `/alerts/${alert.id}`
 
   return (
     <motion.tr
       layout
+      id={`alert-row-${alert.id}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: spring.moderate.exit }}
@@ -89,6 +174,7 @@ function AlertRow({ alert }: { alert: Alert }) {
       role="button"
       aria-label={`${SEVERITY_LABEL[alert.severity]} alert: ${alert.drug} for ${alert.patientName}, ${alert.gene} ${alert.diplotype}. Open details.`}
       onClick={() => router.push(href)}
+      onFocus={() => onFocusRow(alert.id)}
       onMouseEnter={() => router.prefetch(href)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -134,7 +220,17 @@ function AlertRow({ alert }: { alert: Alert }) {
 }
 
 export function AlertQueue() {
-  const { alerts, filteredAlerts, query } = useAlerts()
+  const { alerts, filteredAlerts, query, clearFilters } = useAlerts()
+  const { cursorId, setCursorId } = useCommand()
+
+  // The keyboard cursor *is* DOM focus: moving it (via `j/k` in the global key
+  // layer) focuses the row, which lights the existing focus-visible ring and
+  // scrolls it into view for free. This effect is the one direction the key
+  // layer can't do itself — it only knows the id, not the element.
+  React.useEffect(() => {
+    if (!cursorId) return
+    document.getElementById(`alert-row-${cursorId}`)?.focus()
+  }, [cursorId])
 
   // No open alerts at all is the triaged/inbox-zero state; an active query that
   // simply matches nothing is a distinct dead-end and reads differently.
@@ -143,20 +239,28 @@ export function AlertQueue() {
   }
 
   if (filteredAlerts.length === 0) {
-    return <NoMatchState query={query.trim()} />
+    return <NoMatchState query={query.trim()} onClear={clearFilters} />
   }
 
   return (
-    <Table aria-label="Pending pharmacogenomic alerts">
-      <TableHeader>
+    // overflow-visible on the wrapper (not the default overflow-x-auto) lets the
+    // sticky <thead> pin to the page scroll container (#main-content) instead of
+    // being trapped by the table's own scroll box.
+    <Table
+      aria-label="Pending pharmacogenomic alerts"
+      containerClassName="overflow-visible"
+    >
+      {/* Sticky under the h-14 topbar (top-14 = 56px), z-10 keeps it below the
+          topbar's z-20. Solid bg so scrolling rows pass cleanly beneath it. */}
+      <TableHeader className="sticky top-14 z-10 bg-background">
         <TableRow className="hover:bg-transparent">
-          <TableHead>Severity</TableHead>
-          <TableHead>Patient</TableHead>
-          <TableHead>Drug</TableHead>
+          <SortableHead column="severity" label="Severity" />
+          <SortableHead column="patient" label="Patient" />
+          <SortableHead column="drug" label="Drug" />
           <TableHead>Genotype</TableHead>
           <TableHead>Phenotype</TableHead>
           <TableHead>Ordered by</TableHead>
-          <TableHead>Fired</TableHead>
+          <SortableHead column="fired" label="Fired" />
           <TableHead className="sr-only">Open</TableHead>
         </TableRow>
       </TableHeader>
@@ -166,7 +270,7 @@ export function AlertQueue() {
             always marks a change, never the initial state. */}
         <AnimatePresence initial={false}>
           {filteredAlerts.map((alert) => (
-            <AlertRow key={alert.id} alert={alert} />
+            <AlertRow key={alert.id} alert={alert} onFocusRow={setCursorId} />
           ))}
         </AnimatePresence>
       </TableBody>

@@ -4,11 +4,21 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+function Table({
+  className,
+  containerClassName,
+  ...props
+}: React.ComponentProps<"table"> & {
+  /** Overrides the scroll wrapper's default `overflow-x-auto`. Needed when a
+   *  sticky `<thead>` must pin to an outer scroll container instead of the
+   *  table's own wrapper (a scroll container can't have `position: sticky`
+   *  children stick to the page). */
+  containerClassName?: string
+}) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      className={cn("relative w-full", containerClassName ?? "overflow-x-auto")}
     >
       <table
         data-slot="table"

@@ -1,0 +1,234 @@
+"use client"
+
+import * as React from "react"
+import { usePathname, useRouter } from "next/navigation"
+
+import { useAlerts } from "@/components/console/alerts-provider"
+import { useCommand } from "@/components/console/command-provider"
+import {
+  CHORD_WINDOW_MS,
+  SHORTCUTS,
+  getShortcut,
+  matchesBinding,
+} from "@/lib/shortcuts"
+
+/** Chord starter keys (e.g. `g`), derived from the registry so they stay in sync. */
+const CHORD_PREFIXES = new Set(
+  SHORTCUTS.map((s) => s.binding.chordPrefix).filter(
+    (p): p is string => Boolean(p)
+  )
+)
+
+const PALETTE_BINDING = getShortcut("command-palette").binding
+
+/** Typing surfaces where single-key shortcuts must yield to text entry. */
+function isEditableTarget(el: EventTarget | null): boolean {
+  if (!(el instanceof HTMLElement)) return false
+  const tag = el.tagName
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    el.isContentEditable
+  )
+}
+
+/**
+ * The console's global keyboard layer. Renders nothing; it installs a single
+ * window `keydown` listener that dispatches every shortcut in the registry,
+ * route-aware (queue vs. alert detail) and overlay-aware (yields to the palette,
+ * cheatsheet, and dialogs). All live values are read through a ref so the
+ * listener is installed once and never sees a stale closure — the `useLatest`
+ * pattern, so cursor moves and queue updates don't re-subscribe the window.
+ */
+export function GlobalKeys() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const { filteredAlerts, approve, dismiss } = useAlerts()
+  const cmd = useCommand()
+
+  const latest = React.useRef({
+    router,
+    pathname,
+    filteredAlerts,
+    approve,
+    dismiss,
+    cmd,
+  })
+  latest.current = { router, pathname, filteredAlerts, approve, dismiss, cmd }
+
+  React.useEffect(() => {
+    // Chord state lives with the listener, not React state — it's transient
+    // input plumbing and must never trigger a render.
+    const chord: { prefix: string | null; at: number } = { prefix: null, at: 0 }
+
+    function onKeyDown(event: KeyboardEvent) {
+      // Something nearer the target already handled this key (a row's Enter,
+      // a menu's arrow). Don't double-fire.
+      if (event.defaultPrevented) return
+
+      // Ignore auto-repeat except for queue movement, where holding to scroll
+      // is expected; a held `a` must never approve twice.
+      if (event.repeat) {
+        const k = event.key.toLowerCase()
+        if (k !== "j" && k !== "k") return
+      }
+
+      const { router, pathname, filteredAlerts, approve, dismiss, cmd } =
+        latest.current
+
+      // 1. The palette toggle is the one shortcut that works everywhere,
+      //    including inside inputs and over an open palette (to close it).
+      if (matchesBinding(event, PALETTE_BINDING)) {
+        event.preventDefault()
+        cmd.setPaletteOpen(!cmd.paletteOpen)
+        return
+      }
+
+      // 2. Behind any overlay, let that surface own the keyboard.
+      if (cmd.paletteOpen || cmd.cheatsheetOpen || cmd.newOrderOpen) return
+
+      // 3. Never hijack text entry; Escape still blurs the field.
+      if (isEditableTarget(event.target)) {
+        if (event.key === "Escape" && event.target instanceof HTMLElement) {
+          event.target.blur()
+        }
+        return
+      }
+
+      const now = Date.now()
+      const key = event.key.toLowerCase()
+
+      // 4. Resolve a pending chord (e.g. `g` then `a`).
+      if (chord.prefix && now - chord.at < CHORD_WINDOW_MS) {
+        const prefix = chord.prefix
+        chord.prefix = null
+        const match = SHORTCUTS.find(
+          (s) => s.binding.chordPrefix === prefix && s.binding.key === key
+        )
+        if (match) {
+          event.preventDefault()
+          if (match.id === "goto-alerts") router.push("/")
+          else if (match.id === "goto-audit") router.push("/audit")
+          return
+        }
+        // No chord matched — fall through and treat this key on its own.
+      }
+      chord.prefix = null
+
+      // 5. Start a chord if this key is a prefix.
+      if (
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        CHORD_PREFIXES.has(key)
+      ) {
+        chord.prefix = key
+        chord.at = now
+        return
+      }
+
+      // 6. Remaining shortcuts are unmodified single keys.
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+
+      // Cursor helpers, closed over the latest queue.
+      const moveCursor = (dir: 1 | -1) => {
+        if (filteredAlerts.length === 0) return
+        const idx = cmd.cursorId
+          ? filteredAlerts.findIndex((a) => a.id === cmd.cursorId)
+          : -1
+        const next =
+          idx === -1
+            ? dir > 0
+              ? 0
+              : filteredAlerts.length - 1
+            : Math.min(Math.max(idx + dir, 0), filteredAlerts.length - 1)
+        cmd.setCursorId(filteredAlerts[next].id)
+      }
+
+      const actOnCursor = (fn: (id: string) => void) => {
+        const idx = filteredAlerts.findIndex((a) => a.id === cmd.cursorId)
+        if (idx === -1) return
+        const id = filteredAlerts[idx].id
+        // Advance to the row that will sit at this index once `id` is removed,
+        // so triage keeps flowing down the queue without a manual `j`.
+        const nextId =
+          filteredAlerts[idx + 1]?.id ?? filteredAlerts[idx - 1]?.id ?? null
+        cmd.setCursorId(nextId)
+        fn(id)
+      }
+
+      // General (any route).
+      if (key === "/") {
+        event.preventDefault()
+        cmd.focusSearch()
+        return
+      }
+      if (event.key === "?") {
+        event.preventDefault()
+        cmd.setCheatsheetOpen(true)
+        return
+      }
+      if (key === "n") {
+        event.preventDefault()
+        cmd.setNewOrderOpen(true)
+        return
+      }
+
+      // Queue scope.
+      if (pathname === "/") {
+        if (key === "j") {
+          event.preventDefault()
+          moveCursor(1)
+          return
+        }
+        if (key === "k") {
+          event.preventDefault()
+          moveCursor(-1)
+          return
+        }
+        if (key === "enter") {
+          const target = filteredAlerts.find((a) => a.id === cmd.cursorId)
+          if (target) {
+            event.preventDefault()
+            router.push(`/alerts/${target.id}`)
+          }
+          return
+        }
+        if (key === "a") {
+          event.preventDefault()
+          actOnCursor(approve)
+          return
+        }
+        if (key === "x") {
+          event.preventDefault()
+          actOnCursor(dismiss)
+          return
+        }
+      }
+
+      // Alert-detail scope: act on the open alert, then return to the queue.
+      if (pathname.startsWith("/alerts/")) {
+        const id = pathname.split("/")[2]
+        if (!id) return
+        if (key === "a") {
+          event.preventDefault()
+          approve(id)
+          router.push("/")
+          return
+        }
+        if (key === "x") {
+          event.preventDefault()
+          dismiss(id)
+          router.push("/")
+          return
+        }
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [])
+
+  return null
+}

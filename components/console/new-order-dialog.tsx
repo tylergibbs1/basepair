@@ -59,9 +59,21 @@ function sleep(ms: number): Promise<void> {
 
 type Phase = "idle" | "placing" | "evaluating"
 
-export function NewOrderDialog({ patients }: { patients: OrderablePatient[] }) {
+export function NewOrderDialog({
+  patients,
+  open,
+  onOpenChange,
+  showTrigger = true,
+}: {
+  patients: OrderablePatient[]
+  /** Controlled so `n` and the command palette can open it from anywhere. */
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** Hide the in-bar button (e.g. off the queue) while keeping the dialog
+   *  mounted so the `n` shortcut still opens it. */
+  showTrigger?: boolean
+}) {
   const router = useRouter()
-  const [open, setOpen] = React.useState(false)
   const [patientRef, setPatientRef] = React.useState<string | null>(null)
   const [drug, setDrug] = React.useState<string | null>(null)
   const [prescriber, setPrescriber] = React.useState<string>(PRESCRIBERS[0])
@@ -129,7 +141,7 @@ export function NewOrderDialog({ patients }: { patients: OrderablePatient[] }) {
 
     router.refresh()
     setPhase("idle")
-    setOpen(false)
+    onOpenChange(false)
     setDrug(null)
     setPatientRef(null)
   }
@@ -140,17 +152,19 @@ export function NewOrderDialog({ patients }: { patients: OrderablePatient[] }) {
       onOpenChange={(next) => {
         // Don't let the dialog close mid-flight.
         if (busy) return
-        setOpen(next)
+        onOpenChange(next)
       }}
     >
-      <DialogTrigger
-        render={
-          <Button variant="outline" size="sm">
-            <PillIcon aria-hidden />
-            New Order…
-          </Button>
-        }
-      />
+      {showTrigger && (
+        <DialogTrigger
+          render={
+            <Button variant="outline" size="sm">
+              <PillIcon aria-hidden />
+              New Order…
+            </Button>
+          }
+        />
+      )}
       <DialogContent showCloseButton={!busy}>
         <DialogHeader>
           <DialogTitle>New Order</DialogTitle>

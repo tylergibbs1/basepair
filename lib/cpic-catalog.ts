@@ -61,6 +61,18 @@ export function resolvePhenotype(gene: string, diplotype: string): string | null
   return catalog.phenotypeByDiplotype[gene]?.[normDip(diplotype)] ?? null;
 }
 
+/** Every drug the CPIC catalog has any rule for, normalized. Backs the
+ *  multi-drug complexity indicator: a drug is "PGx-relevant" if CPIC has
+ *  guidance for it, regardless of the patient's genotype. */
+const PGX_DRUGS: ReadonlySet<string> = new Set(
+  catalog.rules.map((r) => norm(r.drug)),
+);
+
+/** Is there CPIC guidance for this drug (by name, aliases resolved)? */
+export function isPgxRelevantDrug(drug: string): boolean {
+  return PGX_DRUGS.has(normDrug(drug));
+}
+
 export type LookupInput = {
   drug: string;
   /** Every gene the patient has a phenotype for, e.g. { CYP2C19: "Poor Metabolizer" }. */

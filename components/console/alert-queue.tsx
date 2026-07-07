@@ -163,6 +163,12 @@ function AlertRow({
   const router = useRouter()
   const href = `/alerts/${alert.id}`
 
+  // Co-tested genes beyond the driving one. >0 means a multi-gene rule matched
+  // (e.g. TPMT + NUDT15), the complexity the pharmacist should see at a glance.
+  const extraGenes = Math.max(alert.contributingGenes.length - 1, 0)
+  const geneAffordance =
+    extraGenes > 0 ? `, plus ${extraGenes} more contributing ${extraGenes === 1 ? "gene" : "genes"}` : ""
+
   return (
     <motion.tr
       layout
@@ -174,7 +180,7 @@ function AlertRow({
       data-slot="table-row"
       tabIndex={0}
       role="button"
-      aria-label={`${SEVERITY_LABEL[alert.severity]} alert: ${alert.drug} for ${alert.patientName}, ${alert.gene} ${alert.diplotype}. Open details.`}
+      aria-label={`${SEVERITY_LABEL[alert.severity]} alert: ${alert.drug} for ${alert.patientName}, ${alert.gene} ${alert.diplotype}${geneAffordance}. Open details.`}
       onClick={() => router.push(href)}
       onFocus={() => onFocusRow(alert.id)}
       onMouseEnter={() => router.prefetch(href)}
@@ -201,7 +207,22 @@ function AlertRow({
       </TableCell>
       <TableCell className="font-medium text-foreground">{alert.drug}</TableCell>
       <TableCell className="font-mono text-xs">
-        {alert.gene} {alert.diplotype}
+        <span className="inline-flex items-center gap-1.5">
+          <span>
+            {alert.gene} {alert.diplotype}
+          </span>
+          {extraGenes > 0 && (
+            // Quiet, squared context tag (not a severity pill): flags a
+            // multi-gene rule without competing with the severity chip. The
+            // count is already in the row's accessible name, so hide it here.
+            <span
+              aria-hidden
+              className="rounded-sm bg-secondary px-1 py-0.5 font-sans text-[10px] font-medium text-muted-foreground tabular-nums"
+            >
+              +{extraGenes} gene{extraGenes === 1 ? "" : "s"}
+            </span>
+          )}
+        </span>
       </TableCell>
       <TableCell className="text-muted-foreground">{alert.phenotype}</TableCell>
       <TableCell className="text-muted-foreground">{alert.orderedBy}</TableCell>

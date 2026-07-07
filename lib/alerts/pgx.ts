@@ -1,6 +1,6 @@
 import type { DetectedIssue, Patient } from "@medplum/fhirtypes"
 
-import { PGX_ALERT_EXTENSION_URL } from "@/lib/medplum/fhir"
+import { PGX_ALERT_EXTENSION_URL, type ContributingGene } from "@/lib/medplum/fhir"
 import type { Alert } from "@/lib/alerts/types"
 
 /**
@@ -19,6 +19,9 @@ export type FlaggedPgxPayload = {
   gene: string
   diplotype: string
   phenotype: string
+  /** Full contributing gene set for multi-gene rules. Absent on records written
+   *  before this field existed; the loader falls back to the single driving gene. */
+  contributingGenes?: ContributingGene[]
   drug: string
   severity: Alert["severity"]
   recommendation: string

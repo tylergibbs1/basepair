@@ -158,6 +158,14 @@ export const evaluateOrder = task({
 
     const primary = primaryGene(rule.genes, readings);
 
+    // Every gene the rule keyed on, in rule order, with the reading we have for
+    // each — the full contributing set the console renders (driving gene
+    // emphasized). A co-tested normal gene stays in here as context.
+    const contributingGenes = rule.genes
+      .map((g) => readings.find((r) => r.gene === g))
+      .filter((r): r is GeneReading => r !== undefined)
+      .map(({ gene, diplotype, phenotype }) => ({ gene, diplotype, phenotype }));
+
     await setPhase("verifying");
     // AI trust gate: the deterministic engine already made the call; the model
     // picks the verbatim supporting sentence, grades it against the guideline,
@@ -198,6 +206,7 @@ export const evaluateOrder = task({
         gene: primary.gene,
         diplotype: primary.diplotype,
         phenotype: primary.phenotype,
+        contributingGenes,
         drug: rule.drug,
         severity: rule.severity,
         recommendation: rule.recommendation,

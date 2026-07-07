@@ -130,10 +130,30 @@ export function buildMedicationRequest(
   };
 }
 
+/**
+ * One gene/diplotype/phenotype triple that contributed to a multi-gene rule
+ * (e.g. TPMT + NUDT15 for thiopurines). Persisted on the DetectedIssue so the
+ * console can render the full contributing set, not just the driving gene.
+ * The driving (primary) gene is carried separately on `AlertFacts.gene`; a
+ * co-tested normal gene is still recorded here as context.
+ */
+export type ContributingGene = {
+  gene: string;
+  diplotype: string;
+  phenotype: string;
+};
+
 export type AlertFacts = {
   gene: string;
   diplotype: string;
   phenotype: string;
+  /**
+   * Every gene/phenotype pair the matched CPIC rule keyed on (the driving gene
+   * plus any co-tested genes). Single-gene rules carry one entry. Optional so
+   * older callers/records without it still typecheck; the console falls back to
+   * the primary gene when it's absent.
+   */
+  contributingGenes?: ContributingGene[];
   drug: string;
   severity: "critical" | "caution" | "info";
   recommendation: string;
@@ -173,6 +193,16 @@ export function buildDetectedIssue(
     gene: facts.gene,
     diplotype: facts.diplotype,
     phenotype: facts.phenotype,
+    // Full contributing set for multi-gene rules; the driving gene above stays
+    // the headline. Defaults to the single driving gene so a record always
+    // carries at least one entry.
+    contributingGenes: facts.contributingGenes ?? [
+      {
+        gene: facts.gene,
+        diplotype: facts.diplotype,
+        phenotype: facts.phenotype,
+      },
+    ],
     drug: facts.drug,
     severity: facts.severity,
     recommendation: facts.recommendation,

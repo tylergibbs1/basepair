@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Basepair favicon: the brand mark (two nodes joined by one base pair,
+       from components/basepair-mark.tsx) in white on a navy tile. Navy (#173c63)
+       is the brand accent (docs/DESIGN.md); a filled tile keeps the landscape
+       mark legible at 16px and on both light and dark browser toolbars. The
+       mark's native 450×190 box is scaled 0.7556 and centered in 512×512. -->
+  <rect width="512" height="512" rx="112" fill="#173c63" />
+  <g transform="translate(86 184) scale(0.7556)" fill="#ffffff">
+    <rect x="95" y="72" width="260" height="46" rx="23" />
+    <circle cx="95" cy="95" r="95" />
+    <circle cx="355" cy="95" r="95" />
+  </g>
+</svg>

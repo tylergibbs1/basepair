@@ -35,6 +35,32 @@ const ROWS = [
   { id: "h", sev: "w-16", name: "w-36", mrn: "w-20", drug: "w-24", geno: "w-32", pheno: "w-40", by: "w-24", fired: "w-20" },
 ] as const
 
+/**
+ * Loading placeholder for the non-sticky `QueueFilters` bar that the real page
+ * (`app/page.tsx`) renders *above* the queue. Omitting it made the whole table
+ * jump down by the bar's height (~53px) when data landed — the largest shift on
+ * this route. Mirrors the bar's box exactly: same wrapper padding/border and
+ * three `h-8` toggle-sized blocks + the "N of M" count, so it reserves the
+ * identical height. The Clear affordance is left out because it only appears
+ * once a filter is active, which is never true on first load. Decorative, so the
+ * whole bar is `aria-hidden` — the table below carries the "loading" label.
+ */
+export function QueueFiltersSkeleton() {
+  return (
+    <div
+      aria-hidden
+      className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5"
+    >
+      <div className="flex items-center gap-1.5">
+        <Skeleton className="h-8 w-24 rounded-sm" />
+        <Skeleton className="h-8 w-24 rounded-sm" />
+        <Skeleton className="h-8 w-16 rounded-sm" />
+      </div>
+      <Skeleton className="ml-1 h-5 w-14 rounded-sm" />
+    </div>
+  )
+}
+
 export function QueueSkeleton() {
   return (
     // Same props as the real `AlertQueue` <Table>: overflow-visible so the

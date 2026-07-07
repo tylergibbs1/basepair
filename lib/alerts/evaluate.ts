@@ -7,7 +7,12 @@ import type {
 } from "@medplum/fhirtypes";
 import type { MedplumClient } from "@medplum/core";
 
-import { resolvePhenotype, lookupRule } from "@/lib/cpic-catalog";
+import {
+  resolvePhenotype,
+  lookupRule,
+  recommendedAlternative,
+  type RecommendedAlternative,
+} from "@/lib/cpic-catalog";
 import {
   buildDetectedIssue,
   buildConsideredIssue,
@@ -85,6 +90,7 @@ export type EvaluateResult =
       drug: string;
       severity: "critical" | "caution" | "info";
       recommendation: string;
+      recommendedAlternative?: RecommendedAlternative;
       citation: string;
       citedSentence: string;
       verified: boolean;
@@ -285,6 +291,7 @@ export async function evaluateAndWrite(
       verifierRationale: verification?.rationale ?? "",
       verifierModel: verification?.model ?? "",
       verifierHighlight: verification?.highlight ?? "",
+      recommendedAlternative: recommendedAlternative(rule.drug) ?? undefined,
     }),
     ...(orderTag ? { identifier: orderTag } : {}),
   };
@@ -312,6 +319,7 @@ export async function evaluateAndWrite(
     drug: rule.drug,
     severity: rule.severity,
     recommendation: rule.recommendation,
+    recommendedAlternative: recommendedAlternative(rule.drug) ?? undefined,
     citation: rule.citation,
     citedSentence,
     verified: verification?.verified ?? false,

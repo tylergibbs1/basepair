@@ -240,7 +240,7 @@ function NotInQueue() {
  */
 export function AlertDetailPage({ id }: { id: string }) {
   const router = useRouter()
-  const { alerts, getAlert, approve, dismiss } = useAlerts()
+  const { alerts, getAlert, approve, dismiss, enact } = useAlerts()
 
   const alert = getAlert(id)
   const inQueue = alerts.some((a) => a.id === id)
@@ -257,6 +257,15 @@ export function AlertDetailPage({ id }: { id: string }) {
     fn(id)
     router.push("/")
   }
+
+  // The primary action closes the loop (issue #2): a clean single-drug switch
+  // names the alternative; a dose/avoid rule (or an uncurated one) falls back to
+  // notifying the prescriber. Plain Approve stays available as a secondary.
+  const alt = alert?.recommendedAlternative
+  const enactLabel =
+    alt?.kind === "switch"
+      ? `Approve & Switch to ${alt.altDrug.charAt(0).toUpperCase()}${alt.altDrug.slice(1)}`
+      : "Approve & Notify Prescriber"
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-6 lg:px-8">
@@ -277,7 +286,8 @@ export function AlertDetailPage({ id }: { id: string }) {
       ) : (
         <>
           {/* Header: identity + trust state on the left, the decision on the
-              right. One primary action per view (Approve, navy). */}
+              right. One primary action per view (navy): enact the CPIC
+              recommendation; plain Approve + Dismiss recede to secondary. */}
           <header className="mt-4 flex flex-wrap items-start justify-between gap-4">
             <div className="grid gap-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -293,8 +303,11 @@ export function AlertDetailPage({ id }: { id: string }) {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={() => act(approve)}>Approve Alert</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => act(enact)}>{enactLabel}</Button>
+              <Button variant="outline" onClick={() => act(approve)}>
+                Approve Alert
+              </Button>
               <Button
                 variant="destructive-outline"
                 onClick={() => act(dismiss)}

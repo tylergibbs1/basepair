@@ -26,6 +26,11 @@ export type FlaggedPgxPayload = {
   citedSentence: string
   guidelineText?: string
   orderedBy: string
+  // How the alert was reached. Absent on alerts written before provenance
+  // existed; treated as "order".
+  foundBy?: "order" | "sweep"
+  // ISO 8601 timestamp of the population sweep that surfaced this (sweep only).
+  sweptAt?: string
   // Added by the AI trust gate; absent on alerts written before it existed.
   verified?: boolean
   verifierRationale?: string

@@ -142,6 +142,14 @@ export type AlertFacts = {
   /** Full guideline paragraph, the source text the UI renders and highlights. */
   guidelineText: string;
   orderedBy: string;
+  /**
+   * How the alert was reached: `order` (just prescribed) or `sweep` (a
+   * population scan of a drug the patient is already taking). Distinguishes an
+   * "already at risk" finding from an order-time catch. Defaults to `order`.
+   */
+  foundBy?: "order" | "sweep";
+  /** ISO 8601 timestamp of the population sweep that surfaced this (sweep only). */
+  sweptAt?: string;
   /** AI trust gate: did the model confirm the guideline supports the rec? */
   verified: boolean;
   /** The model's plain-language reasoning (the observability surface). */
@@ -180,6 +188,8 @@ export function buildDetectedIssue(
     citedSentence: facts.citedSentence,
     guidelineText: facts.guidelineText,
     orderedBy: facts.orderedBy,
+    foundBy: facts.foundBy ?? "order",
+    ...(facts.sweptAt ? { sweptAt: facts.sweptAt } : {}),
     verified: facts.verified,
     verifierRationale: facts.verifierRationale,
     verifierModel: facts.verifierModel,

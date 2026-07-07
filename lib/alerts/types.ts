@@ -23,6 +23,14 @@ export interface Alert {
   guidelineText: string
   citation: string
   orderedBy: string
+  /**
+   * How the alert was reached: `order` (just prescribed) or `sweep` (a
+   * population scan found the patient already on a mismatched drug). Drives the
+   * sweep-originated tag in the queue + detail provenance.
+   */
+  foundBy: "order" | "sweep"
+  /** ISO 8601 timestamp of the population sweep that surfaced this (sweep only). */
+  sweptAt?: string
   /** AI trust gate: how Basepair verified the alert against the guideline. */
   verification: Verification
   /** ISO 8601 timestamp of when the alert fired. */

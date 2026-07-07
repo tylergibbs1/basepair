@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { animate, useReducedMotion } from "motion/react"
+import { animate, useMotionValue, useReducedMotion } from "motion/react"
 
 import type { SignalStats } from "@/lib/alerts/types"
 import { cn } from "@/lib/utils"
@@ -27,28 +27,36 @@ import { cn } from "@/lib/utils"
 
 /** Animate an integer up/down when it changes; snap under reduced-motion. The
  *  count-up marks a real state change (a new cleared/flagged event), never
- *  decoration, and settles quickly so it doesn't distract. */
+ *  decoration, and settles quickly so it doesn't distract.
+ *
+ *  Driven by a MotionValue writing straight to the DOM node — not React state —
+ *  so the animation never re-renders the tree, and the span's initial text is
+ *  the real value (correct on the server and first paint, so a still count reads
+ *  right and there's no derived-state staleness). */
 function CountUp({ value }: { value: number }) {
   const reduceMotion = useReducedMotion()
-  const [display, setDisplay] = React.useState(value)
-  const prev = React.useRef(value)
+  const ref = React.useRef<HTMLSpanElement>(null)
+  const count = useMotionValue(value)
 
   React.useEffect(() => {
-    const from = prev.current
-    prev.current = value
-    if (reduceMotion || from === value) {
-      setDisplay(value)
-      return
-    }
-    const controls = animate(from, value, {
-      duration: 0.4,
-      ease: "easeOut",
-      onUpdate: (v) => setDisplay(Math.round(v)),
+    const unsubscribe = count.on("change", (latest) => {
+      const node = ref.current
+      if (node) node.textContent = String(Math.round(latest))
     })
-    return () => controls.stop()
-  }, [value, reduceMotion])
 
-  return <>{display}</>
+    if (reduceMotion) {
+      count.set(value)
+      return unsubscribe
+    }
+
+    const controls = animate(count, value, { duration: 0.4, ease: "easeOut" })
+    return () => {
+      controls.stop()
+      unsubscribe()
+    }
+  }, [value, reduceMotion, count])
+
+  return <span ref={ref}>{value}</span>
 }
 
 type Stat = {

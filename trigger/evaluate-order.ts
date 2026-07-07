@@ -2,13 +2,13 @@ import { task } from "@trigger.dev/sdk";
 import type { Observation, Patient, DetectedIssue, Task, Reference } from "@medplum/fhirtypes";
 import { resolvePhenotype, lookupRule } from "@/lib/cpic-catalog";
 import { createMedplumClient } from "@/lib/medplum/client";
-import { buildDetectedIssue, buildTask } from "@/lib/medplum/fhir";
+import { buildDetectedIssue, buildConsideredIssue, buildTask } from "@/lib/medplum/fhir";
 import { citeAndVerify } from "@/lib/ai/verify";
 
 /**
  * The Day-1 loop: given a patient + a prescribed drug, read the patient's
  * genetics from Medplum, make the deterministic CPIC decision (from the
- * authoritative CPIC catalog — lib/cpic-catalog.ts), and on a real alert write a
+ * authoritative CPIC catalog, lib/cpic-catalog.ts), and on a real alert write a
  * DetectedIssue + pharmacist Task back to Medplum.
  *
  * Reads ALL of the patient's gene results (not just one), so multi-gene rules
@@ -25,6 +25,8 @@ export type EvaluateOrderPayload = {
    * triggers may omit it, in which case the writes are plain creates.
    */
   orderId?: string;
+  /** The ordering prescriber, shown on the alert's provenance line. */
+  orderedBy?: string;
 };
 
 /** Identifier system that ties an alert's resources back to the order. */
@@ -78,7 +80,7 @@ function readGenetics(obs: Observation[]): GeneReading[] {
   return readings;
 }
 
-/** The gene actually driving the alert — the abnormal one, not a co-tested normal gene. */
+/** The gene actually driving the alert, the abnormal one, not a co-tested normal gene. */
 function primaryGene(genes: string[], readings: GeneReading[]): GeneReading {
   const isNormal = (p: string) => /normal|indeterminate/i.test(p);
   const inRule = readings.filter((r) => genes.includes(r.gene));
@@ -109,11 +111,35 @@ export const evaluateOrder = task({
 
     const rule = lookupRule({ drug: payload.drug, genePhenotypes });
     if (!rule.applies) {
+      // Considered-and-cleared: Basepair evaluated the order and found nothing
+      // to flag (reason "no-rule" or "missing-genes"). Record it as a
+      // lightweight DetectedIssue with NO pharmacist Task, so the safety work is
+      // visible in the Audit view while never entering the alert queue. Keyed
+      // idempotently on the order id exactly like the alert path below.
+      const patient: Reference<Patient> = { reference: payload.patientRef };
+      const clearedResource: DetectedIssue = {
+        ...buildConsideredIssue(patient, {
+          drug: payload.drug,
+          genePhenotypes,
+          reason: rule.reason,
+        }),
+        ...(payload.orderId
+          ? { identifier: [{ system: ORDER_ID_SYSTEM, value: payload.orderId }] }
+          : {}),
+      };
+      const clearedIssue = payload.orderId
+        ? await medplum.createResourceIfNoneExist(
+            clearedResource,
+            `identifier=${ORDER_ID_SYSTEM}|${payload.orderId}`,
+          )
+        : await medplum.createResource(clearedResource);
+
       return {
         alert: false as const,
         reason: rule.reason,
         genePhenotypes,
         drug: payload.drug,
+        detectedIssueId: clearedIssue.id,
       };
     }
 
@@ -122,7 +148,7 @@ export const evaluateOrder = task({
     // AI trust gate: the deterministic engine already made the call; the model
     // picks the verbatim supporting sentence, grades it against the guideline,
     // and explains that judgment (the reasoning the pharmacist sees). On any
-    // model error we still emit the alert, just unverified — never drop a flag.
+    // model error we still emit the alert, just unverified, never drop a flag.
     const verification = await citeAndVerify({
       gene: primary.gene,
       diplotype: primary.diplotype,
@@ -164,7 +190,7 @@ export const evaluateOrder = task({
         citation: rule.citation,
         citedSentence,
         guidelineText: rule.guidelineText,
-        orderedBy: "",
+        orderedBy: payload.orderedBy ?? "",
         verified: verification?.verified ?? false,
         verifierRationale: verification?.rationale ?? "",
         verifierModel: verification?.model ?? "",

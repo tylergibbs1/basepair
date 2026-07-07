@@ -2,7 +2,7 @@
  * Seed "orderable" patients: patients that carry genotype + phenotype
  * Observations but NO DetectedIssue/Task yet. Simulating an order against one of
  * these drives the deployed evaluate-order task to produce a FRESH alert (or,
- * for the normal metabolizer, a clean "no alert" — the trust demo).
+ * for the normal metabolizer, a clean "no alert", the trust demo).
  *
  * Uses the same FHIR builders the trigger reads, so the genetics on file match
  * what the live pipeline expects.
@@ -82,5 +82,5 @@ for (const c of CASES) {
   );
 }
 
-console.log("\nSeed complete — no DetectedIssue/Task created (orderable only).");
+console.log("\nSeed complete, no DetectedIssue/Task created (orderable only).");
 process.exit(0);

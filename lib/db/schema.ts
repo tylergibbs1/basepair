@@ -9,7 +9,7 @@ export const tenants = pgTable("tenants", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   medplumBaseUrl: text("medplum_base_url").notNull(),
-  // Encrypted at rest — Medplum ClientApplication id/secret.
+  // Encrypted at rest, Medplum ClientApplication id/secret.
   medplumClientCreds: jsonb("medplum_client_creds").notNull(),
   settings: jsonb("settings").default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

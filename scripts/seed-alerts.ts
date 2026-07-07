@@ -13,7 +13,7 @@
  *
  * The seed is IDEMPOTENT BY MRN: re-running reuses the existing patient, cancels
  * its open Tasks, backfills only the missing gene Observations, and writes a
- * fresh DetectedIssue + Task — so it never duplicates patients or observations.
+ * fresh DetectedIssue + Task, so it never duplicates patients or observations.
  *
  * Run: bun --env-file=.env.local scripts/seed-alerts.ts
  */
@@ -52,7 +52,7 @@ type SeedCase = {
   phenotype?: string;
   drug: string;
   orderedBy: string;
-  /** Hours ago the order fired — spreads authoredOn across the last day. */
+  /** Hours ago the order fired, spreads authoredOn across the last day. */
   hoursAgo: number;
   /** Other genes on the panel; needed for multi-gene rules (e.g. NUDT15). */
   coTested?: CoTestedGene[];
@@ -102,7 +102,7 @@ const CASES: SeedCase[] = [
     orderedBy: "Dr. Marcus Feld",
     hoursAgo: 10,
     // CPIC's thiopurine rules key on TPMT AND NUDT15, so the panel must report
-    // NUDT15 too — normal here, so TPMT is what drives the alert.
+    // NUDT15 too, normal here, so TPMT is what drives the alert.
     coTested: [
       { gene: "NUDT15", diplotype: "*1/*1", phenotype: "Normal metabolizer" },
     ],
@@ -158,7 +158,7 @@ function resolveCaseGenes(c: SeedCase): GeneReading[] | null {
   return readings;
 }
 
-/** The gene actually driving the alert — the abnormal one, not a co-tested normal gene. */
+/** The gene actually driving the alert, the abnormal one, not a co-tested normal gene. */
 function primaryGene(genes: string[], readings: GeneReading[]): GeneReading {
   const isNormal = (p: string) => /normal|indeterminate/i.test(p);
   const inRule = readings.filter((r) => genes.includes(r.gene));
@@ -255,7 +255,7 @@ for (const c of CASES) {
 
   // Run the same AI trust gate the live task uses, so seeded alerts carry a
   // real verdict + rationale (not a placeholder) and the demo queue is uniform.
-  // On any model error we still emit the alert, just unverified — never drop a flag.
+  // On any model error we still emit the alert, just unverified, never drop a flag.
   const verification = await citeAndVerify({
     gene: primary.gene,
     diplotype: primary.diplotype,

@@ -54,7 +54,7 @@ const labCategory = [
   { coding: [{ system: CATEGORY_SYS, code: "laboratory", display: "Laboratory" }] },
 ];
 
-/** Genotype (diplotype) Observation — LOINC 84413-4, diplotype in text. */
+/** Genotype (diplotype) Observation, LOINC 84413-4, diplotype in text. */
 export function buildGenotypeObservation(
   patient: Reference<Patient>,
   gene: string,
@@ -73,7 +73,7 @@ export function buildGenotypeObservation(
   };
 }
 
-/** Phenotype (metabolizer status) Observation — LOINC 53040-2 + LL3856-3 answer. */
+/** Phenotype (metabolizer status) Observation, LOINC 53040-2 + LL3856-3 answer. */
 export function buildPhenotypeObservation(
   patient: Reference<Patient>,
   gene: string,
@@ -113,7 +113,7 @@ export function buildPhenotypeObservation(
  * The prescriber's order, as a FHIR MedicationRequest. Writing this to Medplum
  * is what a real clinician does; a Subscription on MedicationRequest fires the
  * Bot that triggers the evaluate-order task (docs/ARCHITECTURE.md §3). The drug
- * is carried as free text in `medicationCodeableConcept.text` — the same string
+ * is carried as free text in `medicationCodeableConcept.text`, the same string
  * the CPIC engine looks up.
  */
 export function buildMedicationRequest(
@@ -139,7 +139,7 @@ export type AlertFacts = {
   recommendation: string;
   citation: string;
   citedSentence: string;
-  /** Full guideline paragraph — the source text the UI renders and highlights. */
+  /** Full guideline paragraph, the source text the UI renders and highlights. */
   guidelineText: string;
   orderedBy: string;
   /** AI trust gate: did the model confirm the guideline supports the rec? */
@@ -167,6 +167,9 @@ export function buildDetectedIssue(
   const severityMap = { critical: "high", caution: "moderate", info: "low" } as const;
   // Structured payload Phase 2 reads verbatim off the extension.
   const pgxAlert = {
+    // Distinguishes a pharmacist-facing alert from a considered-and-cleared
+    // record (see buildConsideredIssue). The Audit view keys off this field.
+    outcome: "flagged" as const,
     gene: facts.gene,
     diplotype: facts.diplotype,
     phenotype: facts.phenotype,
@@ -189,7 +192,7 @@ export function buildDetectedIssue(
     patient,
     // detail is a string; DetectedIssue.reference is a uri, so the citation
     // goes here rather than in reference.
-    detail: `${facts.recommendation} — ${facts.citation}. (${facts.gene} ${facts.diplotype}, ${facts.phenotype}; ${facts.drug})`,
+    detail: `${facts.recommendation}, ${facts.citation}. (${facts.gene} ${facts.diplotype}, ${facts.phenotype}; ${facts.drug})`,
     extension: [
       {
         url: PGX_ALERT_EXTENSION_URL,
@@ -197,6 +200,50 @@ export function buildDetectedIssue(
       },
     ],
   };
+}
+
+export type ConsideredFacts = {
+  drug: string
+  /** Every gene phenotype Basepair read while evaluating the order. */
+  genePhenotypes: Record<string, string>
+  /** Why no alert fired, e.g. "no-rule" or "missing-genes". */
+  reason: string
+}
+
+/**
+ * The considered-and-cleared record, as a FHIR DetectedIssue with NO pharmacist
+ * Task. When evaluate-order looks at an order and finds nothing to flag, this is
+ * written so the safety work is visible in the Audit view. It carries the same
+ * PGX_ALERT_EXTENSION_URL extension as an alert, but with `outcome:"cleared"`
+ * (plus the reason + considered genePhenotypes) so the two are distinguishable.
+ * status "mitigated" / severity "low" keep it out of the alert queue's shape,
+ * and the absence of a Task means getOpenAlerts never surfaces it.
+ */
+export function buildConsideredIssue(
+  patient: Reference<Patient>,
+  facts: ConsideredFacts,
+): DetectedIssue {
+  const pgxCleared = {
+    outcome: "cleared" as const,
+    drug: facts.drug,
+    genePhenotypes: facts.genePhenotypes,
+    reason: facts.reason,
+  }
+  const genes = Object.keys(facts.genePhenotypes)
+  const considered = genes.length ? genes.join(", ") : "no relevant genes"
+  return {
+    resourceType: "DetectedIssue",
+    status: "mitigated",
+    severity: "low",
+    patient,
+    detail: `No pharmacogenomic action for ${facts.drug} (${facts.reason}; considered ${considered}).`,
+    extension: [
+      {
+        url: PGX_ALERT_EXTENSION_URL,
+        valueString: JSON.stringify(pgxCleared),
+      },
+    ],
+  }
 }
 
 /** The pharmacist worklist item, as a FHIR Task (status requested). */

@@ -23,7 +23,7 @@ export default defineConfig({
     ],
   },
   // Tasks run in Trigger.dev's managed Node env (isolates the heavy AI/FHIR
-  // work from Bun-compat risk — see docs/ARCHITECTURE.md).
+  // work from Bun-compat risk, see docs/ARCHITECTURE.md).
   runtime: "node-22",
   logLevel: "info",
   retries: {

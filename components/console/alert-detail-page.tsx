@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Check, ShieldCheck, Sparkles } from "lucide-react"
+import { ArrowLeft, Check, SearchX, ShieldCheck, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { SeverityChip } from "@/components/ui/severity-chip"
@@ -33,7 +33,7 @@ function modelLabel(model: string): string {
 
 /**
  * Render the full guideline paragraph with the AI-identified operative span
- * marked in place — the pharmacist sees the evidence in context, not a pulled
+ * marked in place, the pharmacist sees the evidence in context, not a pulled
  * quote. The span is verbatim, so a plain substring match is exact; we fall
  * back to the cited sentence, then to no highlight. The mark color tracks the
  * verdict (green when verified, amber when it needs review).
@@ -76,10 +76,10 @@ function HighlightedGuideline({
 /**
  * The AI trust gate, rendered by the status-vs-tag rule: severity is the loud,
  * act-on *status*, so verification must not compete with it. When verified, it
- * recedes to a quiet classification *tag* — squared and muted, shaped unlike
+ * recedes to a quiet classification *tag*, squared and muted, shaped unlike
  * the round severity pill, and labeled "AI-verified" (never a bare "Verified"
  * that could read as a human sign-off). It only *escalates* to a caution
- * status when it needs review — the moment worth acting on.
+ * status when it needs review, the moment worth acting on.
  */
 function VerificationChip({ verified }: { verified: boolean }) {
   if (!verified) {
@@ -139,17 +139,29 @@ function Step({
   )
 }
 
-/** Honest dead-end recovery: the alert isn't in the live queue. */
+/**
+ * Honest dead-end recovery: the alert isn't in the live queue. Styled to
+ * match the queue's borderless empty-state pattern, centered column, icon
+ * badge, then the copy.
+ */
 function NotInQueue() {
   return (
-    <div className="grid justify-items-start gap-3 rounded-sm border p-8">
-      <p className="text-sm font-medium text-foreground">
-        This alert isn&apos;t in the queue
-      </p>
-      <p className="max-w-md text-sm text-muted-foreground">
-        It may have already been approved or dismissed, or the link may be out
-        of date.
-      </p>
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-24 text-center">
+      <div
+        aria-hidden
+        className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+      >
+        <SearchX className="size-5" />
+      </div>
+      <div className="grid gap-1">
+        <p className="text-sm font-medium text-foreground">
+          This alert isn&apos;t in the queue
+        </p>
+        <p className="max-w-xs text-sm text-muted-foreground">
+          It may have already been approved or dismissed, or the link may be
+          out of date.
+        </p>
+      </div>
       <Button variant="outline" size="sm" render={<Link href="/" />}>
         <ArrowLeft aria-hidden />
         Back to Alerts
@@ -159,11 +171,11 @@ function NotInQueue() {
 }
 
 /**
- * Full-page alert detail — the working surface for one triage decision.
+ * Full-page alert detail, the working surface for one triage decision.
  * Replaces the side-peek sheet: the reasoning trace and guideline text want
  * room, and a page gives the alert a first-class, linkable, auditable address.
- * Left-aligned per the console layout rules; the verdict leads, the trace is
- * always open (no space to ration anymore), and the facts sit in a quiet rail.
+ * A centered reading column; the verdict leads, the trace is always open (no
+ * space to ration anymore), and the facts sit in a quiet rail.
  */
 export function AlertDetailPage({ id }: { id: string }) {
   const router = useRouter()
@@ -178,7 +190,7 @@ export function AlertDetailPage({ id }: { id: string }) {
   }
 
   return (
-    <div className="w-full max-w-5xl px-6 py-6 lg:px-8">
+    <div className="mx-auto w-full max-w-5xl px-6 py-6 lg:px-8">
       <Button
         variant="ghost"
         size="sm"
@@ -235,7 +247,7 @@ export function AlertDetailPage({ id }: { id: string }) {
                 >
                   Recommendation
                 </h3>
-                <p className="rounded-sm border p-6 text-base leading-relaxed text-foreground">
+                <p className="max-w-prose text-base leading-relaxed text-foreground">
                   {alert.recommendation}
                 </p>
               </section>
@@ -243,7 +255,7 @@ export function AlertDetailPage({ id }: { id: string }) {
               {/* Reasoning trace: the recommendation reconstructed as an
                   ordered chain from the patient's genotype to the AI's verdict,
                   each link resolved from a named source. Reading it top to
-                  bottom is the audit. Always open — the page has the room the
+                  bottom is the audit. Always open, the page has the room the
                   sheet had to ration. */}
               <section aria-labelledby="trace-label" className="grid gap-3">
                 <h3
@@ -253,7 +265,7 @@ export function AlertDetailPage({ id }: { id: string }) {
                   <Sparkles aria-hidden className="size-3.5" />
                   Evidence &amp; Verification
                 </h3>
-                <ol className="rounded-sm border p-6">
+                <ol>
                   <Step n={1} label="Genotype on file">
                     <span className="font-mono">
                       {alert.gene} {alert.diplotype}

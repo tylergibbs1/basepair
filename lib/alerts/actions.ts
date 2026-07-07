@@ -18,17 +18,17 @@ async function setTaskStatus(taskId: string, status: TaskStatus): Promise<void> 
   revalidatePath("/")
 }
 
-/** Approve an alert — the pharmacist accepted the recommendation. */
+/** Approve an alert, the pharmacist accepted the recommendation. */
 export async function approveAlert(taskId: string): Promise<void> {
   await setTaskStatus(taskId, "completed")
 }
 
-/** Dismiss an alert — the pharmacist declined it. */
+/** Dismiss an alert, the pharmacist declined it. */
 export async function dismissAlert(taskId: string): Promise<void> {
   await setTaskStatus(taskId, "cancelled")
 }
 
-/** Reopen an alert — reverses an approve/dismiss (Undo). */
+/** Reopen an alert, reverses an approve/dismiss (Undo). */
 export async function reopenAlert(taskId: string): Promise<void> {
   await setTaskStatus(taskId, "requested")
 }
@@ -47,12 +47,13 @@ export type PlaceOrderResult = {
  * a create-only Medplum Subscription fires a Bot that triggers the task. That
  * path is fully built but requires the Medplum project to have **Bots enabled**
  * (a project-admin setting). Until then we trigger the same evaluate-order task
- * directly here — the order (MedicationRequest) and the whole evaluation are
+ * directly here, the order (MedicationRequest) and the whole evaluation are
  * still real; only the trigger source is the app instead of the Subscription.
  */
 export async function placeOrder(
   patientRef: string,
   drug: string,
+  orderedBy: string,
 ): Promise<PlaceOrderResult> {
   const medplum = await createMedplumClient()
   const patient: Reference<Patient> = { reference: patientRef }
@@ -64,10 +65,11 @@ export async function placeOrder(
 
   // Interim: trigger the durable task directly (Bot path pending Bots-enabled).
   // idempotencyKey dedupes re-triggers of the same order; orderId in the payload
-  // lets the task dedupe its own Medplum writes on retry.
+  // lets the task dedupe its own Medplum writes on retry; orderedBy attributes
+  // the prescriber on the resulting alert.
   await tasks.trigger<typeof evaluateOrder>(
     "evaluate-order",
-    { patientRef, drug, orderId: order.id },
+    { patientRef, drug, orderId: order.id, orderedBy },
     { idempotencyKey: order.id },
   )
 

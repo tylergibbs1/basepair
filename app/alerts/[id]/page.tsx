@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { AlertDetailPage } from "@/components/console/alert-detail-page"
 
 export const metadata: Metadata = {
-  title: "Alert — Basepair",
+  title: "Alert, Basepair",
   description: "Pharmacogenomic alert detail.",
 }
 

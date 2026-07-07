@@ -21,12 +21,12 @@ function patientName(patient: Patient): string {
 
 function patientMrn(patient: Patient): string {
   return (
-    patient.identifier?.find((id) => id.system === MRN_SYSTEM)?.value ?? "—"
+    patient.identifier?.find((id) => id.system === MRN_SYSTEM)?.value ?? "-"
   )
 }
 
 /**
- * Load every patient in Medplum for the "New Order" picker. Server-only —
+ * Load every patient in Medplum for the "New Order" picker. Server-only,
  * never import into a client component (it constructs the Medplum client).
  */
 export async function getOrderablePatients(): Promise<OrderablePatient[]> {

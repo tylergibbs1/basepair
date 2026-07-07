@@ -30,7 +30,7 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   // The console shell lives in the layout so it persists across the queue and
-  // the `/alerts/[id]` detail page — navigating between them never re-fetches
+  // the `/alerts/[id]` detail page, navigating between them never re-fetches
   // or re-mounts the shell (and the AlertsProvider keeps the optimistic queue
   // + undo state alive across the two routes).
   const [alerts, patients] = await Promise.all([

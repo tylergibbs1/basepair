@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRight, Inbox } from "lucide-react"
+import { ChevronRight, Inbox, SearchX } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
 import { useRouter } from "next/navigation"
 
@@ -17,7 +17,7 @@ import { spring } from "@/lib/springs"
 import { formatFiredAt, type Alert } from "@/lib/alerts/types"
 import { useAlerts } from "@/components/console/alerts-provider"
 
-/** Spoken severity for the row's accessible name — the most safety-critical
+/** Spoken severity for the row's accessible name, the most safety-critical
  *  datum, so a screen reader announces it up front. */
 const SEVERITY_LABEL: Record<Alert["severity"], string> = {
   critical: "Critical",
@@ -45,8 +45,29 @@ function EmptyState() {
   )
 }
 
+function NoMatchState({ query }: { query: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-24 text-center">
+      <div
+        aria-hidden
+        className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+      >
+        <SearchX className="size-5" />
+      </div>
+      <div className="grid gap-1">
+        <p className="text-sm font-medium text-foreground">
+          No alerts match &ldquo;{query}&rdquo;
+        </p>
+        <p className="max-w-xs text-sm text-muted-foreground">
+          Try a different patient, drug, gene, or phenotype.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 /**
- * Rows use the `spring.moderate` tier — short travel that must settle precisely.
+ * Rows use the `spring.moderate` tier, short travel that must settle precisely.
  * On approve/dismiss the provider pulls the row from the queue and the exit
  * transition slides it out (crisp, one tier quicker than the enter), while the
  * `layout` prop springs the rows below up to close the gap. Motion carries the
@@ -113,10 +134,16 @@ function AlertRow({ alert }: { alert: Alert }) {
 }
 
 export function AlertQueue() {
-  const { alerts } = useAlerts()
+  const { alerts, filteredAlerts, query } = useAlerts()
 
+  // No open alerts at all is the triaged/inbox-zero state; an active query that
+  // simply matches nothing is a distinct dead-end and reads differently.
   if (alerts.length === 0) {
     return <EmptyState />
+  }
+
+  if (filteredAlerts.length === 0) {
+    return <NoMatchState query={query.trim()} />
   }
 
   return (
@@ -135,10 +162,10 @@ export function AlertQueue() {
       </TableHeader>
       <TableBody>
         {/* initial={false}: the first paint of the queue is still, so only
-            restored (undo) and newly-triaged rows animate in — the motion
+            restored (undo) and newly-triaged rows animate in, the motion
             always marks a change, never the initial state. */}
         <AnimatePresence initial={false}>
-          {alerts.map((alert) => (
+          {filteredAlerts.map((alert) => (
             <AlertRow key={alert.id} alert={alert} />
           ))}
         </AnimatePresence>

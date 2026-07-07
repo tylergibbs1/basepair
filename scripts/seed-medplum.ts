@@ -1,6 +1,6 @@
 /**
  * Seed a synthetic patient + genomic Observations into Medplum, then read them
- * back — verifies the FHIR read/write path end to end.
+ * back, verifies the FHIR read/write path end to end.
  * Run: bun --env-file=.env.local scripts/seed-medplum.ts
  */
 import type { Patient, Reference } from "@medplum/fhirtypes";
@@ -33,7 +33,7 @@ const phenotype = await medplum.createResource(
 );
 console.log("Created Phenotype Observation:", phenotype.id);
 
-console.log("\nRead-back — Observations for this patient:");
+console.log("\nRead-back, Observations for this patient:");
 const observations = await medplum.searchResources(
   "Observation",
   `subject=Patient/${patient.id}`,

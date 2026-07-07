@@ -3,7 +3,7 @@
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
-// Light theme only (docs/DESIGN.md) — no next-themes, no theme switching.
+// Light theme only (docs/DESIGN.md), no next-themes, no theme switching.
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner

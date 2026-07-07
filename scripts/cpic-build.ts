@@ -76,7 +76,7 @@ for (const d of diplotypes) {
 // CPIC doesn't publish our critical/caution/info scale, so we derive it from the
 // recommendation text + the phenotype tier. The phenotype matters because some
 // pairs (e.g. SLCO1B1 poor vs decreased function) have near-identical text but
-// different clinical weight — poor-tier is the severe end.
+// different clinical weight, poor-tier is the severe end.
 type Severity = "critical" | "caution" | "info";
 function deriveSeverity(rec: Rec): Severity {
   // Severity keys off the ACTION (drugrecommendation), not the risk description

@@ -1,5 +1,5 @@
 /**
- * Deterministic clinical layer. The LLM never makes the clinical call —
+ * Deterministic clinical layer. The LLM never makes the clinical call,
  * these published CPIC tables do. All recommendations, phenotype assignments,
  * and strengths verified against the cited CPIC guidelines.
  *
@@ -35,7 +35,7 @@ export type Strength = 'strong' | 'moderate' | 'optional';
 // ---------- diplotype → phenotype (allele-function model, per CPIC) ----------
 //
 // Phenotype is derived from the functional status of the two alleles, the way
-// CPIC does it, rather than a hardcoded per-diplotype table — so any diplotype
+// CPIC does it, rather than a hardcoded per-diplotype table, so any diplotype
 // built from these alleles resolves correctly. Allele-function assignments are
 // from the CPIC allele-function/definition tables for each gene.
 

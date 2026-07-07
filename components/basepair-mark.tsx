@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 
 /**
- * Basepair brand mark — two nodes joined by a bar (one base pair).
+ * Basepair brand mark, two nodes joined by a bar (one base pair).
  *
  * Monochrome and inherits `currentColor`, so the console tints it with neutral
  * chrome colors. It is chrome, never clinical: the green brand variant is

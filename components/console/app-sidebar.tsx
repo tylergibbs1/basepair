@@ -1,6 +1,8 @@
 "use client"
 
 import { BellRing, ScrollText, Settings } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 
 import { useAlerts } from "@/components/console/alerts-provider"
 import { BasepairMark } from "@/components/basepair-mark"
@@ -18,10 +20,19 @@ import {
 } from "@/components/ui/sidebar"
 
 const NAV_ITEMS = [
-  { title: "Alerts", icon: BellRing, active: true },
-  { title: "Audit", icon: ScrollText, active: false },
-  { title: "Settings", icon: Settings, active: false },
+  { title: "Alerts", icon: BellRing, href: "/" },
+  { title: "Audit", icon: ScrollText, href: "/audit" },
+  // Settings has no destination yet; it stays an inert button.
+  { title: "Settings", icon: Settings, href: null },
 ] as const
+
+/** Which nav item the current path belongs to. The Alerts item owns the queue
+ *  and every `/alerts/[id]` detail route; Audit owns `/audit`. */
+function isActive(href: string | null, pathname: string): boolean {
+  if (href === "/") return pathname === "/" || pathname.startsWith("/alerts")
+  if (href) return pathname === href || pathname.startsWith(`${href}/`)
+  return false
+}
 
 /**
  * Console shell navigation. The chrome recedes and stays static; it reads the
@@ -30,6 +41,7 @@ const NAV_ITEMS = [
  */
 export function AppSidebar() {
   const { openCount } = useAlerts()
+  const pathname = usePathname()
 
   return (
     <Sidebar collapsible="icon">
@@ -54,9 +66,15 @@ export function AppSidebar() {
               {NAV_ITEMS.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    isActive={item.active}
+                    isActive={isActive(item.href, pathname)}
                     tooltip={item.title}
-                    render={<button type="button" aria-label={item.title} />}
+                    render={
+                      item.href ? (
+                        <Link href={item.href} aria-label={item.title} />
+                      ) : (
+                        <button type="button" aria-label={item.title} />
+                      )
+                    }
                   >
                     <item.icon aria-hidden />
                     <span>{item.title}</span>

@@ -1,6 +1,6 @@
 /**
  * Data-backed CPIC engine: reads the compact catalog built from the CPIC
- * ingest (lib/cpic/catalog.json — see scripts/cpic-build.ts) and resolves
+ * ingest (lib/cpic/catalog.json, see scripts/cpic-build.ts) and resolves
  * phenotypes + actionable rules from the AUTHORITATIVE CPIC data, keyed off
  * CPIC's own `lookupkey` (so single- and multi-gene pairs work uniformly).
  *
@@ -9,7 +9,7 @@
  * severity, strength) while sourcing every string from CPIC.
  */
 // Imported (not fs-read) so the ~3.6MB catalog bundles into the Trigger.dev
-// task and the Next server build. Server-only module — never import from a
+// task and the Next server build. Server-only module, never import from a
 // client component.
 import catalogData from "./cpic/catalog.json";
 
@@ -74,7 +74,7 @@ export type LookupResult =
 /**
  * Find the actionable rule for a drug given everything we know about the
  * patient's genetics. A rule matches only when EVERY gene in its lookupkey is
- * satisfied by a known phenotype — so a 2-gene rule (e.g. TPMT + NUDT15) needs
+ * satisfied by a known phenotype, so a 2-gene rule (e.g. TPMT + NUDT15) needs
  * both genes present. Returns the most severe matching rule.
  */
 export function lookupRule(input: LookupInput): LookupResult {

@@ -14,12 +14,12 @@ export interface Alert {
   diplotype: string
   phenotype: string
   drug: string
-  /** Clinical severities only — success/hold are lifecycle states, not alerts. */
+  /** Clinical severities only, success/hold are lifecycle states, not alerts. */
   severity: Extract<Severity, "critical" | "caution" | "info">
   recommendation: string
   /** The exact guideline sentence the recommendation is drawn from. */
   citedSentence: string
-  /** Full guideline paragraph — rendered in the UI with `verification.highlight` marked. */
+  /** Full guideline paragraph, rendered in the UI with `verification.highlight` marked. */
   guidelineText: string
   citation: string
   orderedBy: string
@@ -34,7 +34,7 @@ export interface Alert {
 export interface Verification {
   /** Did the model confirm the guideline supports the recommendation? */
   verified: boolean
-  /** The model's plain-language reasoning — shown to the pharmacist. */
+  /** The model's plain-language reasoning, shown to the pharmacist. */
   rationale: string
   /** Model id that produced the verdict, e.g. "claude-opus-4-8". */
   model: string

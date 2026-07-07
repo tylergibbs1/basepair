@@ -2,14 +2,14 @@
  * Ingest the actionable CPIC catalog from the live CPIC API into a version-
  * pinned static dataset in the repo (web/data/cpic/). Baking it in (rather than
  * calling the API at request time) makes the pipeline offline, reproducible, and
- * citeable — CPIC asks that reused content record the URL, access date, and
+ * citeable, CPIC asks that reused content record the URL, access date, and
  * version.
  *
  * Scope = the whole actionable space: every gene-drug pair CPIC marks
  * `usedforrecommendation`, plus the recommendation text, guideline sources, drug
  * names, and the diplotype→phenotype resolution tables for those genes.
  *
- * License: CPIC/ClinPGx/PharmGKB data is CC BY-SA 4.0 — see the LICENSE this
+ * License: CPIC/ClinPGx/PharmGKB data is CC BY-SA 4.0, see the LICENSE this
  * writes alongside the data.
  *
  * Run: bun scripts/cpic-ingest.ts   (no secrets needed; public API)
@@ -29,13 +29,13 @@ async function get<T = Record<string, unknown>>(path: string): Promise<T[]> {
 }
 
 function inList(values: (string | number)[]): string {
-  // PostgREST in.(...) — quote values so ':' in "RxNorm:123" etc. is safe.
+  // PostgREST in.(...), quote values so ':' in "RxNorm:123" etc. is safe.
   return `in.(${values.map((v) => `"${v}"`).join(",")})`;
 }
 
 function save(name: string, data: unknown): void {
   writeFileSync(new URL(name, OUT), JSON.stringify(data, null, 2) + "\n");
-  const n = Array.isArray(data) ? data.length : "—";
+  const n = Array.isArray(data) ? data.length : "-";
   console.log(`  ${name}: ${n} rows`);
 }
 
@@ -51,7 +51,7 @@ const genes = [...new Set(pairs.map((p) => String(p.genesymbol)))].sort();
 const drugIds = [...new Set(pairs.map((p) => String(p.drugid)))];
 save("pairs.json", pairs);
 
-// 2. Drug names (drugid is RxNorm) — fetch all, keep those in scope.
+// 2. Drug names (drugid is RxNorm), fetch all, keep those in scope.
 const allDrugs = await get("drug?select=drugid,name,rxnormid,atcid");
 const drugs = allDrugs.filter((d) => drugIds.includes(String(d.drugid)));
 save("drugs.json", drugs);
@@ -62,7 +62,7 @@ const guidelines = await get(
 );
 save("guidelines.json", guidelines);
 
-// 4. Recommendations for the in-scope drugs — the authoritative text the engine
+// 4. Recommendations for the in-scope drugs, the authoritative text the engine
 //    serves and the AI verifies against. Keyed by lookupkey (gene→phenotype).
 const recommendations = (
   await get(

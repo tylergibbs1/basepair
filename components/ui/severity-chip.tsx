@@ -61,7 +61,7 @@ export interface SeverityChipProps {
 }
 
 /**
- * Clinical severity pill. Patient-safety rule: severity is never color alone —
+ * Clinical severity pill. Patient-safety rule: severity is never color alone,
  * this always renders color + icon + a text label together.
  */
 export function SeverityChip({

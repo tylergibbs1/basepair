@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-/** Drugs the demo can order — each maps to a CPIC rule (or deliberately none). */
+/** Drugs the demo can order, each maps to a CPIC rule (or deliberately none). */
 const DRUGS = [
   "clopidogrel",
   "capecitabine",
@@ -36,6 +36,15 @@ const DRUGS = [
   "thioguanine",
   "simvastatin",
   "aspirin",
+] as const
+
+/** Ordering prescribers for the demo. A New Order attributes to one of these so
+ * the resulting alert carries a physician, like the seeded orders. */
+const PRESCRIBERS = [
+  "Dr. Alan Reyes",
+  "Dr. Priya Nair",
+  "Dr. Marcus Feld",
+  "Dr. Susan Okafor",
 ] as const
 
 /** How long to watch for the async evaluation to flag an alert. The task now
@@ -55,6 +64,7 @@ export function NewOrderDialog({ patients }: { patients: OrderablePatient[] }) {
   const [open, setOpen] = React.useState(false)
   const [patientRef, setPatientRef] = React.useState<string | null>(null)
   const [drug, setDrug] = React.useState<string | null>(null)
+  const [prescriber, setPrescriber] = React.useState<string>(PRESCRIBERS[0])
   const [phase, setPhase] = React.useState<Phase>("idle")
 
   const busy = phase !== "idle"
@@ -77,12 +87,12 @@ export function NewOrderDialog({ patients }: { patients: OrderablePatient[] }) {
     try {
       baseline = await getOpenAlertCount()
     } catch {
-      // Non-fatal — we can still place the order and refresh.
+      // Non-fatal, we can still place the order and refresh.
     }
 
     setPhase("placing")
     try {
-      await placeOrder(patientRef, drug)
+      await placeOrder(patientRef, drug, prescriber)
     } catch {
       setPhase("idle")
       toast.error("Could not place the order", {
@@ -114,7 +124,7 @@ export function NewOrderDialog({ patients }: { patients: OrderablePatient[] }) {
     if (flagged) {
       toast(`Alert flagged for ${drug}`)
     } else {
-      toast(`Order placed — no alert (cleared) for ${drug}`)
+      toast(`Order placed, no alert (cleared) for ${drug}`)
     }
 
     router.refresh()
@@ -192,6 +202,31 @@ export function NewOrderDialog({ patients }: { patients: OrderablePatient[] }) {
                 {DRUGS.map((d) => (
                   <SelectItem key={d} value={d}>
                     {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <label htmlFor="order-prescriber" className="text-sm">
+              Prescriber
+            </label>
+            <Select
+              value={prescriber}
+              onValueChange={(value) => setPrescriber(value as string)}
+            >
+              <SelectTrigger
+                id="order-prescriber"
+                className="w-full"
+                disabled={busy}
+              >
+                <SelectValue placeholder="Select a prescriber…" />
+              </SelectTrigger>
+              <SelectContent>
+                {PRESCRIBERS.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {p}
                   </SelectItem>
                 ))}
               </SelectContent>

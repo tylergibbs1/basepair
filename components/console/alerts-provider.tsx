@@ -11,10 +11,18 @@ import {
 } from "@/lib/alerts/actions"
 
 interface AlertsContextValue {
-  /** Pending alerts, sorted critical-first. */
+  /** Pending alerts, sorted critical-first. Unfiltered, this is the source of
+   *  truth for "is this alert still open" (the detail route checks membership
+   *  here), so it must never be narrowed by the search query. */
   alerts: Alert[]
+  /** `alerts` narrowed to the current `query`. What the queue renders. */
+  filteredAlerts: Alert[]
+  /** Genuinely open alerts, the true count, never the filtered subset. */
   openCount: number
-  /** Look an alert up by id — which one is "open" is owned by the URL now, not
+  /** Free-text queue filter, owned here so the topbar and queue stay in sync. */
+  query: string
+  setQuery: (query: string) => void
+  /** Look an alert up by id, which one is "open" is owned by the URL now, not
    *  React state, so the detail route reads it from here. Falls back to any
    *  alert we've seen so content survives a close animation after removal. */
   getAlert: (id: string) => Alert | null
@@ -41,10 +49,27 @@ export function AlertsProvider({
   const [pending, setPending] = React.useState<Alert[]>(() =>
     sortAlerts(initialAlerts)
   )
+  const [query, setQuery] = React.useState("")
+
+  // Case-insensitive match across the columns a pharmacist scans by: patient,
+  // MRN, drug, gene, phenotype. Empty query is a passthrough so the queue keeps
+  // rendering the full sorted list.
+  const filteredAlerts = React.useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return pending
+    return pending.filter(
+      (a) =>
+        a.patientName.toLowerCase().includes(q) ||
+        a.patientMrn.toLowerCase().includes(q) ||
+        a.drug.toLowerCase().includes(q) ||
+        a.gene.toLowerCase().includes(q) ||
+        a.phenotype.toLowerCase().includes(q)
+    )
+  }, [pending, query])
 
   // Every alert id we have ever shown. Lets us tell a *brand-new* alert (e.g. one
   // a just-placed order produced, arriving via router.refresh) apart from one the
-  // pharmacist already acted on — so we merge in the former without resurrecting
+  // pharmacist already acted on, so we merge in the former without resurrecting
   // the latter.
   // Lazy init so the Set isn't rebuilt and thrown away on every render.
   const seenIdsRef = React.useRef<Set<string> | null>(null)
@@ -116,13 +141,16 @@ export function AlertsProvider({
   const value = React.useMemo<AlertsContextValue>(
     () => ({
       alerts: pending,
+      filteredAlerts,
       openCount: pending.length,
+      query,
+      setQuery,
       getAlert: (id) =>
         byId.get(id) ?? pending.find((a) => a.id === id) ?? null,
       approve: (id) => removeWithUndo(id, "approved"),
       dismiss: (id) => removeWithUndo(id, "dismissed"),
     }),
-    [pending, byId, removeWithUndo]
+    [pending, filteredAlerts, query, byId, removeWithUndo]
   )
 
   return (

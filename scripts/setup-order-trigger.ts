@@ -7,7 +7,7 @@
  * `evaluate-order` task, which reads the patient's genetics, applies the CPIC
  * rule, and writes back any DetectedIssue + pharmacist Task.
  *
- * What this script does (all idempotent — safe to re-run):
+ * What this script does (all idempotent, safe to re-run):
  *   1. Resolves the active project id.
  *   2. Stores TRIGGER_SECRET_KEY as a Project secret so the Bot can read it via
  *      event.secrets. If that write is refused, it FALLS BACK to inlining the
@@ -26,7 +26,7 @@ import type { Bot, Project, Subscription } from "@medplum/fhirtypes";
 
 import { createMedplumClient } from "../lib/medplum/client";
 
-// Bun global — scripts run under `bun`. Declared so `tsc` is happy without
+// Bun global, scripts run under `bun`. Declared so `tsc` is happy without
 // pulling in @types/bun.
 declare const Bun: {
   Transpiler: new (opts: { loader: string }) => {
@@ -44,7 +44,7 @@ const SECRET_READ_EXPR = 'event.secrets["TRIGGER_SECRET_KEY"]?.valueString';
 
 const triggerKey = process.env.TRIGGER_SECRET_KEY;
 if (!triggerKey) {
-  throw new Error("TRIGGER_SECRET_KEY not set — pass --env-file=.env.local.");
+  throw new Error("TRIGGER_SECRET_KEY not set, pass --env-file=.env.local.");
 }
 
 const medplum = await createMedplumClient();

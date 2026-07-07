@@ -6,7 +6,7 @@
  * deployed Trigger.dev `evaluate-order` task, which reads the patient's genetics,
  * applies the CPIC rule, and writes back any DetectedIssue + pharmacist Task.
  *
- * This file is NOT part of the Next app — it is deployed to Medplum as the Bot's
+ * This file is NOT part of the Next app, it is deployed to Medplum as the Bot's
  * source (see scripts/setup-order-trigger.ts). It is self-contained: it imports
  * only types (erased at deploy time) and uses the Bot runtime's global `fetch`.
  * The Trigger secret is read from the project secret `TRIGGER_SECRET_KEY`.
@@ -38,7 +38,7 @@ export async function handler(
   const triggerKey = event.secrets["TRIGGER_SECRET_KEY"]?.valueString;
   if (!triggerKey) {
     console.log(
-      "[order-trigger] Missing project secret TRIGGER_SECRET_KEY — cannot trigger evaluate-order.",
+      "[order-trigger] Missing project secret TRIGGER_SECRET_KEY, cannot trigger evaluate-order.",
     );
     return { triggered: false, reason: "missing TRIGGER_SECRET_KEY" };
   }

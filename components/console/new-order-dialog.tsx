@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { placeOrder } from "@/lib/alerts/actions"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
+import { DRUGS, PRESCRIBERS } from "@/lib/orders"
 import { spring } from "@/lib/springs"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -36,27 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
-/** Drugs the demo can order, each maps to a CPIC rule (or deliberately none). */
-const DRUGS = [
-  "clopidogrel",
-  "capecitabine",
-  "5-fluorouracil",
-  "azathioprine",
-  "mercaptopurine",
-  "thioguanine",
-  "simvastatin",
-  "aspirin",
-] as const
-
-/** Ordering prescribers for the demo. A New Order attributes to one of these so
- * the resulting alert carries a physician, like the seeded orders. */
-const PRESCRIBERS = [
-  "Dr. Alan Reyes",
-  "Dr. Priya Nair",
-  "Dr. Marcus Feld",
-  "Dr. Susan Okafor",
-] as const
 
 /** Floor on the "Placing order" step so a sub-500ms write doesn't flash past it
  * (CONVENTIONS: loading states get a min-visible duration to avoid flicker). */
@@ -98,7 +78,7 @@ function readPhase(metadata: unknown): string | undefined {
  * in-flight steps; `flagged`/`cleared`/`timeout` are the resolved outcomes the
  * stepper lands on.
  */
-type Phase =
+export type Phase =
   | "idle"
   | "placing"
   | "genetics"
@@ -144,7 +124,7 @@ function stepStatus(i: number, phase: Phase): StepStatus {
  * carries a live state — a spinner while a step runs, a greened check once it
  * lands. Motion is state-driven (a step entering `complete`), never decoration.
  */
-function EvaluationStepper({ phase }: { phase: Phase }) {
+export function EvaluationStepper({ phase }: { phase: Phase }) {
   const resolved =
     phase === "flagged" || phase === "cleared" || phase === "timeout"
 
@@ -296,7 +276,7 @@ function EvaluationStepper({ phase }: { phase: Phase }) {
  * drives steps 2–3 and the resolved outcome. On any terminal state it refreshes
  * the queue so the new alert lands, toasts the result, then schedules the close.
  */
-function OrderEvaluation({
+export function OrderEvaluation({
   runId,
   accessToken,
   drug,

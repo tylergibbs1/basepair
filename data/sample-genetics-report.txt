@@ -1,0 +1,12 @@
+PHARMACOGENOMICS CONSULT NOTE  —  scanned/transcribed, NOT coded in the EHR
+
+Pt seen in anticoagulation clinic. Outside pharmacogenetic panel (LabCorp,
+faxed 03/14) reviewed and transcribed below by RN. Results are narrative only —
+they were never entered as structured results, so CDS did not fire.
+
+  CYP2C19 — genotype *1/*2. Reported as an intermediate metabolizer.
+  SLCO1B1 — c.521 T>C, *1/*5 per report.
+  CYP2D6 result on the fax is partially cut off / illegible ("*4/?").
+
+Impression: reduced CYP2C19 function. Cardiology considering clopidogrel post-PCI.
+Please confirm PGx before the antiplatelet is started.

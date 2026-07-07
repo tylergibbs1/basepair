@@ -23,6 +23,9 @@ interface CommandContextValue {
   setCheatsheetOpen: (open: boolean) => void
   newOrderOpen: boolean
   setNewOrderOpen: (open: boolean) => void
+  /** The "Read Report" messy-input intake surface (issue #4). */
+  geneticsIntakeOpen: boolean
+  setGeneticsIntakeOpen: (open: boolean) => void
   /** Attached to the topbar search input; `focusSearch` targets it. */
   searchInputRef: React.RefObject<HTMLInputElement | null>
   focusSearch: () => void
@@ -41,6 +44,7 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
   const [paletteOpen, setPaletteOpen] = React.useState(false)
   const [cheatsheetOpen, setCheatsheetOpen] = React.useState(false)
   const [newOrderOpen, setNewOrderOpen] = React.useState(false)
+  const [geneticsIntakeOpen, setGeneticsIntakeOpen] = React.useState(false)
   const searchInputRef = React.useRef<HTMLInputElement | null>(null)
 
   const focusSearch = React.useCallback(() => {
@@ -60,10 +64,19 @@ export function CommandProvider({ children }: { children: React.ReactNode }) {
       setCheatsheetOpen,
       newOrderOpen,
       setNewOrderOpen,
+      geneticsIntakeOpen,
+      setGeneticsIntakeOpen,
       searchInputRef,
       focusSearch,
     }),
-    [cursorId, paletteOpen, cheatsheetOpen, newOrderOpen, focusSearch]
+    [
+      cursorId,
+      paletteOpen,
+      cheatsheetOpen,
+      newOrderOpen,
+      geneticsIntakeOpen,
+      focusSearch,
+    ]
   )
 
   return (

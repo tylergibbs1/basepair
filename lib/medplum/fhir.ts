@@ -110,6 +110,30 @@ export function buildPhenotypeObservation(
 }
 
 /**
+ * A parsed genetics result written back as coded genomic Observation(s) in the
+ * EXACT shape `readGenetics()` (trigger/evaluate-order.ts) already consumes: a
+ * genotype Observation (LOINC 84413-4, diplotype in `valueCodeableConcept.text`)
+ * and, when the report stated one, a phenotype Observation (LOINC 53040-2).
+ *
+ * This is the write path for the messy-input intake (issue #4): the parser turns
+ * an unstructured note/PDF into `{ gene, diplotype, phenotype? }`, this makes it
+ * coded FHIR, and the existing engine picks it up — one read path, no fork. The
+ * phenotype Observation `derivedFrom` the genotype so provenance is preserved.
+ */
+export function buildGenomicObservation(
+  patient: Reference<Patient>,
+  result: { gene: string; diplotype: string; phenotype?: string },
+): Observation[] {
+  const genotype = buildGenotypeObservation(
+    patient,
+    result.gene,
+    result.diplotype,
+  );
+  if (!result.phenotype) return [genotype];
+  return [genotype, buildPhenotypeObservation(patient, result.gene, result.phenotype)];
+}
+
+/**
  * The prescriber's order, as a FHIR MedicationRequest. Writing this to Medplum
  * is what a real clinician does; a Subscription on MedicationRequest fires the
  * Bot that triggers the evaluate-order task (docs/ARCHITECTURE.md §3). The drug

@@ -15,7 +15,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { SeverityChip } from "@/components/ui/severity-chip"
 import { useAlerts } from "@/components/console/alerts-provider"
-import { formatFiredAtAbsolute, type Alert } from "@/lib/alerts/types"
+import {
+  formatFiredAtAbsolute,
+  orderedContributingGenes,
+  type Alert,
+} from "@/lib/alerts/types"
 import { cn } from "@/lib/utils"
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -24,6 +28,56 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="text-sm text-foreground">{children}</dd>
     </div>
+  )
+}
+
+/**
+ * The full contributing gene set for the matched rule, driving gene first and
+ * emphasized, co-tested genes rendered subordinate as context (mirroring how
+ * the engine's primaryGene deprioritizes normal/indeterminate results). A
+ * single-gene rule renders one row and reads like the old genotype/phenotype
+ * pair; a multi-gene rule (e.g. TPMT + NUDT15) shows every contributing gene
+ * with the driver tagged.
+ */
+function ContributingGenes({ alert }: { alert: Alert }) {
+  const genes = orderedContributingGenes(alert)
+  const multi = genes.length > 1
+
+  return (
+    <ul className="grid gap-2.5">
+      {genes.map((g, i) => {
+        const driving = i === 0
+        return (
+          <li key={g.gene} className="grid gap-0.5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span
+                className={cn(
+                  "font-mono text-sm tabular-nums",
+                  driving ? "text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {g.gene} {g.diplotype}
+              </span>
+              {driving && multi && (
+                // A quiet squared tag, not a severity pill: names the driver
+                // without competing with the header's severity chip.
+                <span className="rounded-sm border bg-secondary px-1 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  Driving
+                </span>
+              )}
+            </div>
+            <span
+              className={cn(
+                "text-sm",
+                driving ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {g.phenotype}
+            </span>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -191,6 +245,14 @@ export function AlertDetailPage({ id }: { id: string }) {
   const alert = getAlert(id)
   const inQueue = alerts.some((a) => a.id === id)
 
+  // Co-tested genes beyond the driver, for the CPIC-rule step's honest account
+  // of a multi-gene match (e.g. "…with NUDT15 normal metabolizer").
+  const coTested = alert
+    ? orderedContributingGenes(alert)
+        .slice(1)
+        .map((g) => `${g.gene} ${g.phenotype.toLowerCase()}`)
+    : []
+
   const act = (fn: (id: string) => void) => {
     fn(id)
     router.push("/")
@@ -289,8 +351,13 @@ export function AlertDetailPage({ id }: { id: string }) {
                   </Step>
                   <Step n={3} label="CPIC rule">
                     <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-1">
-                      {alert.gene} {alert.phenotype.toLowerCase()} taking{" "}
-                      {alert.drug} matches a
+                      {alert.gene} {alert.phenotype.toLowerCase()}
+                      {coTested.length > 0 && (
+                        <span className="text-muted-foreground">
+                          (with {coTested.join(", ")})
+                        </span>
+                      )}{" "}
+                      taking {alert.drug} matches a
                       <SeverityChip severity={alert.severity} />
                     </span>
                   </Step>
@@ -340,13 +407,26 @@ export function AlertDetailPage({ id }: { id: string }) {
                 to the verdict and trace. */}
             <aside className="grid content-start gap-5 lg:border-l lg:pl-8">
               <dl className="grid gap-5">
-                <Field label="Drug">{alert.drug}</Field>
-                <Field label="Genotype">
-                  <span className="font-mono tabular-nums">
-                    {alert.gene} {alert.diplotype}
-                  </span>
+                <Field label="Drug">
+                  {alert.drug}
+                  {alert.pgxDrugCount > 1 && (
+                    // Multi-drug complexity: the literature flags >2 PGx drugs
+                    // as where interpretation time more than doubles, so name
+                    // the fuller picture. Subordinate to the ordered drug.
+                    <span className="mt-1 block text-xs text-muted-foreground tabular-nums">
+                      {alert.pgxDrugCount} PGx-relevant drugs on file
+                    </span>
+                  )}
                 </Field>
-                <Field label="Phenotype">{alert.phenotype}</Field>
+                <Field
+                  label={
+                    alert.contributingGenes.length > 1
+                      ? "Contributing genes"
+                      : "Genotype"
+                  }
+                >
+                  <ContributingGenes alert={alert} />
+                </Field>
               </dl>
               <dl className="grid gap-5 border-t pt-5">
                 <Field label="Found by">

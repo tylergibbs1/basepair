@@ -9,7 +9,7 @@
  * Run: bun --env-file=.env.local scripts/tidy-audit.ts
  */
 import { createMedplumClient } from "../lib/medplum/client";
-import { parsePgxAlert } from "../lib/alerts/pgx";
+import { parsePgxAlert, isCleared } from "../lib/alerts/pgx";
 import type { DetectedIssue } from "@medplum/fhirtypes";
 
 const medplum = await createMedplumClient();
@@ -22,7 +22,8 @@ for (const t of cancelled) {
   try {
     if (t.focus) {
       const issue = (await medplum.readReference(t.focus)) as DetectedIssue;
-      severity = parsePgxAlert(issue)?.severity ?? "unknown";
+      const pgx = parsePgxAlert(issue);
+      severity = pgx && !isCleared(pgx) ? pgx.severity : "unknown";
     }
   } catch {}
   const keep = severity === "caution" && keptCaution < 2;

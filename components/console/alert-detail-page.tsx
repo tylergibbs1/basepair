@@ -3,7 +3,14 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Check, SearchX, ShieldCheck, Sparkles } from "lucide-react"
+import {
+  ArrowLeft,
+  Check,
+  Radar,
+  SearchX,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { SeverityChip } from "@/components/ui/severity-chip"
@@ -342,7 +349,27 @@ export function AlertDetailPage({ id }: { id: string }) {
                 <Field label="Phenotype">{alert.phenotype}</Field>
               </dl>
               <dl className="grid gap-5 border-t pt-5">
-                <Field label="Ordered by">{alert.orderedBy}</Field>
+                <Field label="Found by">
+                  {alert.foundBy === "sweep" ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Radar
+                        aria-hidden
+                        className="size-3.5 text-muted-foreground"
+                      />
+                      Population sweep
+                      {alert.sweptAt && (
+                        <span className="text-muted-foreground">
+                          · {formatFiredAtAbsolute(alert.sweptAt)}
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    "Order-time evaluation"
+                  )}
+                </Field>
+                <Field label="Ordered by">
+                  {alert.orderedBy || "—"}
+                </Field>
                 <Field label="Fired at">
                   {formatFiredAtAbsolute(alert.firedAt)}
                 </Field>

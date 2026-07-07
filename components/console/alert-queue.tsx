@@ -7,6 +7,7 @@ import {
   ChevronsUpDown,
   ChevronUp,
   Inbox,
+  Radar,
   SearchX,
 } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
@@ -35,6 +36,21 @@ const SEVERITY_LABEL: Record<Alert["severity"], string> = {
   critical: "Critical",
   caution: "Caution",
   info: "Info",
+}
+
+/**
+ * Marks an alert the population sweep surfaced — a drug the patient is already
+ * on that mismatches their genetics, vs an order-time catch. A quiet squared tag
+ * (shaped unlike the round severity pill) so it classifies without competing
+ * with severity. Text + icon, never color alone.
+ */
+function SweepTag() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-sm border bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+      <Radar aria-hidden className="size-3" />
+      Sweep
+    </span>
+  )
 }
 
 function EmptyState() {
@@ -174,7 +190,7 @@ function AlertRow({
       data-slot="table-row"
       tabIndex={0}
       role="button"
-      aria-label={`${SEVERITY_LABEL[alert.severity]} alert: ${alert.drug} for ${alert.patientName}, ${alert.gene} ${alert.diplotype}. Open details.`}
+      aria-label={`${SEVERITY_LABEL[alert.severity]} alert${alert.foundBy === "sweep" ? ", found by population sweep" : ""}: ${alert.drug} for ${alert.patientName}, ${alert.gene} ${alert.diplotype}. Open details.`}
       onClick={() => router.push(href)}
       onFocus={() => onFocusRow(alert.id)}
       onMouseEnter={() => router.prefetch(href)}
@@ -199,7 +215,12 @@ function AlertRow({
           </span>
         </div>
       </TableCell>
-      <TableCell className="font-medium text-foreground">{alert.drug}</TableCell>
+      <TableCell className="font-medium text-foreground">
+        <div className="flex items-center gap-2">
+          <span>{alert.drug}</span>
+          {alert.foundBy === "sweep" && <SweepTag />}
+        </div>
+      </TableCell>
       <TableCell className="font-mono text-xs">
         {alert.gene} {alert.diplotype}
       </TableCell>

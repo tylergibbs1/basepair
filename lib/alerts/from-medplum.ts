@@ -58,6 +58,8 @@ export async function getOpenAlerts(): Promise<Alert[]> {
       guidelineText: pgx.guidelineText ?? pgx.citedSentence,
       citation: pgx.citation,
       orderedBy: pgx.orderedBy,
+      foundBy: pgx.foundBy ?? "order",
+      sweptAt: pgx.sweptAt,
       verification: {
         verified: pgx.verified ?? false,
         rationale: pgx.verifierRationale ?? "",

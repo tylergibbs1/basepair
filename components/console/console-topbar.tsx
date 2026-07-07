@@ -10,6 +10,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useAlerts } from "@/components/console/alerts-provider"
 import { useCommand } from "@/components/console/command-provider"
 import { NewOrderDialog } from "@/components/console/new-order-dialog"
+import { PopulationSweepButton } from "@/components/console/population-sweep-button"
 import { SignalMetric } from "@/components/console/signal-metric"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
 import type { SignalStats } from "@/lib/alerts/types"
@@ -98,6 +99,10 @@ export function ConsoleTopbar({
           <CommandIcon aria-hidden className="size-4" />
           <KbdGroup keys={getShortcut("command-palette").keys} />
         </Button>
+        {/* One-click population scan: finds patients already on a genetically
+            mismatched drug (not just new orders). A queue action, so it hides on
+            the Audit route alongside the other alert controls. */}
+        {!onAudit && <PopulationSweepButton />}
         {/* Kept mounted on every route so `n` / the palette can open it; the
             button itself only shows on the queue. */}
         <NewOrderDialog

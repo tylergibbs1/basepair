@@ -65,9 +65,17 @@ function reasonLabel(reason: string): string {
  * cleared and dismissed are calm, neutral chips, the cleared record is a
  * routine "nothing to flag", never an alarm.
  */
-function OutcomeChip({ kind }: { kind: AuditEntry["kind"] }) {
+function OutcomeChip({ entry }: { entry: AuditEntry }) {
+  const kind = entry.kind
   if (kind === "approved") {
-    return <SeverityChip severity="success">Approved</SeverityChip>
+    // An enacted approve closed the loop (issue #2): the recommendation was
+    // written back, not just acknowledged. Label it so the two are legible.
+    const enacted = "enacted" in entry && entry.enacted
+    return (
+      <SeverityChip severity="success">
+        {enacted ? "Enacted" : "Approved"}
+      </SeverityChip>
+    )
   }
   const { Icon, label } =
     kind === "cleared"
@@ -433,7 +441,7 @@ export function AuditTable({ entries }: { entries: AuditEntry[] }) {
             {filtered.map((entry) => (
               <TableRow key={`${entry.kind}-${entry.id}`}>
                 <TableCell>
-                  <OutcomeChip kind={entry.kind} />
+                  <OutcomeChip entry={entry} />
                 </TableCell>
                 <TableCell className="font-medium text-foreground">
                   {entry.patientName}

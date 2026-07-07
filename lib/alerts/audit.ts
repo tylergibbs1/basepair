@@ -2,7 +2,7 @@ import type { DetectedIssue, Patient } from "@medplum/fhirtypes"
 
 import { createMedplumClient } from "@/lib/medplum/client"
 import type { Alert, SignalStats } from "@/lib/alerts/types"
-import { isCleared, parsePgxAlert, patientName } from "@/lib/alerts/pgx"
+import { isCleared, isEnacted, parsePgxAlert, patientName } from "@/lib/alerts/pgx"
 
 /**
  * One row in the Audit view. Unifies the three things Basepair records while
@@ -34,6 +34,10 @@ export type AuditEntry =
       gene: string
       phenotype: string
       severity: Alert["severity"]
+      /** True when the pharmacist *enacted* the recommendation (issue #2): the
+       *  Communication (+ substitute order) was written, not just a plain
+       *  approve. Only meaningful for "approved". */
+      enacted?: boolean
       /** ISO 8601 timestamp of when the pharmacist triaged the alert. */
       at: string
     }
@@ -124,6 +128,7 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
       gene: pgx.gene,
       phenotype: pgx.phenotype,
       severity: pgx.severity,
+      enacted: task.status === "completed" ? isEnacted(task) : undefined,
       at: task.lastModified ?? resourceTimestamp(task),
     })
   }

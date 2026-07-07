@@ -6,10 +6,13 @@ import type {
   Observation,
   DetectedIssue,
   MedicationRequest,
+  Communication,
+  CodeableConcept,
   Task,
   Reference,
   Patient,
 } from "@medplum/fhirtypes";
+import type { RecommendedAlternative } from "@/lib/cpic-catalog";
 
 const LOINC = "http://loinc.org";
 const HGNC = "http://www.genenames.org";
@@ -150,6 +153,12 @@ export type AlertFacts = {
   verifierModel: string;
   /** Verbatim span within guidelineText the UI highlights as the evidence. */
   verifierHighlight: string;
+  /**
+   * Structured CPIC action the console can enact in one click (issue #2).
+   * Carried on the alert so the console renders the "Approve & switch to X"
+   * label without re-deriving it. Absent when no alternative is curated.
+   */
+  recommendedAlternative?: RecommendedAlternative;
 };
 
 /**
@@ -184,6 +193,9 @@ export function buildDetectedIssue(
     verifierRationale: facts.verifierRationale,
     verifierModel: facts.verifierModel,
     verifierHighlight: facts.verifierHighlight,
+    ...(facts.recommendedAlternative
+      ? { recommendedAlternative: facts.recommendedAlternative }
+      : {}),
   };
   return {
     resourceType: "DetectedIssue",
@@ -244,6 +256,97 @@ export function buildConsideredIssue(
       },
     ],
   }
+}
+
+const COMMUNICATION_CATEGORY_SYS =
+  "http://terminology.hl7.org/CodeSystem/communication-category";
+
+/**
+ * Identifier system for the enactment Communication, and for the substitute
+ * MedicationRequest, both keyed on the source order id. This is what makes the
+ * enact writes idempotent (createResourceIfNoneExist), so an undo→redo or a
+ * retry can never write a second prescriber note or duplicate prescription.
+ */
+/** Identifier system that ties an alert's resources back to the source order.
+ *  The DetectedIssue + Task carry it (see trigger/evaluate-order.ts), and the
+ *  enact writes reuse the same order id as their idempotency key. */
+export const ORDER_ID_SYSTEM = "https://basepair.health/fhir/order-id";
+
+export const COMMUNICATION_ORDER_SYSTEM =
+  "https://basepair.health/fhir/enactment-communication";
+export const SUBSTITUTE_ORDER_SYSTEM =
+  "https://basepair.health/fhir/enactment-substitute";
+
+/**
+ * Business-status marker stamped on a Task when its recommendation is *enacted*
+ * (issue #2), distinct from a plain approve. Rides on `Task.businessStatus`, so
+ * it never touches `Task.status` — the existing metrics/audit reads
+ * (getSignalStats, getAuditEntries) are unaffected, and a later count can filter
+ * completed Tasks by this marker.
+ */
+export const ENACTMENT_STATUS_SYSTEM =
+  "https://basepair.health/fhir/enactment-status";
+export const ENACTED_CODE = "enacted";
+
+/** The `Task.businessStatus` value that flags an enacted recommendation. */
+export function enactedBusinessStatus(): CodeableConcept {
+  return {
+    coding: [
+      { system: ENACTMENT_STATUS_SYSTEM, code: ENACTED_CODE, display: "Enacted" },
+    ],
+    text: "Enacted",
+  };
+}
+
+export type CommunicationFacts = {
+  drug: string;
+  /** The CPIC recommendation text, forwarded verbatim to the prescriber. */
+  recommendation: string;
+  /** Free-text prescriber name (the alert's provenance line). */
+  orderedBy: string;
+  /** One-line summary of the action enacted, e.g. "Substituted prasugrel for clopidogrel". */
+  action: string;
+};
+
+/**
+ * The prescriber-facing recommendation, as a FHIR Communication (issue #2).
+ * Written on enact so the closed loop is a real, auditable resource: it carries
+ * the CPIC recommendation verbatim, points `about` the DetectedIssue that raised
+ * it, and names the ordering prescriber as the recipient (display-only, since
+ * the order carries the prescriber as free text). `status: "completed"` marks it
+ * sent; an undo flips it to "entered-in-error" to compensate.
+ */
+export function buildCommunication(
+  patient: Reference<Patient>,
+  detectedIssue: Reference<DetectedIssue>,
+  facts: CommunicationFacts,
+): Communication {
+  return {
+    resourceType: "Communication",
+    status: "completed",
+    category: [
+      {
+        coding: [
+          {
+            system: COMMUNICATION_CATEGORY_SYS,
+            code: "notification",
+            display: "Notification",
+          },
+        ],
+        text: "Pharmacogenomic recommendation",
+      },
+    ],
+    priority: "urgent",
+    subject: patient,
+    about: [detectedIssue],
+    ...(facts.orderedBy ? { recipient: [{ display: facts.orderedBy }] } : {}),
+    sent: new Date().toISOString(),
+    payload: [
+      {
+        contentString: `${facts.action}. ${facts.recommendation} (re: ${facts.drug})`,
+      },
+    ],
+  };
 }
 
 /** The pharmacist worklist item, as a FHIR Task (status requested). */

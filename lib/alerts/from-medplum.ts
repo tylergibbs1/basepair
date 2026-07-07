@@ -54,6 +54,7 @@ export async function getOpenAlerts(): Promise<Alert[]> {
       drug: pgx.drug,
       severity: pgx.severity,
       recommendation: pgx.recommendation,
+      recommendedAlternative: pgx.recommendedAlternative,
       citedSentence: pgx.citedSentence,
       guidelineText: pgx.guidelineText ?? pgx.citedSentence,
       citation: pgx.citation,

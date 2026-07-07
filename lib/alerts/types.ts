@@ -1,4 +1,7 @@
 import type { Severity } from "@/components/ui/severity-chip"
+import type { RecommendedAlternative } from "@/lib/cpic-catalog"
+
+export type { RecommendedAlternative }
 
 /**
  * A single pharmacogenomic clinical alert awaiting pharmacist triage.
@@ -17,6 +20,10 @@ export interface Alert {
   /** Clinical severities only, success/hold are lifecycle states, not alerts. */
   severity: Extract<Severity, "critical" | "caution" | "info">
   recommendation: string
+  /** Structured CPIC action the console can enact in one click (issue #2). A
+   *  "switch" carries the concrete alternative drug for the button label;
+   *  dose/avoid fall back to notifying the prescriber. Absent when uncurated. */
+  recommendedAlternative?: RecommendedAlternative
   /** The exact guideline sentence the recommendation is drawn from. */
   citedSentence: string
   /** Full guideline paragraph, rendered in the UI with `verification.highlight` marked. */

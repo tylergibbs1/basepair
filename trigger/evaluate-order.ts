@@ -1,8 +1,8 @@
 import { task, metadata } from "@trigger.dev/sdk";
 import type { Observation, Patient, DetectedIssue, Task, Reference } from "@medplum/fhirtypes";
-import { resolvePhenotype, lookupRule } from "@/lib/cpic-catalog";
+import { resolvePhenotype, lookupRule, recommendedAlternative } from "@/lib/cpic-catalog";
 import { createMedplumClient } from "@/lib/medplum/client";
-import { buildDetectedIssue, buildConsideredIssue, buildTask } from "@/lib/medplum/fhir";
+import { buildDetectedIssue, buildConsideredIssue, buildTask, ORDER_ID_SYSTEM } from "@/lib/medplum/fhir";
 import { citeAndVerify } from "@/lib/ai/verify";
 
 /**
@@ -28,9 +28,6 @@ export type EvaluateOrderPayload = {
   /** The ordering prescriber, shown on the alert's provenance line. */
   orderedBy?: string;
 };
-
-/** Identifier system that ties an alert's resources back to the order. */
-const ORDER_ID_SYSTEM = "https://basepair.health/fhir/order-id";
 
 type GeneReading = { gene: string; diplotype: string; phenotype: string };
 
@@ -209,6 +206,7 @@ export const evaluateOrder = task({
         verifierRationale: verification?.rationale ?? "",
         verifierModel: verification?.model ?? "",
         verifierHighlight: verification?.highlight ?? "",
+        recommendedAlternative: recommendedAlternative(rule.drug) ?? undefined,
       }),
       ...(orderTag ? { identifier: orderTag } : {}),
     };
@@ -236,6 +234,7 @@ export const evaluateOrder = task({
       drug: rule.drug,
       severity: rule.severity,
       recommendation: rule.recommendation,
+      recommendedAlternative: recommendedAlternative(rule.drug) ?? undefined,
       citation: rule.citation,
       citedSentence,
       verified: verification?.verified ?? false,

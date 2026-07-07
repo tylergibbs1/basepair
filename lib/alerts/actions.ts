@@ -4,9 +4,24 @@ import { revalidatePath } from "next/cache"
 import { tasks } from "@trigger.dev/sdk"
 
 import { createMedplumClient } from "@/lib/medplum/client"
-import { buildMedicationRequest } from "@/lib/medplum/fhir"
+import {
+  buildMedicationRequest,
+  buildCommunication,
+  enactedBusinessStatus,
+  ORDER_ID_SYSTEM,
+  COMMUNICATION_ORDER_SYSTEM,
+  SUBSTITUTE_ORDER_SYSTEM,
+} from "@/lib/medplum/fhir"
+import { parsePgxAlert, isCleared } from "@/lib/alerts/pgx"
+import type { RecommendedAlternative } from "@/lib/cpic-catalog"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
-import type { Patient, Reference } from "@medplum/fhirtypes"
+import type {
+  Patient,
+  Reference,
+  DetectedIssue,
+  Communication,
+  MedicationRequest,
+} from "@medplum/fhirtypes"
 
 type TaskStatus = "completed" | "cancelled" | "requested"
 
@@ -31,6 +46,144 @@ export async function dismissAlert(taskId: string): Promise<void> {
 /** Reopen an alert, reverses an approve/dismiss (Undo). */
 export async function reopenAlert(taskId: string): Promise<void> {
   await setTaskStatus(taskId, "requested")
+}
+
+/**
+ * The order id an alert's Task is keyed on (the source MedicationRequest id).
+ * Every enact write reuses this as its idempotency key, so retries and
+ * undo→redo can never double-write. Falls back to the Task id for direct/test
+ * triggers that carried no order id, which is still stable per alert.
+ */
+function orderKeyOf(task: { id?: string; identifier?: { system?: string; value?: string }[] }): string {
+  const orderId = task.identifier?.find((i) => i.system === ORDER_ID_SYSTEM)?.value
+  return orderId ?? task.id ?? ""
+}
+
+/**
+ * Enact an alert's CPIC recommendation, the closed action loop (issue #2). This
+ * only ever runs from an explicit pharmacist click (human-in-the-loop, PRD §5),
+ * never automatically. It writes, all idempotent on the source order id:
+ *
+ *  1. a `Communication` to the prescriber carrying the recommendation verbatim;
+ *  2. for a clean single-drug `switch`, a substitute `MedicationRequest` for the
+ *     alternative drug, linked to the original via `priorPrescription`;
+ *
+ * then completes the Task and stamps the enacted marker on `businessStatus`
+ * (distinct from a plain approve). Because both writes are conditional-create on
+ * the order id, a retry or an undo→redo reuses the single existing resource
+ * (re-activating it if a prior undo had reversed it) — no path can create a
+ * duplicate prescription.
+ */
+export async function enactAlert(
+  taskId: string,
+  choice: RecommendedAlternative,
+): Promise<void> {
+  const medplum = await createMedplumClient()
+  const task = await medplum.readResource("Task", taskId)
+
+  const issueRef = task.focus as Reference<DetectedIssue> | undefined
+  if (!issueRef?.reference) throw new Error("Alert is missing its DetectedIssue.")
+  const issue = (await medplum.readReference(issueRef)) as DetectedIssue
+  const pgx = parsePgxAlert(issue)
+  if (!pgx || isCleared(pgx)) throw new Error("Alert has no recommendation to enact.")
+  const patient = issue.patient
+  if (!patient) throw new Error("Alert is missing its patient.")
+
+  const key = orderKeyOf(task)
+  const orderId = task.identifier?.find((i) => i.system === ORDER_ID_SYSTEM)?.value
+  const detectedIssue: Reference<DetectedIssue> = {
+    reference: `DetectedIssue/${issue.id}`,
+  }
+
+  const action =
+    choice.kind === "switch"
+      ? `Substituted ${choice.altDrug} for ${pgx.drug}`
+      : choice.kind === "dose"
+        ? `Dose adjustment advised for ${pgx.drug}`
+        : `Alternative advised for ${pgx.drug}`
+
+  // 1) Prescriber Communication — always. Conditional create on the order key,
+  //    then re-activate if a prior undo had flipped it to entered-in-error.
+  const communication: Communication = {
+    ...buildCommunication(patient, detectedIssue, {
+      drug: pgx.drug,
+      recommendation: pgx.recommendation,
+      orderedBy: pgx.orderedBy,
+      action,
+    }),
+    identifier: [{ system: COMMUNICATION_ORDER_SYSTEM, value: key }],
+  }
+  const savedComm = await medplum.createResourceIfNoneExist(
+    communication,
+    `identifier=${COMMUNICATION_ORDER_SYSTEM}|${key}`,
+  )
+  if (savedComm.status !== "completed") {
+    await medplum.updateResource({ ...savedComm, status: "completed" })
+  }
+
+  // 2) Substitute order — only for a clean single-drug switch. Same idempotency
+  //    discipline; priorPrescription links it to the offending order.
+  if (choice.kind === "switch") {
+    const substitute: MedicationRequest = {
+      ...buildMedicationRequest(patient, choice.altDrug),
+      ...(orderId
+        ? { priorPrescription: { reference: `MedicationRequest/${orderId}` } }
+        : {}),
+      identifier: [{ system: SUBSTITUTE_ORDER_SYSTEM, value: key }],
+    }
+    const savedSub = await medplum.createResourceIfNoneExist(
+      substitute,
+      `identifier=${SUBSTITUTE_ORDER_SYSTEM}|${key}`,
+    )
+    if (savedSub.status !== "active") {
+      await medplum.updateResource({ ...savedSub, status: "active" })
+    }
+  }
+
+  // 3) Complete the Task and mark it enacted (distinct from a plain approve).
+  await medplum.updateResource({
+    ...task,
+    status: "completed",
+    businessStatus: enactedBusinessStatus(),
+  })
+  revalidatePath("/")
+}
+
+/**
+ * Undo an enact (Undo on the enacted toast). Cleanly reverses the writes:
+ * cancels the substitute `MedicationRequest` and marks the `Communication`
+ * entered-in-error (both found by the same order-keyed identifier), then drops
+ * the enacted marker and reopens the Task. Reversal is itself idempotent, and a
+ * subsequent re-enact re-activates the very same resources rather than creating
+ * new ones.
+ */
+export async function unenactAlert(taskId: string): Promise<void> {
+  const medplum = await createMedplumClient()
+  const task = await medplum.readResource("Task", taskId)
+  const key = orderKeyOf(task)
+
+  const [subs, comms] = await Promise.all([
+    medplum.searchResources(
+      "MedicationRequest",
+      `identifier=${SUBSTITUTE_ORDER_SYSTEM}|${key}`,
+    ),
+    medplum.searchResources(
+      "Communication",
+      `identifier=${COMMUNICATION_ORDER_SYSTEM}|${key}`,
+    ),
+  ])
+
+  await Promise.all([
+    ...subs.map((s) => medplum.updateResource({ ...s, status: "cancelled" })),
+    ...comms.map((c) =>
+      medplum.updateResource({ ...c, status: "entered-in-error" }),
+    ),
+  ])
+
+  const reopened = { ...task, status: "requested" as const }
+  delete reopened.businessStatus
+  await medplum.updateResource(reopened)
+  revalidatePath("/")
 }
 
 /** Plain, client-safe result of placing an order. */

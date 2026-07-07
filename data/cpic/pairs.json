@@ -1,0 +1,1542 @@
+[
+  {
+    "pairid": 110082,
+    "genesymbol": "UGT1A1",
+    "drugid": "RxNorm:343047",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100429,
+    "citations": [
+      "26417955"
+    ]
+  },
+  {
+    "pairid": 110083,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:38400",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 104243,
+    "citations": [
+      "30801677"
+    ]
+  },
+  {
+    "pairid": 1556299,
+    "genesymbol": "SLCO1B1",
+    "drugid": "RxNorm:83367",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100426,
+    "citations": [
+      "35152405"
+    ]
+  },
+  {
+    "pairid": 110086,
+    "genesymbol": "DPYD",
+    "drugid": "RxNorm:194000",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100419,
+    "citations": [
+      "23988873",
+      "29152729"
+    ]
+  },
+  {
+    "pairid": 110087,
+    "genesymbol": "HLA-A",
+    "drugid": "RxNorm:2002",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100423,
+    "citations": [
+      "23695185",
+      "29392710"
+    ]
+  },
+  {
+    "pairid": 110088,
+    "genesymbol": "HLA-B",
+    "drugid": "RxNorm:2002",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100423,
+    "citations": [
+      "23695185",
+      "29392710"
+    ]
+  },
+  {
+    "pairid": 110089,
+    "genesymbol": "CYP2C9",
+    "drugid": "RxNorm:140587",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 110058,
+    "citations": [
+      "32189324"
+    ]
+  },
+  {
+    "pairid": 110090,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:2556",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100413,
+    "citations": [
+      "25974703",
+      "37032427"
+    ]
+  },
+  {
+    "pairid": 110093,
+    "genesymbol": "CACNA1S",
+    "drugid": "RxNorm:27340",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110095,
+    "genesymbol": "CYP2B6",
+    "drugid": "RxNorm:195085",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 104245,
+    "citations": [
+      "31006110"
+    ]
+  },
+  {
+    "pairid": 1556301,
+    "genesymbol": "SLCO1B1",
+    "drugid": "RxNorm:41127",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100426,
+    "citations": [
+      "35152405"
+    ]
+  },
+  {
+    "pairid": 110103,
+    "genesymbol": "CACNA1S",
+    "drugid": "RxNorm:5095",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110158,
+    "genesymbol": "NAT2",
+    "drugid": "RxNorm:5470",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 6478852,
+    "citations": null
+  },
+  {
+    "pairid": 3004620,
+    "genesymbol": "MT-RNR1",
+    "drugid": "RxNorm:7337",
+    "cpiclevel": "A",
+    "clinpgxlevel": null,
+    "guidelineid": 826283,
+    "citations": [
+      "34032273"
+    ]
+  },
+  {
+    "pairid": 110117,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:7531",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 826284,
+    "genesymbol": "MT-RNR1",
+    "drugid": "RxNorm:7934",
+    "cpiclevel": "A",
+    "clinpgxlevel": null,
+    "guidelineid": 826283,
+    "citations": [
+      "34032273"
+    ]
+  },
+  {
+    "pairid": 3004621,
+    "genesymbol": "MT-RNR1",
+    "drugid": "RxNorm:NA",
+    "cpiclevel": "A",
+    "clinpgxlevel": null,
+    "guidelineid": 826283,
+    "citations": [
+      "34032273"
+    ]
+  },
+  {
+    "pairid": 110143,
+    "genesymbol": "NUDT15",
+    "drugid": "RxNorm:10485",
+    "cpiclevel": "A",
+    "clinpgxlevel": "3",
+    "guidelineid": 100428,
+    "citations": [
+      "21270794",
+      "23422873",
+      "30447069",
+      "41618934"
+    ]
+  },
+  {
+    "pairid": 110147,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:121243",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100410,
+    "citations": [
+      "27981572"
+    ]
+  },
+  {
+    "pairid": 110168,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:1455099",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100413,
+    "citations": [
+      "37032427"
+    ]
+  },
+  {
+    "pairid": 110149,
+    "genesymbol": "CYP4F2",
+    "drugid": "RxNorm:11289",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100425,
+    "citations": [
+      "21900891",
+      "28198005"
+    ]
+  },
+  {
+    "pairid": 110150,
+    "genesymbol": "VKORC1",
+    "drugid": "RxNorm:11289",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100425,
+    "citations": [
+      "21900891",
+      "28198005"
+    ]
+  },
+  {
+    "pairid": 110180,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:2597",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 110181,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:2597",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 110189,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:42355",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100413,
+    "citations": [
+      "25974703",
+      "37032427"
+    ]
+  },
+  {
+    "pairid": 110194,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:5691",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 2452901,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:7833",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110154,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:1191",
+    "cpiclevel": "C",
+    "clinpgxlevel": "3",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110314,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:2393",
+    "cpiclevel": "C",
+    "clinpgxlevel": "4",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110206,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:7517",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110213,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:9071",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110219,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:10171",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110080,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:704",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 110085,
+    "genesymbol": "TPMT",
+    "drugid": "RxNorm:1256",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100428,
+    "citations": [
+      "21270794",
+      "23422873",
+      "30447069",
+      "41618934"
+    ]
+  },
+  {
+    "pairid": 110092,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:2670",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100416,
+    "citations": [
+      "22205192",
+      "24458010",
+      "33387367"
+    ]
+  },
+  {
+    "pairid": 3004618,
+    "genesymbol": "MT-RNR1",
+    "drugid": "RxNorm:3328",
+    "cpiclevel": "A",
+    "clinpgxlevel": null,
+    "guidelineid": 826283,
+    "citations": [
+      "34032273"
+    ]
+  },
+  {
+    "pairid": 110098,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:321988",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100413,
+    "citations": [
+      "25974703",
+      "37032427"
+    ]
+  },
+  {
+    "pairid": 110099,
+    "genesymbol": "DPYD",
+    "drugid": "RxNorm:4492",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100419,
+    "citations": [
+      "23988873",
+      "29152729"
+    ]
+  },
+  {
+    "pairid": 110100,
+    "genesymbol": "CYP2C9",
+    "drugid": "RxNorm:4502",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 110058,
+    "citations": [
+      "32189324"
+    ]
+  },
+  {
+    "pairid": 1556302,
+    "genesymbol": "CYP2C9",
+    "drugid": "RxNorm:41127",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100426,
+    "citations": [
+      "35152405"
+    ]
+  },
+  {
+    "pairid": 110108,
+    "genesymbol": "RYR1",
+    "drugid": "RxNorm:6026",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110109,
+    "genesymbol": "CFTR",
+    "drugid": "RxNorm:1243041",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100409,
+    "citations": [
+      "24598717"
+    ]
+  },
+  {
+    "pairid": 110159,
+    "genesymbol": "MT-RNR1",
+    "drugid": "RxNorm:6099",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 826283,
+    "citations": [
+      "34032273"
+    ]
+  },
+  {
+    "pairid": 110065,
+    "genesymbol": "CYP2C9",
+    "drugid": "RxNorm:20890",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 110058,
+    "citations": [
+      "32189324"
+    ]
+  },
+  {
+    "pairid": 1556300,
+    "genesymbol": "SLCO1B1",
+    "drugid": "RxNorm:6472",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100426,
+    "citations": [
+      "35152405"
+    ]
+  },
+  {
+    "pairid": 110067,
+    "genesymbol": "CYP2C9",
+    "drugid": "RxNorm:41493",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 110058,
+    "citations": [
+      "32189324"
+    ]
+  },
+  {
+    "pairid": 110114,
+    "genesymbol": "TPMT",
+    "drugid": "RxNorm:103",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100428,
+    "citations": [
+      "21270794",
+      "23422873",
+      "30447069",
+      "41618934"
+    ]
+  },
+  {
+    "pairid": 110115,
+    "genesymbol": "CACNA1S",
+    "drugid": "RxNorm:6857",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110116,
+    "genesymbol": "RYR1",
+    "drugid": "RxNorm:6857",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110201,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:6878",
+    "cpiclevel": "A",
+    "clinpgxlevel": "3",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 3004619,
+    "genesymbol": "MT-RNR1",
+    "drugid": "RxNorm:7299",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 826283,
+    "citations": [
+      "34032273"
+    ]
+  },
+  {
+    "pairid": 110118,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:7646",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 110076,
+    "citations": [
+      "32770672"
+    ]
+  },
+  {
+    "pairid": 110120,
+    "genesymbol": "HLA-B",
+    "drugid": "RxNorm:32624",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100423,
+    "citations": [
+      "29392710"
+    ]
+  },
+  {
+    "pairid": 110121,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:40790",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 110076,
+    "citations": [
+      "32770672"
+    ]
+  },
+  {
+    "pairid": 110122,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:32937",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100413,
+    "citations": [
+      "25974703",
+      "37032427"
+    ]
+  },
+  {
+    "pairid": 110207,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:1011650",
+    "cpiclevel": "A",
+    "clinpgxlevel": "3",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110127,
+    "genesymbol": "CYP2C9",
+    "drugid": "RxNorm:8183",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100412,
+    "citations": [
+      "25099164",
+      "32779747"
+    ]
+  },
+  {
+    "pairid": 110128,
+    "genesymbol": "HLA-B",
+    "drugid": "RxNorm:8183",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100412,
+    "citations": [
+      "25099164",
+      "32779747"
+    ]
+  },
+  {
+    "pairid": 110071,
+    "genesymbol": "CYP2C9",
+    "drugid": "RxNorm:8356",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 110058,
+    "citations": [
+      "32189324"
+    ]
+  },
+  {
+    "pairid": 1556298,
+    "genesymbol": "SLCO1B1",
+    "drugid": "RxNorm:861634",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100426,
+    "citations": [
+      "35152405"
+    ]
+  },
+  {
+    "pairid": 826285,
+    "genesymbol": "MT-RNR1",
+    "drugid": "RxNorm:2049549",
+    "cpiclevel": "A",
+    "clinpgxlevel": null,
+    "guidelineid": 826283,
+    "citations": [
+      "34032273"
+    ]
+  },
+  {
+    "pairid": 110381,
+    "genesymbol": "SLCO1B1",
+    "drugid": "RxNorm:42463",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100426,
+    "citations": [
+      "35152405"
+    ]
+  },
+  {
+    "pairid": 110211,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:8687",
+    "cpiclevel": "A",
+    "clinpgxlevel": "3",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110131,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:283821",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 2405438,
+    "citations": [
+      "24787449",
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110215,
+    "genesymbol": "ABCG2",
+    "drugid": "RxNorm:301542",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100426,
+    "citations": [
+      "35152405"
+    ]
+  },
+  {
+    "pairid": 110391,
+    "genesymbol": "SLCO1B1",
+    "drugid": "RxNorm:301542",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100426,
+    "citations": [
+      "35152405"
+    ]
+  },
+  {
+    "pairid": 110216,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:36437",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100413,
+    "citations": [
+      "25974703",
+      "37032427"
+    ]
+  },
+  {
+    "pairid": 110133,
+    "genesymbol": "CACNA1S",
+    "drugid": "RxNorm:36453",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110134,
+    "genesymbol": "RYR1",
+    "drugid": "RxNorm:36453",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110135,
+    "genesymbol": "SLCO1B1",
+    "drugid": "RxNorm:36567",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100426,
+    "citations": [
+      "22617227",
+      "24918167",
+      "35152405"
+    ]
+  },
+  {
+    "pairid": 110162,
+    "genesymbol": "MT-RNR1",
+    "drugid": "RxNorm:10109",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 826283,
+    "citations": [
+      "34032273"
+    ]
+  },
+  {
+    "pairid": 110137,
+    "genesymbol": "CACNA1S",
+    "drugid": "RxNorm:10154",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110138,
+    "genesymbol": "RYR1",
+    "drugid": "RxNorm:10154",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110139,
+    "genesymbol": "CYP3A5",
+    "drugid": "RxNorm:42316",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100418,
+    "citations": [
+      "25801146"
+    ]
+  },
+  {
+    "pairid": 110140,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:2054023",
+    "cpiclevel": "A",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110141,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:10324",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100415,
+    "citations": [
+      "29385237"
+    ]
+  },
+  {
+    "pairid": 110072,
+    "genesymbol": "CYP2C9",
+    "drugid": "RxNorm:37790",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 110058,
+    "citations": [
+      "32189324"
+    ]
+  },
+  {
+    "pairid": 110164,
+    "genesymbol": "MT-RNR1",
+    "drugid": "RxNorm:10627",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 826283,
+    "citations": [
+      "34032273"
+    ]
+  },
+  {
+    "pairid": 2452949,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:10638",
+    "cpiclevel": "A",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110145,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:10689",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100416,
+    "citations": [
+      "33387367"
+    ]
+  },
+  {
+    "pairid": 110186,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:3638",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 110276,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:6918",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 5290480,
+    "citations": [
+      "38951961"
+    ]
+  },
+  {
+    "pairid": 110123,
+    "genesymbol": "IFNL3",
+    "drugid": "RxNorm:120608",
+    "cpiclevel": "Retired",
+    "clinpgxlevel": "1B",
+    "guidelineid": 100424,
+    "citations": [
+      "24096968"
+    ]
+  },
+  {
+    "pairid": 110125,
+    "genesymbol": "IFNL3",
+    "drugid": "RxNorm:253453",
+    "cpiclevel": "Retired",
+    "clinpgxlevel": "1B",
+    "guidelineid": 100424,
+    "citations": [
+      "24096968"
+    ]
+  },
+  {
+    "pairid": 110079,
+    "genesymbol": "HLA-B",
+    "drugid": "RxNorm:519",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100422,
+    "citations": [
+      "23232549",
+      "26094938"
+    ]
+  },
+  {
+    "pairid": 110182,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:3108",
+    "cpiclevel": "A",
+    "clinpgxlevel": "4",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110094,
+    "genesymbol": "RYR1",
+    "drugid": "RxNorm:27340",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110096,
+    "genesymbol": "CACNA1S",
+    "drugid": "RxNorm:3920",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110097,
+    "genesymbol": "RYR1",
+    "drugid": "RxNorm:3920",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110101,
+    "genesymbol": "CYP2C9",
+    "drugid": "RxNorm:72236",
+    "cpiclevel": "A",
+    "clinpgxlevel": null,
+    "guidelineid": 100412,
+    "citations": [
+      "25099164",
+      "32779747"
+    ]
+  },
+  {
+    "pairid": 110102,
+    "genesymbol": "HLA-B",
+    "drugid": "RxNorm:72236",
+    "cpiclevel": "A",
+    "clinpgxlevel": null,
+    "guidelineid": 100412,
+    "citations": [
+      "25099164",
+      "32779747"
+    ]
+  },
+  {
+    "pairid": 110157,
+    "genesymbol": "MT-RNR1",
+    "drugid": "ATC:D06AX07",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 826283,
+    "citations": [
+      "34032273"
+    ]
+  },
+  {
+    "pairid": 110104,
+    "genesymbol": "RYR1",
+    "drugid": "RxNorm:5095",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110063,
+    "genesymbol": "CYP2C9",
+    "drugid": "RxNorm:5640",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 110058,
+    "citations": [
+      "32189324"
+    ]
+  },
+  {
+    "pairid": 110107,
+    "genesymbol": "CACNA1S",
+    "drugid": "RxNorm:6026",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100427,
+    "citations": [
+      "30499100"
+    ]
+  },
+  {
+    "pairid": 110110,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:17128",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 110076,
+    "citations": [
+      "32770672"
+    ]
+  },
+  {
+    "pairid": 110205,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:7454",
+    "cpiclevel": "A",
+    "clinpgxlevel": "3",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110148,
+    "genesymbol": "CYP2C9",
+    "drugid": "RxNorm:11289",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100425,
+    "citations": [
+      "21900891",
+      "28198005"
+    ]
+  },
+  {
+    "pairid": 110183,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:3247",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 110184,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:816346",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 110076,
+    "citations": [
+      "32770672"
+    ]
+  },
+  {
+    "pairid": 110187,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:3638",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 110195,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:5691",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 3122076,
+    "genesymbol": "CYP2B6",
+    "drugid": "RxNorm:36437",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100413,
+    "citations": [
+      "37032427"
+    ]
+  },
+  {
+    "pairid": 110223,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:10834",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 110224,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:10834",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 110167,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:39786",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100413,
+    "citations": [
+      "37032427"
+    ]
+  },
+  {
+    "pairid": 110091,
+    "genesymbol": "CYP2C19",
+    "drugid": "RxNorm:32968",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100411,
+    "citations": [
+      "21716271",
+      "23698643",
+      "35034351"
+    ]
+  },
+  {
+    "pairid": 110193,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:5489",
+    "cpiclevel": "B",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100416,
+    "citations": [
+      "33387367"
+    ]
+  },
+  {
+    "pairid": 110179,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:2551",
+    "cpiclevel": "C",
+    "clinpgxlevel": "3",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110185,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:3445",
+    "cpiclevel": "C",
+    "clinpgxlevel": "3",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 2452910,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:3639",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 2452912,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:4601",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110265,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:5521",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110197,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:6572",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110204,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:7240",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110208,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:8120",
+    "cpiclevel": "C",
+    "clinpgxlevel": "3",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 2452941,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:10178",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110220,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:10831",
+    "cpiclevel": "C",
+    "clinpgxlevel": "4",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110222,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:10207",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110405,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:1151",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 2452952,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:11258",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 2452943,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:10184",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110151,
+    "genesymbol": "MT-RNR1",
+    "drugid": "RxNorm:641",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 826283,
+    "citations": [
+      "34032273"
+    ]
+  },
+  {
+    "pairid": 110084,
+    "genesymbol": "NUDT15",
+    "drugid": "RxNorm:1256",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100428,
+    "citations": [
+      "21270794",
+      "23422873",
+      "30447069",
+      "41618934"
+    ]
+  },
+  {
+    "pairid": 110146,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:27392",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100417,
+    "citations": [
+      "28002639",
+      "41979467"
+    ]
+  },
+  {
+    "pairid": 110078,
+    "genesymbol": "HLA-B",
+    "drugid": "RxNorm:190521",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100421,
+    "citations": [
+      "24561393",
+      "22378157"
+    ]
+  },
+  {
+    "pairid": 110081,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:704",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100414,
+    "citations": [
+      "23486447",
+      "27997040"
+    ]
+  },
+  {
+    "pairid": 110113,
+    "genesymbol": "NUDT15",
+    "drugid": "RxNorm:103",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100428,
+    "citations": [
+      "21270794",
+      "23422873",
+      "30447069",
+      "41618934"
+    ]
+  },
+  {
+    "pairid": 110119,
+    "genesymbol": "CYP2D6",
+    "drugid": "RxNorm:26225",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100417,
+    "citations": [
+      "28002639",
+      "41979467"
+    ]
+  },
+  {
+    "pairid": 110144,
+    "genesymbol": "TPMT",
+    "drugid": "RxNorm:10485",
+    "cpiclevel": "A",
+    "clinpgxlevel": "1A",
+    "guidelineid": 100428,
+    "citations": [
+      "21270794",
+      "23422873",
+      "30447069",
+      "41618934"
+    ]
+  },
+  {
+    "pairid": 110177,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:2348",
+    "cpiclevel": "C",
+    "clinpgxlevel": "3",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110190,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:4815",
+    "cpiclevel": "C",
+    "clinpgxlevel": "3",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 2452931,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:7623",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 110221,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:9524",
+    "cpiclevel": "C",
+    "clinpgxlevel": "3",
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  },
+  {
+    "pairid": 2452948,
+    "genesymbol": "G6PD",
+    "drugid": "RxNorm:10635",
+    "cpiclevel": "C",
+    "clinpgxlevel": null,
+    "guidelineid": 2405438,
+    "citations": [
+      "36049896"
+    ]
+  }
+]

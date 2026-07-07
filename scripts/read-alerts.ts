@@ -1,0 +1,10 @@
+import { createMedplumClient } from "../lib/medplum/client";
+const medplum = await createMedplumClient();
+const patientRef = "Patient/fe75cdb9-d98f-4660-971a-5939f8b0829d";
+const issues = await medplum.searchResources("DetectedIssue", `patient=${patientRef}`);
+const tasks = await medplum.searchResources("Task", `patient=${patientRef}`);
+console.log("DetectedIssues:", issues.length);
+for (const i of issues) console.log("  -", i.severity, "|", i.detail);
+console.log("Tasks:", tasks.length);
+for (const t of tasks) console.log("  -", t.status, "|", t.description);
+process.exit(0);

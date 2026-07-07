@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <rect width="1024" height="1024" fill="#00B140"/>
+  <!-- mark centered: tight art is 450x190; scale 1.6 -> 720x304, place at center -->
+  <g transform="translate(152 360)" fill="#FFFFFF">
+    <g transform="scale(1.6)">
+      <rect x="95" y="72" width="260" height="46" rx="23"/>
+      <circle cx="95" cy="95" r="95"/>
+      <circle cx="355" cy="95" r="95"/>
+    </g>
+  </g>
+</svg>

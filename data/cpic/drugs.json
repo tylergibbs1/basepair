@@ -1,0 +1,971 @@
+[
+  {
+    "drugid": "RxNorm:38400",
+    "name": "atomoxetine",
+    "rxnormid": "38400",
+    "atcid": [
+      "N06BA09"
+    ]
+  },
+  {
+    "drugid": "RxNorm:20890",
+    "name": "lornoxicam",
+    "rxnormid": "20890",
+    "atcid": [
+      "M01AC05"
+    ]
+  },
+  {
+    "drugid": "RxNorm:11289",
+    "name": "warfarin",
+    "rxnormid": "11289",
+    "atcid": [
+      "B01AA03"
+    ]
+  },
+  {
+    "drugid": "RxNorm:1191",
+    "name": "aspirin",
+    "rxnormid": "1191",
+    "atcid": [
+      "A01AD05",
+      "B01AC06",
+      "B01AC56",
+      "C10BX01",
+      "C10BX02",
+      "C10BX04",
+      "C10BX05",
+      "C10BX06",
+      "C10BX08",
+      "M01BA03",
+      "N02BA01",
+      "N02BA51",
+      "N02BA71"
+    ]
+  },
+  {
+    "drugid": "RxNorm:3638",
+    "name": "doxepin",
+    "rxnormid": "3638",
+    "atcid": [
+      "N06AA12"
+    ]
+  },
+  {
+    "drugid": "RxNorm:42316",
+    "name": "tacrolimus",
+    "rxnormid": "42316",
+    "atcid": [
+      "D11AH01",
+      "L04AD02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:704",
+    "name": "amitriptyline",
+    "rxnormid": "704",
+    "atcid": [
+      "N06AA09",
+      "N06CA01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:283821",
+    "name": "rasburicase",
+    "rxnormid": "283821",
+    "atcid": [
+      "M04AX01",
+      "V03AF07"
+    ]
+  },
+  {
+    "drugid": "RxNorm:3108",
+    "name": "dapsone",
+    "rxnormid": "3108",
+    "atcid": [
+      "D10AX05",
+      "J04BA02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:3247",
+    "name": "desipramine",
+    "rxnormid": "3247",
+    "atcid": [
+      "N06AA01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:36453",
+    "name": "sevoflurane",
+    "rxnormid": "36453",
+    "atcid": [
+      "N01AB08"
+    ]
+  },
+  {
+    "drugid": "RxNorm:194000",
+    "name": "capecitabine",
+    "rxnormid": "194000",
+    "atcid": [
+      "L01BC06"
+    ]
+  },
+  {
+    "drugid": "RxNorm:2054023",
+    "name": "tafenoquine",
+    "rxnormid": "2054023",
+    "atcid": [
+      "P01BA07"
+    ]
+  },
+  {
+    "drugid": "ATC:D06AX07",
+    "name": "gentamicin",
+    "rxnormid": "1596450",
+    "atcid": [
+      "D06AX07",
+      "J01GB03",
+      "S01AA11",
+      "S02AA14",
+      "S03AA06"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10324",
+    "name": "tamoxifen",
+    "rxnormid": "10324",
+    "atcid": [
+      "L02BA01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10109",
+    "name": "streptomycin",
+    "rxnormid": "10109",
+    "atcid": [
+      "A07AA04",
+      "J01GA01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:72236",
+    "name": "fosphenytoin",
+    "rxnormid": "72236",
+    "atcid": [
+      "N03AB05"
+    ]
+  },
+  {
+    "drugid": "RxNorm:6878",
+    "name": "methylene blue",
+    "rxnormid": "6878",
+    "atcid": [
+      "NA"
+    ]
+  },
+  {
+    "drugid": "RxNorm:8687",
+    "name": "primaquine",
+    "rxnormid": "8687",
+    "atcid": [
+      "P01BA03"
+    ]
+  },
+  {
+    "drugid": "RxNorm:6026",
+    "name": "isoflurane",
+    "rxnormid": "6026",
+    "atcid": [
+      "N01AB06"
+    ]
+  },
+  {
+    "drugid": "RxNorm:41493",
+    "name": "meloxicam",
+    "rxnormid": "41493",
+    "atcid": [
+      "M01AC06"
+    ]
+  },
+  {
+    "drugid": "RxNorm:2597",
+    "name": "clomipramine",
+    "rxnormid": "2597",
+    "atcid": [
+      "N06AA04"
+    ]
+  },
+  {
+    "drugid": "RxNorm:4492",
+    "name": "fluorouracil",
+    "rxnormid": "4492",
+    "atcid": [
+      "L01BC02",
+      "L01BC52"
+    ]
+  },
+  {
+    "drugid": "RxNorm:519",
+    "name": "allopurinol",
+    "rxnormid": "519",
+    "atcid": [
+      "M04AA01",
+      "M04AA51"
+    ]
+  },
+  {
+    "drugid": "RxNorm:2002",
+    "name": "carbamazepine",
+    "rxnormid": "2002",
+    "atcid": [
+      "N03AF01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10154",
+    "name": "succinylcholine",
+    "rxnormid": "10154",
+    "atcid": [
+      "M03AB01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:6099",
+    "name": "kanamycin",
+    "rxnormid": "6099",
+    "atcid": [
+      "A07AA08",
+      "J01GB04",
+      "S01AA24"
+    ]
+  },
+  {
+    "drugid": "RxNorm:103",
+    "name": "mercaptopurine",
+    "rxnormid": "103",
+    "atcid": [
+      "L01BB02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:42355",
+    "name": "fluvoxamine",
+    "rxnormid": "42355",
+    "atcid": [
+      "N06AB08"
+    ]
+  },
+  {
+    "drugid": "RxNorm:5489",
+    "name": "hydrocodone",
+    "rxnormid": "5489",
+    "atcid": [
+      "R05DA03"
+    ]
+  },
+  {
+    "drugid": "RxNorm:861634",
+    "name": "pitavastatin",
+    "rxnormid": "861634",
+    "atcid": [
+      "C10AA08"
+    ]
+  },
+  {
+    "drugid": "RxNorm:5521",
+    "name": "hydroxychloroquine",
+    "rxnormid": "5521",
+    "atcid": [
+      "P01BA02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:4601",
+    "name": "furazolidone",
+    "rxnormid": "4601",
+    "atcid": [
+      "G01AX06"
+    ]
+  },
+  {
+    "drugid": "RxNorm:321988",
+    "name": "escitalopram",
+    "rxnormid": "321988",
+    "atcid": [
+      "N06AB10"
+    ]
+  },
+  {
+    "drugid": "RxNorm:301542",
+    "name": "rosuvastatin",
+    "rxnormid": "301542",
+    "atcid": [
+      "C10AA07"
+    ]
+  },
+  {
+    "drugid": "RxNorm:3639",
+    "name": "doxorubicin",
+    "rxnormid": "3639",
+    "atcid": [
+      "L01DB01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:41127",
+    "name": "fluvastatin",
+    "rxnormid": "41127",
+    "atcid": [
+      "C10AA04"
+    ]
+  },
+  {
+    "drugid": "RxNorm:6472",
+    "name": "lovastatin",
+    "rxnormid": "6472",
+    "atcid": [
+      "C10AA02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:5691",
+    "name": "imipramine",
+    "rxnormid": "5691",
+    "atcid": [
+      "N06AA02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:4815",
+    "name": "glyburide",
+    "rxnormid": "4815",
+    "atcid": [
+      "A10BB01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:3445",
+    "name": "dimercaprol",
+    "rxnormid": "3445",
+    "atcid": [
+      "V03AB09"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10834",
+    "name": "trimipramine",
+    "rxnormid": "10834",
+    "atcid": [
+      "N06AA06"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10638",
+    "name": "toluidine blue",
+    "rxnormid": "10638",
+    "atcid": [
+      "NA"
+    ]
+  },
+  {
+    "drugid": "RxNorm:8120",
+    "name": "phenazopyridine",
+    "rxnormid": "8120",
+    "atcid": [
+      "G04BX06"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10627",
+    "name": "tobramycin",
+    "rxnormid": "10627",
+    "atcid": [
+      "J01GB01",
+      "S01AA12"
+    ]
+  },
+  {
+    "drugid": "RxNorm:27392",
+    "name": "tropisetron",
+    "rxnormid": "27392",
+    "atcid": [
+      "A04AA03"
+    ]
+  },
+  {
+    "drugid": "RxNorm:2348",
+    "name": "chloramphenicol",
+    "rxnormid": "2348",
+    "atcid": [
+      "D06AX02",
+      "D10AF03",
+      "G01AA05",
+      "J01BA01",
+      "S01AA01",
+      "S02AA01",
+      "S03AA08"
+    ]
+  },
+  {
+    "drugid": "RxNorm:7240",
+    "name": "nalidixic acid",
+    "rxnormid": "7240",
+    "atcid": [
+      "J01MB02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:42463",
+    "name": "pravastatin",
+    "rxnormid": "42463",
+    "atcid": [
+      "C10AA03"
+    ]
+  },
+  {
+    "drugid": "RxNorm:32624",
+    "name": "oxcarbazepine",
+    "rxnormid": "32624",
+    "atcid": [
+      "N03AF02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:9071",
+    "name": "quinine",
+    "rxnormid": "9071",
+    "atcid": [
+      "P01BC01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10689",
+    "name": "tramadol",
+    "rxnormid": "10689",
+    "atcid": [
+      "N02AX02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:36567",
+    "name": "simvastatin",
+    "rxnormid": "36567",
+    "atcid": [
+      "C10AA01",
+      "C10BA02",
+      "C10BX04",
+      "A10BH51",
+      "C10BA04",
+      "C10BX01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10178",
+    "name": "sulfadimidine",
+    "rxnormid": "10178",
+    "atcid": [
+      "J01EB03"
+    ]
+  },
+  {
+    "drugid": "RxNorm:1455099",
+    "name": "vortioxetine",
+    "rxnormid": "1455099",
+    "atcid": [
+      "N06AX26"
+    ]
+  },
+  {
+    "drugid": "RxNorm:1151",
+    "name": "vitamin c",
+    "rxnormid": "1151",
+    "atcid": [
+      "G01AD03",
+      "S01XA15"
+    ]
+  },
+  {
+    "drugid": "RxNorm:32937",
+    "name": "paroxetine",
+    "rxnormid": "32937",
+    "atcid": [
+      "N06AB05"
+    ]
+  },
+  {
+    "drugid": "RxNorm:11258",
+    "name": "vitamin k",
+    "rxnormid": "11258",
+    "atcid": [
+      "B02BA"
+    ]
+  },
+  {
+    "drugid": "RxNorm:6572",
+    "name": "mafenide",
+    "rxnormid": "6572",
+    "atcid": [
+      "NA"
+    ]
+  },
+  {
+    "drugid": "RxNorm:7623",
+    "name": "ofloxacin",
+    "rxnormid": "7623",
+    "atcid": [
+      "J01MA01",
+      "S01AE01",
+      "S02AA16"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10635",
+    "name": "tolbutamide",
+    "rxnormid": "10635",
+    "atcid": [
+      "A10BB03",
+      "V04CA01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:6918",
+    "name": "metoprolol",
+    "rxnormid": "6918",
+    "atcid": [
+      "C07AB02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10184",
+    "name": "sulfanilamide",
+    "rxnormid": "10184",
+    "atcid": [
+      "D06BA05",
+      "J01EB06"
+    ]
+  },
+  {
+    "drugid": "RxNorm:39786",
+    "name": "venlafaxine",
+    "rxnormid": "39786",
+    "atcid": [
+      "N06AX16"
+    ]
+  },
+  {
+    "drugid": "RxNorm:36437",
+    "name": "sertraline",
+    "rxnormid": "36437",
+    "atcid": [
+      "N06AB06"
+    ]
+  },
+  {
+    "drugid": "RxNorm:3328",
+    "name": "dibekacin",
+    "rxnormid": "3328",
+    "atcid": [
+      "J01GB09"
+    ]
+  },
+  {
+    "drugid": "RxNorm:7299",
+    "name": "neomycin",
+    "rxnormid": "7299",
+    "atcid": [
+      "A01AB08",
+      "A07AA01",
+      "B05CA09",
+      "D06AX04",
+      "J01GB05",
+      "R02AB01",
+      "S01AA03",
+      "S02AA07",
+      "S03AA01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10831",
+    "name": "sulfamethoxazole / trimethoprim",
+    "rxnormid": "10831",
+    "atcid": [
+      "NA"
+    ]
+  },
+  {
+    "drugid": "RxNorm:7531",
+    "name": "nortriptyline",
+    "rxnormid": "7531",
+    "atcid": [
+      "N06AA10"
+    ]
+  },
+  {
+    "drugid": "RxNorm:6857",
+    "name": "methoxyflurane",
+    "rxnormid": "6857",
+    "atcid": [
+      "N02BG09"
+    ]
+  },
+  {
+    "drugid": "RxNorm:7337",
+    "name": "netilmicin",
+    "rxnormid": "7337",
+    "atcid": [
+      "J01GB07",
+      "S01AA23"
+    ]
+  },
+  {
+    "drugid": "RxNorm:40790",
+    "name": "pantoprazole",
+    "rxnormid": "40790",
+    "atcid": [
+      "A02BC02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:8356",
+    "name": "piroxicam",
+    "rxnormid": "8356",
+    "atcid": [
+      "M01AC01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:120608",
+    "name": "peginterferon alfa-2a",
+    "rxnormid": "120608",
+    "atcid": [
+      "L03AB11",
+      "L03AB61"
+    ]
+  },
+  {
+    "drugid": "RxNorm:5470",
+    "name": "hydralazine",
+    "rxnormid": "5470",
+    "atcid": [
+      "C02DB02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:1011650",
+    "name": "pegloticase",
+    "rxnormid": "1011650",
+    "atcid": [
+      "NA"
+    ]
+  },
+  {
+    "drugid": "RxNorm:7454",
+    "name": "nitrofurantoin",
+    "rxnormid": "7454",
+    "atcid": [
+      "J01XE01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:8183",
+    "name": "phenytoin",
+    "rxnormid": "8183",
+    "atcid": [
+      "N03AB02",
+      "N03AB52"
+    ]
+  },
+  {
+    "drugid": "RxNorm:7934",
+    "name": "paromomycin",
+    "rxnormid": "7934",
+    "atcid": [
+      "A07AA06"
+    ]
+  },
+  {
+    "drugid": "RxNorm:253453",
+    "name": "peginterferon alfa-2b",
+    "rxnormid": "253453",
+    "atcid": [
+      "L03AB10",
+      "L03AB60"
+    ]
+  },
+  {
+    "drugid": "RxNorm:195085",
+    "name": "efavirenz",
+    "rxnormid": "195085",
+    "atcid": [
+      "J05AG03"
+    ]
+  },
+  {
+    "drugid": "RxNorm:1243041",
+    "name": "ivacaftor",
+    "rxnormid": "1243041",
+    "atcid": [
+      "R07AX02",
+      "R07AX30"
+    ]
+  },
+  {
+    "drugid": "RxNorm:4502",
+    "name": "flurbiprofen",
+    "rxnormid": "4502",
+    "atcid": [
+      "M01AE09",
+      "M02AA19",
+      "R02AX01",
+      "S01BC04"
+    ]
+  },
+  {
+    "drugid": "RxNorm:NA",
+    "name": "ribostamycin",
+    "rxnormid": "NA",
+    "atcid": [
+      "J01GB10"
+    ]
+  },
+  {
+    "drugid": "RxNorm:816346",
+    "name": "dexlansoprazole",
+    "rxnormid": "816346",
+    "atcid": [
+      "A02BC06"
+    ]
+  },
+  {
+    "drugid": "RxNorm:140587",
+    "name": "celecoxib",
+    "rxnormid": "140587",
+    "atcid": [
+      "L01XX33",
+      "M01AH01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:7517",
+    "name": "norfloxacin",
+    "rxnormid": "7517",
+    "atcid": [
+      "J01MA06",
+      "S01AE02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:121243",
+    "name": "voriconazole",
+    "rxnormid": "121243",
+    "atcid": [
+      "J02AC03"
+    ]
+  },
+  {
+    "drugid": "RxNorm:17128",
+    "name": "lansoprazole",
+    "rxnormid": "17128",
+    "atcid": [
+      "A02BC03"
+    ]
+  },
+  {
+    "drugid": "RxNorm:32968",
+    "name": "clopidogrel",
+    "rxnormid": "32968",
+    "atcid": [
+      "B01AC04"
+    ]
+  },
+  {
+    "drugid": "RxNorm:5640",
+    "name": "ibuprofen",
+    "rxnormid": "5640",
+    "atcid": [
+      "C01EB16",
+      "G02CC01",
+      "M01AE01",
+      "M02AA13"
+    ]
+  },
+  {
+    "drugid": "RxNorm:27340",
+    "name": "desflurane",
+    "rxnormid": "27340",
+    "atcid": [
+      "N01AB07"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10207",
+    "name": "sulfisoxazole",
+    "rxnormid": "10207",
+    "atcid": [
+      "J01EB05",
+      "S01AB02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:9524",
+    "name": "sulfasalazine",
+    "rxnormid": "9524",
+    "atcid": [
+      "A07EC01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:7646",
+    "name": "omeprazole",
+    "rxnormid": "7646",
+    "atcid": [
+      "A02BC01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:641",
+    "name": "amikacin",
+    "rxnormid": "641",
+    "atcid": [
+      "D06AX12",
+      "J01GB06",
+      "S01AA21"
+    ]
+  },
+  {
+    "drugid": "RxNorm:2393",
+    "name": "chloroquine",
+    "rxnormid": "2393",
+    "atcid": [
+      "P01BA01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10485",
+    "name": "thioguanine",
+    "rxnormid": "10485",
+    "atcid": [
+      "L01BB03"
+    ]
+  },
+  {
+    "drugid": "RxNorm:2049549",
+    "name": "plazomicin",
+    "rxnormid": "2049549",
+    "atcid": null
+  },
+  {
+    "drugid": "RxNorm:26225",
+    "name": "ondansetron",
+    "rxnormid": "26225",
+    "atcid": [
+      "A04AA01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:2556",
+    "name": "citalopram",
+    "rxnormid": "2556",
+    "atcid": [
+      "N06AB04"
+    ]
+  },
+  {
+    "drugid": "RxNorm:2670",
+    "name": "codeine",
+    "rxnormid": "2670",
+    "atcid": [
+      "R05DA04",
+      "N02AA59",
+      "N02AA79"
+    ]
+  },
+  {
+    "drugid": "RxNorm:343047",
+    "name": "atazanavir",
+    "rxnormid": "343047",
+    "atcid": [
+      "J05AE08",
+      "J05AR15"
+    ]
+  },
+  {
+    "drugid": "RxNorm:190521",
+    "name": "abacavir",
+    "rxnormid": "190521",
+    "atcid": [
+      "J05AF06",
+      "J05AR02",
+      "J05AR13",
+      "J05AR04"
+    ]
+  },
+  {
+    "drugid": "RxNorm:2551",
+    "name": "ciprofloxacin",
+    "rxnormid": "2551",
+    "atcid": [
+      "J01MA02",
+      "S01AE03",
+      "S02AA15",
+      "S03AA07"
+    ]
+  },
+  {
+    "drugid": "RxNorm:83367",
+    "name": "atorvastatin",
+    "rxnormid": "83367",
+    "atcid": [
+      "C10AA05"
+    ]
+  },
+  {
+    "drugid": "RxNorm:3920",
+    "name": "enflurane",
+    "rxnormid": "3920",
+    "atcid": [
+      "N01AB04"
+    ]
+  },
+  {
+    "drugid": "RxNorm:5095",
+    "name": "halothane",
+    "rxnormid": "5095",
+    "atcid": [
+      "N01AB01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:10171",
+    "name": "sulfadiazine",
+    "rxnormid": "10171",
+    "atcid": [
+      "J01EC02"
+    ]
+  },
+  {
+    "drugid": "RxNorm:7833",
+    "name": "aminosalicylic acid",
+    "rxnormid": "7833",
+    "atcid": [
+      "J04AA01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:1256",
+    "name": "azathioprine",
+    "rxnormid": "1256",
+    "atcid": [
+      "L04AX01"
+    ]
+  },
+  {
+    "drugid": "RxNorm:37790",
+    "name": "tenoxicam",
+    "rxnormid": "37790",
+    "atcid": [
+      "M01AC02"
+    ]
+  }
+]

@@ -1,0 +1,12 @@
+This dataset is derived from CPIC (Clinical Pharmacogenetics Implementation
+Consortium) data, obtained via the CPIC/ClinPGx API (https://api.cpicpgx.org).
+
+CPIC / ClinPGx / PharmGKB content is licensed under the Creative Commons
+Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0):
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Attribution: Clinical Pharmacogenetics Implementation Consortium (CPIC),
+ClinPGx, and PharmGKB. The data has been reshaped into JSON for use in
+Basepair; clinical content is unchanged. Per the ShareAlike term, this
+derived dataset is distributed under the same CC BY-SA 4.0 license.
+Accessed: 2026-07-07.

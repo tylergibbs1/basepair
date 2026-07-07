@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 190" fill="none">
+  <!-- basepair mark: two nodes joined by a bar (one base pair) -->
+  <g fill="#FFFFFF">
+    <rect x="95" y="72" width="260" height="46" rx="23"/>
+    <circle cx="95" cy="95" r="95"/>
+    <circle cx="355" cy="95" r="95"/>
+  </g>
+</svg>

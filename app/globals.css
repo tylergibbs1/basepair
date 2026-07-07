@@ -1,0 +1,230 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+    --font-mono: var(--font-mono);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+
+    /* ---- Clinical severity + state tokens (Tailwind utilities) ---- */
+    --color-sev-critical: var(--sev-critical);
+    --color-sev-critical-bg: var(--sev-critical-bg);
+    --color-sev-critical-fg: var(--sev-critical-fg);
+    --color-sev-critical-br: var(--sev-critical-br);
+    --color-sev-caution: var(--sev-caution);
+    --color-sev-caution-bg: var(--sev-caution-bg);
+    --color-sev-caution-fg: var(--sev-caution-fg);
+    --color-sev-caution-br: var(--sev-caution-br);
+    --color-sev-info: var(--sev-info);
+    --color-sev-info-bg: var(--sev-info-bg);
+    --color-sev-info-fg: var(--sev-info-fg);
+    --color-sev-info-br: var(--sev-info-br);
+    /* Product/interface accent (DESIGN.md): navy primary + focus, on both layers. */
+    --color-navy: var(--navy);
+    --color-navy-press: var(--navy-press);
+
+    /* Interactive surface steps (DESIGN.md): gray-100 hover, gray-200 active. */
+    --color-hover: var(--hover);
+    --color-active: var(--active);
+    --color-success: var(--success);
+    --color-success-bg: var(--success-bg);
+    --color-success-fg: var(--success-fg);
+    --color-success-br: var(--success-br);
+    --color-hold: var(--hold);
+    --color-hold-bg: var(--hold-bg);
+    --color-hold-fg: var(--hold-fg);
+    --color-hold-br: var(--hold-br);
+
+    /* Console radius vocabulary (docs/DESIGN.md): sm 6 controls, md 12 menus/
+       modals, lg 16 fullscreen, xl 20. Pill (9999px) is chips/avatars only —
+       a pill-radius button in the console is a spec violation. Larger steps are
+       capped at xl so nothing accidentally rounds into pill territory. */
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 20px;
+    --radius-3xl: 20px;
+    --radius-4xl: 20px;
+}
+
+:root {
+    color-scheme: light;
+
+    /* ---- Geist palette: gray (solid — text & opaque fills) ---- */
+    --gray-100: #f2f2f2;
+    --gray-200: #ebebeb;
+    --gray-300: #e6e6e6;
+    --gray-400: #eaeaea;
+    --gray-500: #c9c9c9;
+    --gray-600: #a8a8a8;
+    --gray-700: #8f8f8f;
+    --gray-800: #7d7d7d;
+    --gray-900: #4d4d4d;
+    --gray-1000: #171717;
+    /* Translucent default border/divider — layers over any surface (DESIGN.md). */
+    --gray-alpha-400: #00000014;
+
+    /* ---- Surfaces ---- */
+    --background-100: #ffffff;
+    --background-200: #fafafa;
+
+    /* ---- Navy: the product/interface accent on both layers (DESIGN.md).
+       Console primary action, links, and focus ring. Dark and desaturated so
+       it never reads as the bright blue-700 that means Info. ---- */
+    --navy: #173c63;
+    --navy-press: #0f2c4b;
+
+    /* ---- Blue (info, links, focus) ---- */
+    --blue-100: #f0f7ff;
+    --blue-400: #cae7ff;
+    --blue-700: #006bff;
+    --blue-800: #0059ec;
+    --blue-1000: #002359;
+
+    /* ---- Red (critical / destructive) ---- */
+    --red-100: #ffeeef;
+    --red-400: #ffd7d6;
+    --red-500: #ffb1b3;
+    --red-700: #fc0035;
+    --red-800: #ea001d;
+    --red-1000: #47000c;
+
+    /* ---- Amber (caution / warning / hold) ---- */
+    --amber-100: #fff6de;
+    --amber-400: #ffdc73;
+    --amber-700: #ffae00;
+    --amber-800: #ff9300;
+    --amber-1000: #561900;
+
+    /* ---- Green (success / verified / approved) ---- */
+    --green-100: #ecfdec;
+    --green-400: #b9f5bc;
+    --green-500: #82eb8d;
+    --green-700: #28a948;
+    --green-1000: #003a00;
+
+    /* ---- Clinical severity + state quartets (bg / border / text / base icon) ---- */
+    --sev-critical-bg: var(--red-100);
+    --sev-critical-br: var(--red-400);
+    --sev-critical-fg: var(--red-1000);
+    --sev-critical: var(--red-700);
+
+    --sev-caution-bg: var(--amber-100);
+    --sev-caution-br: var(--amber-400);
+    --sev-caution-fg: var(--amber-1000);
+    --sev-caution: var(--amber-800);
+
+    --sev-info-bg: var(--blue-100);
+    --sev-info-br: var(--blue-400);
+    --sev-info-fg: var(--blue-1000);
+    --sev-info: var(--blue-700);
+
+    --success-bg: var(--green-100);
+    --success-br: var(--green-400);
+    --success-fg: var(--green-1000);
+    --success: var(--green-700);
+
+    --hold-bg: var(--amber-100);
+    --hold-br: var(--amber-400);
+    --hold-fg: var(--amber-1000);
+    --hold: var(--amber-800);
+
+    /* ---- Interactive surface steps: gray-100 hover, gray-200 active ---- */
+    --hover: var(--gray-100);
+    --active: var(--gray-200);
+
+    /* ---- shadcn semantic tokens → Geist ---- */
+    --background: var(--background-100);
+    --foreground: var(--gray-1000);
+    --card: var(--background-100);
+    --card-foreground: var(--gray-1000);
+    --popover: var(--background-100);
+    --popover-foreground: var(--gray-1000);
+    --primary: var(--navy);
+    --primary-foreground: var(--background-100);
+    --secondary: var(--gray-100);
+    --secondary-foreground: var(--gray-1000);
+    --muted: var(--background-200);
+    --muted-foreground: var(--gray-900);
+    --accent: var(--gray-100);
+    --accent-foreground: var(--gray-1000);
+    --destructive: var(--red-800);
+    --border: var(--gray-alpha-400);
+    --input: var(--gray-alpha-400);
+    --ring: var(--navy);
+    --chart-1: var(--blue-700);
+    --chart-2: var(--green-700);
+    --chart-3: var(--amber-700);
+    --chart-4: var(--red-700);
+    --chart-5: var(--gray-700);
+    --radius: 0.625rem;
+    --sidebar: var(--background-200);
+    --sidebar-foreground: var(--gray-1000);
+    --sidebar-primary: var(--gray-1000);
+    --sidebar-primary-foreground: var(--background-100);
+    --sidebar-accent: var(--gray-100);
+    --sidebar-accent-foreground: var(--gray-1000);
+    --sidebar-border: var(--gray-200);
+    --sidebar-ring: var(--navy);
+}
+
+/* Light theme only — no .dark block by design (docs/DESIGN.md). */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    }
+}
+
+/* Honor the OS "reduce motion" setting for CSS-driven animation (the base-ui
+   sheet/dialog transitions). motion/react animations are handled by the
+   MotionConfig in theme-provider.tsx. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

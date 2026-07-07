@@ -1,0 +1,23 @@
+{
+  "source": "CPIC (Clinical Pharmacogenetics Implementation Consortium), via ClinPGx",
+  "api": "https://api.cpicpgx.org/v1",
+  "apiVersion": "v1",
+  "accessed": "2026-07-07",
+  "license": "CC BY-SA 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "attribution": "Data from CPIC / ClinPGx / PharmGKB, licensed under CC BY-SA 4.0. Reshaped into JSON for Basepair; not modified in substance.",
+  "scope": "usedforrecommendation = true (actionable pairs only)",
+  "counts": {
+    "genes": 22,
+    "pairs": 135,
+    "pairsByCpicLevel": {
+      "A": 93,
+      "B": 15,
+      "C": 25,
+      "Retired": 2
+    },
+    "drugs": 112,
+    "recommendations": 2115,
+    "diplotypes": 26562
+  }
+}

@@ -53,7 +53,7 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-md bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/5 duration-100 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-md bg-popover p-6 text-sm text-popover-foreground shadow-[0_1px_1px_rgba(0,0,0,0.02),0_8px_16px_-4px_rgba(0,0,0,0.04),0_24px_32px_-8px_rgba(0,0,0,0.06)] ring-1 ring-foreground/5 duration-100 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-top-1",
           className
         )}
         {...props}
@@ -65,14 +65,15 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-4 right-4"
+                aria-label="Close"
+                // 32px visual weight, but the -inset-1 pseudo pushes the hit
+                // target out to 40x40 for WCAG 2.5.5 without bulking the glyph.
+                className="absolute top-4 right-4 after:absolute after:-inset-1 after:content-['']"
                 size="icon-sm"
               />
             }
           >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
+            <XIcon aria-hidden />
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>
@@ -122,7 +123,7 @@ function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        "font-heading text-base leading-none font-semibold",
+        "font-heading text-base leading-none font-semibold text-balance",
         className
       )}
       {...props}
@@ -138,7 +139,7 @@ function DialogDescription({
     <DialogPrimitive.Description
       data-slot="dialog-description"
       className={cn(
-        "text-sm text-muted-foreground *:[a]:text-navy *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-navy-press",
+        "text-sm text-pretty text-muted-foreground *:[a]:text-navy *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-navy-press",
         className
       )}
       {...props}

@@ -1,7 +1,7 @@
 import type { DetectedIssue, Patient } from "@medplum/fhirtypes"
 
 import { createMedplumClient } from "@/lib/medplum/client"
-import type { Alert } from "@/lib/alerts/types"
+import type { Alert, SignalStats } from "@/lib/alerts/types"
 import { isCleared, parsePgxAlert, patientName } from "@/lib/alerts/pgx"
 
 /**
@@ -131,4 +131,56 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
   return entries
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
     .slice(0, MAX_ENTRIES)
+}
+
+/** Upper bound on resources scanned for the counts. Generous enough for the
+ *  demo's data scale; scoping to a rolling `_lastUpdated` window is a trivial
+ *  follow-up if the trail ever outgrows a single page. */
+const STATS_LIMIT = 1000
+
+/**
+ * Live signal-quality counts for the trust metric (topbar + Audit header),
+ * sourced from Medplum, not mocked. A sibling to getAuditEntries: it reads the
+ * same DetectedIssue / Task resources but only tallies them (no per-row patient
+ * resolution), reusing parsePgxAlert / isCleared so the flagged-vs-cleared logic
+ * lives in exactly one place.
+ *
+ * Counts (per issue #1): a considered-and-cleared DetectedIssue (`outcome:
+ * "cleared"`, no Task) is a `cleared`; a flagged DetectedIssue (has a pharmacist
+ * Task) is a `flagged`; a dismissed Task (`status:"cancelled"`) is a
+ * `falseAlarm` — the pharmacist judged it not clinically valid. Approved
+ * (completed) Tasks are true positives and never count as false alarms.
+ *
+ * Scope: all-time (bounded by STATS_LIMIT), so the counts summarise exactly the
+ * records the Audit table shows. Server-only, never import into a client
+ * component.
+ */
+export async function getSignalStats(): Promise<SignalStats> {
+  const medplum = await createMedplumClient()
+
+  const [issues, dismissedTasks] = await Promise.all([
+    medplum.searchResources("DetectedIssue", { _count: STATS_LIMIT }),
+    medplum.searchResources("Task", {
+      status: "cancelled",
+      _count: STATS_LIMIT,
+    }),
+  ])
+
+  let flagged = 0
+  let cleared = 0
+  for (const issue of issues) {
+    const pgx = parsePgxAlert(issue)
+    if (!pgx) continue
+    if (isCleared(pgx)) cleared++
+    else flagged++
+  }
+
+  const falseAlarms = dismissedTasks.length
+
+  return {
+    evaluated: flagged + cleared,
+    flagged,
+    cleared,
+    falseAlarms,
+  }
 }

@@ -47,8 +47,10 @@ function EmptyState() {
         <Inbox className="size-5" />
       </div>
       <div className="grid gap-1">
-        <p className="text-sm font-medium text-foreground">No open alerts</p>
-        <p className="max-w-xs text-sm text-muted-foreground">
+        <p className="text-sm font-medium text-balance text-foreground">
+          No open alerts
+        </p>
+        <p className="max-w-xs text-sm text-pretty text-muted-foreground">
           Every pending alert has been triaged. New alerts appear here as orders
           fire.
         </p>
@@ -76,10 +78,10 @@ function NoMatchState({
         <SearchX className="size-5" />
       </div>
       <div className="grid gap-1">
-        <p className="text-sm font-medium text-foreground">
+        <p className="text-sm font-medium text-balance text-foreground">
           No alerts match your filters
         </p>
-        <p className="max-w-xs text-sm text-muted-foreground">
+        <p className="max-w-xs text-sm text-pretty text-muted-foreground">
           {query
             ? `Nothing matches “${query}” with the current severity filters.`
             : "No open alert matches the active severity filters."}

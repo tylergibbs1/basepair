@@ -65,13 +65,12 @@ function SheetContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-4 right-4"
+                className="absolute top-4 right-4 after:absolute after:-inset-1.5"
                 size="icon-sm"
               />
             }
           >
-            <XIcon
-            />
+            <XIcon aria-hidden className="size-4" />
             <span className="sr-only">Close</span>
           </SheetPrimitive.Close>
         )}

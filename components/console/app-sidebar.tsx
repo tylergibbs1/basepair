@@ -62,29 +62,38 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {NAV_ITEMS.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    isActive={isActive(item.href, pathname)}
-                    tooltip={item.title}
-                    render={
-                      item.href ? (
-                        <Link href={item.href} aria-label={item.title} />
-                      ) : (
-                        <button type="button" aria-label={item.title} />
-                      )
-                    }
-                  >
-                    <item.icon aria-hidden />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                  {item.title === "Alerts" && openCount > 0 && (
-                    <SidebarMenuBadge>{openCount}</SidebarMenuBadge>
-                  )}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            <nav aria-label="Primary">
+              <SidebarMenu>
+                {NAV_ITEMS.map((item) => {
+                  const active = isActive(item.href, pathname)
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        isActive={active}
+                        tooltip={item.title}
+                        render={
+                          item.href ? (
+                            <Link
+                              href={item.href}
+                              aria-label={item.title}
+                              aria-current={active ? "page" : undefined}
+                            />
+                          ) : (
+                            <button type="button" aria-label={item.title} />
+                          )
+                        }
+                      >
+                        <item.icon aria-hidden />
+                        <span>{item.title}</span>
+                      </SidebarMenuButton>
+                      {item.title === "Alerts" && openCount > 0 && (
+                        <SidebarMenuBadge>{openCount}</SidebarMenuBadge>
+                      )}
+                    </SidebarMenuItem>
+                  )
+                })}
+              </SidebarMenu>
+            </nav>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

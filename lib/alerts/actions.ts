@@ -37,6 +37,15 @@ export async function reopenAlert(taskId: string): Promise<void> {
 export type PlaceOrderResult = {
   /** The MedicationRequest id that was written to Medplum. */
   orderId: string
+  /** The evaluate-order run id, for the console to subscribe to via Realtime. */
+  runId: string
+  /**
+   * A public access token scoped to read that run — safe to hand to the
+   * browser. The `tasks.trigger` handle mints it auto-scoped to this run only,
+   * so `useRealtimeRun` can stream the run's status + phase metadata without any
+   * server secret reaching the client.
+   */
+  accessToken: string
 }
 
 /**
@@ -67,14 +76,18 @@ export async function placeOrder(
   // idempotencyKey dedupes re-triggers of the same order; orderId in the payload
   // lets the task dedupe its own Medplum writes on retry; orderedBy attributes
   // the prescriber on the resulting alert.
-  await tasks.trigger<typeof evaluateOrder>(
+  const handle = await tasks.trigger<typeof evaluateOrder>(
     "evaluate-order",
     { patientRef, drug, orderId: order.id, orderedBy },
     { idempotencyKey: order.id },
   )
 
   revalidatePath("/")
-  return { orderId: order.id }
+  return {
+    orderId: order.id,
+    runId: handle.id,
+    accessToken: handle.publicAccessToken,
+  }
 }
 
 /**

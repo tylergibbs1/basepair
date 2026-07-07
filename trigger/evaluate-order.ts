@@ -1,4 +1,4 @@
-import { task } from "@trigger.dev/sdk";
+import { task, metadata } from "@trigger.dev/sdk";
 import type { Observation, Patient, DetectedIssue, Task, Reference } from "@medplum/fhirtypes";
 import { resolvePhenotype, lookupRule } from "@/lib/cpic-catalog";
 import { createMedplumClient } from "@/lib/medplum/client";
@@ -94,6 +94,18 @@ function primaryGene(genes: string[], readings: GeneReading[]): GeneReading {
 export const evaluateOrder = task({
   id: "evaluate-order",
   run: async (payload: EvaluateOrderPayload) => {
+    // Publish the pipeline phase as run metadata so the console can stream a
+    // live stepper over Trigger.dev Realtime (the frontend reads run.metadata
+    // via useRealtimeRun). The three phases mirror the three visible steps: read
+    // genetics → match CPIC → AI-verify. We flush on each change: metadata is
+    // otherwise persisted on a periodic background flush, which is too slow for
+    // short-lived phase markers — a fast run would complete before they land.
+    const setPhase = async (phase: string) => {
+      metadata.set("phase", phase);
+      await metadata.flush();
+    };
+
+    await setPhase("reading-genetics");
     const medplum = await createMedplumClient();
 
     const observations = await medplum.searchResources(
@@ -109,6 +121,7 @@ export const evaluateOrder = task({
     const genePhenotypes: Record<string, string> = {};
     for (const r of readings) genePhenotypes[r.gene] = r.phenotype;
 
+    await setPhase("matching-cpic");
     const rule = lookupRule({ drug: payload.drug, genePhenotypes });
     if (!rule.applies) {
       // Considered-and-cleared: Basepair evaluated the order and found nothing
@@ -145,6 +158,7 @@ export const evaluateOrder = task({
 
     const primary = primaryGene(rule.genes, readings);
 
+    await setPhase("verifying");
     // AI trust gate: the deterministic engine already made the call; the model
     // picks the verbatim supporting sentence, grades it against the guideline,
     // and explains that judgment (the reasoning the pharmacist sees). On any

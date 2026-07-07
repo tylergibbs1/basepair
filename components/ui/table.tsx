@@ -75,10 +75,17 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   )
 }
 
-function TableHead({ className, ...props }: React.ComponentProps<"th">) {
+function TableHead({
+  className,
+  scope,
+  ...props
+}: React.ComponentProps<"th">) {
   return (
     <th
       data-slot="table-head"
+      // Column headers by default so assistive tech associates each cell with
+      // its column; still overridable (e.g. scope="row") via props.
+      scope={scope ?? "col"}
       className={cn(
         "h-12 px-3 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
         className

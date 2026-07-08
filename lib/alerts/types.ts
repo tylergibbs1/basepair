@@ -107,6 +107,10 @@ export interface SignalStats {
   flagged: number
   cleared: number
   falseAlarms: number
+  /** Alerts still open in the pharmacist queue (Task status "requested"). This
+   *  is the actionable count that matches the sidebar badge, distinct from the
+   *  all-time `flagged` total (which includes already-resolved alerts). */
+  open: number
 }
 
 /** Result of the AI verification step (see lib/ai/verify.ts). */

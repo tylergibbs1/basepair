@@ -313,12 +313,15 @@ const STATS_LIMIT = 1000
 export async function getSignalStats(): Promise<SignalStats> {
   const medplum = await createMedplumClient()
 
-  const [issues, dismissedTasks] = await Promise.all([
+  const [issues, dismissedTasks, openTasks] = await Promise.all([
     medplum.searchResources("DetectedIssue", { _count: STATS_LIMIT }),
     medplum.searchResources("Task", {
       status: "cancelled",
       _count: STATS_LIMIT,
     }),
+    // Just the count of currently-open alerts (the actionable queue, matching
+    // the sidebar badge). `_summary=count` returns the total only, no resources.
+    medplum.searchResources("Task", { status: "requested", _summary: "count" }),
   ])
 
   let flagged = 0
@@ -331,11 +334,13 @@ export async function getSignalStats(): Promise<SignalStats> {
   }
 
   const falseAlarms = dismissedTasks.length
+  const open = openTasks.bundle.total ?? 0
 
   return {
     evaluated: flagged + cleared,
     flagged,
     cleared,
     falseAlarms,
+    open,
   }
 }

@@ -34,11 +34,20 @@ export async function getOrderablePatients(): Promise<OrderablePatient[]> {
 
   const patients = await medplum.searchResources("Patient", { _count: 50 })
 
-  return patients
-    .filter((p): p is Patient & { id: string } => Boolean(p.id))
-    .map((p) => ({
-      ref: `Patient/${p.id}`,
-      name: patientName(p),
-      mrn: patientMrn(p),
-    }))
+  // Dedupe by MRN: the data can carry more than one Patient record for the same
+  // person (same name + MRN), which otherwise lists them twice in the picker and
+  // risks ordering against the wrong record. Keep the first record per known
+  // MRN; a patient without an MRN ("-") can't be safely collapsed, so keep each.
+  const seenMrns = new Set<string>()
+  const orderable: OrderablePatient[] = []
+  for (const p of patients) {
+    if (!p.id) continue
+    const mrn = patientMrn(p)
+    if (mrn !== "-") {
+      if (seenMrns.has(mrn)) continue
+      seenMrns.add(mrn)
+    }
+    orderable.push({ ref: `Patient/${p.id}`, name: patientName(p), mrn })
+  }
+  return orderable
 }

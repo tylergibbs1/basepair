@@ -12,27 +12,31 @@ import { Skeleton } from "@/components/ui/skeleton"
  * Loading fallback for the alert queue (`app/loading.tsx`). It reuses the real
  * `Table*` primitives and mirrors `AlertQueue`'s columns and per-cell layout
  * exactly — the two-line patient cell, the pill in the severity column, the
- * mono genotype, the trailing chevron slot — so the column widths and row
- * height match the loaded table and data lands with zero layout shift.
+ * two-line genetics cell (phenotype over mono diplotype), the trailing chevron
+ * slot — so the column widths and row height match the loaded table and data
+ * lands with zero layout shift.
  *
  * Block heights are pinned to each cell's text line-box (text-sm → h-5,
- * text-xs → h-4). The patient cell (h-5 name + h-4 MRN) is the tallest cell in
- * every row, so reproducing it verbatim is what fixes the row height.
+ * text-xs → h-4). The patient and genetics cells (h-5 line + h-4 line) are the
+ * tallest cells in every row, so reproducing them verbatim is what fixes the
+ * row height.
  */
 
 // Per-row width variation keeps the placeholder from reading as a rigid grid —
 // real queues have short and long names, drugs, and phenotypes side by side.
 // Widths are the only thing that changes row to row; every height is fixed so
-// the rows stay uniform (matching the real table's constant row height).
+// the rows stay uniform (matching the real table's constant row height). The
+// genetics cell has two lines: `pheno` (gene + phenotype, prominent) over `dip`
+// (the mono diplotype, forensic).
 const ROWS = [
-  { id: "a", sev: "w-20", name: "w-32", mrn: "w-16", drug: "w-24", geno: "w-28", pheno: "w-36", by: "w-28", fired: "w-16" },
-  { id: "b", sev: "w-16", name: "w-40", mrn: "w-20", drug: "w-20", geno: "w-32", pheno: "w-28", by: "w-24", fired: "w-20" },
-  { id: "c", sev: "w-20", name: "w-28", mrn: "w-16", drug: "w-32", geno: "w-24", pheno: "w-40", by: "w-32", fired: "w-16" },
-  { id: "d", sev: "w-16", name: "w-36", mrn: "w-20", drug: "w-24", geno: "w-28", pheno: "w-24", by: "w-28", fired: "w-16" },
-  { id: "e", sev: "w-20", name: "w-32", mrn: "w-16", drug: "w-28", geno: "w-32", pheno: "w-32", by: "w-24", fired: "w-20" },
-  { id: "f", sev: "w-16", name: "w-44", mrn: "w-20", drug: "w-20", geno: "w-24", pheno: "w-36", by: "w-32", fired: "w-16" },
-  { id: "g", sev: "w-20", name: "w-28", mrn: "w-16", drug: "w-32", geno: "w-28", pheno: "w-28", by: "w-28", fired: "w-16" },
-  { id: "h", sev: "w-16", name: "w-36", mrn: "w-20", drug: "w-24", geno: "w-32", pheno: "w-40", by: "w-24", fired: "w-20" },
+  { id: "a", sev: "w-20", name: "w-32", mrn: "w-16", drug: "w-24", pheno: "w-36", dip: "w-16", by: "w-28", fired: "w-16" },
+  { id: "b", sev: "w-16", name: "w-40", mrn: "w-20", drug: "w-20", pheno: "w-28", dip: "w-20", by: "w-24", fired: "w-20" },
+  { id: "c", sev: "w-20", name: "w-28", mrn: "w-16", drug: "w-32", pheno: "w-40", dip: "w-12", by: "w-32", fired: "w-16" },
+  { id: "d", sev: "w-16", name: "w-36", mrn: "w-20", drug: "w-24", pheno: "w-24", dip: "w-16", by: "w-28", fired: "w-16" },
+  { id: "e", sev: "w-20", name: "w-32", mrn: "w-16", drug: "w-28", pheno: "w-32", dip: "w-20", by: "w-24", fired: "w-20" },
+  { id: "f", sev: "w-16", name: "w-44", mrn: "w-20", drug: "w-20", pheno: "w-36", dip: "w-12", by: "w-32", fired: "w-16" },
+  { id: "g", sev: "w-20", name: "w-28", mrn: "w-16", drug: "w-32", pheno: "w-28", dip: "w-16", by: "w-28", fired: "w-16" },
+  { id: "h", sev: "w-16", name: "w-36", mrn: "w-20", drug: "w-24", pheno: "w-40", dip: "w-20", by: "w-24", fired: "w-20" },
 ] as const
 
 /**
@@ -77,8 +81,7 @@ export function QueueSkeleton() {
           <TableHead>Severity</TableHead>
           <TableHead>Patient</TableHead>
           <TableHead>Drug</TableHead>
-          <TableHead>Genotype</TableHead>
-          <TableHead>Phenotype</TableHead>
+          <TableHead>Genetics</TableHead>
           <TableHead>Ordered by</TableHead>
           <TableHead>Fired</TableHead>
           <TableHead className="sr-only">Open</TableHead>
@@ -102,11 +105,14 @@ export function QueueSkeleton() {
             <TableCell>
               <Skeleton className={`h-5 rounded-sm ${row.drug}`} />
             </TableCell>
+            {/* Genetics: two lines (gene+phenotype over the mono diplotype) in
+                the same grid gap-0.5 as the real cell — matches the patient
+                cell's height, so either can set the row height. */}
             <TableCell>
-              <Skeleton className={`h-4 rounded-sm ${row.geno}`} />
-            </TableCell>
-            <TableCell>
-              <Skeleton className={`h-5 rounded-sm ${row.pheno}`} />
+              <div className="grid gap-0.5">
+                <Skeleton className={`h-5 rounded-sm ${row.pheno}`} />
+                <Skeleton className={`h-4 rounded-sm ${row.dip}`} />
+              </div>
             </TableCell>
             <TableCell>
               <Skeleton className={`h-5 rounded-sm ${row.by}`} />

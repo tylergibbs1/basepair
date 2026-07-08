@@ -187,7 +187,7 @@ function AlertRow({
       data-slot="table-row"
       tabIndex={0}
       role="button"
-      aria-label={`${SEVERITY_LABEL[alert.severity]} alert: ${alert.drug} for ${alert.patientName}, ${alert.gene} ${alert.diplotype}. Open details.`}
+      aria-label={`${SEVERITY_LABEL[alert.severity]} alert: ${alert.drug} for ${alert.patientName}, ${alert.gene} ${alert.phenotype} (${alert.diplotype}). Open details.`}
       onClick={() => router.push(href)}
       onFocus={() => onFocusRow(alert.id)}
       onMouseEnter={() => router.prefetch(href)}
@@ -213,10 +213,20 @@ function AlertRow({
         </div>
       </TableCell>
       <TableCell className="font-medium text-foreground">{alert.drug}</TableCell>
-      <TableCell className="font-mono text-xs">
-        {alert.gene} {alert.diplotype}
+      {/* Genetics, ranked the way a pharmacist reads it: the phenotype (with its
+          gene) is the actionable clinical fact and leads; the diplotype is
+          forensic detail, demoted to the mono second line — the same
+          prominent/identifier idiom as the patient cell above. */}
+      <TableCell>
+        <div className="grid gap-0.5">
+          <span className="text-foreground">
+            {alert.gene} {alert.phenotype}
+          </span>
+          <span className="font-mono text-xs text-muted-foreground tabular-nums">
+            {alert.diplotype}
+          </span>
+        </div>
       </TableCell>
-      <TableCell className="text-muted-foreground">{alert.phenotype}</TableCell>
       <TableCell className="text-muted-foreground">{alert.orderedBy}</TableCell>
       <TableCell
         className="text-muted-foreground tabular-nums"
@@ -278,8 +288,7 @@ export function AlertQueue({
           <SortableHead column="severity" label="Severity" />
           <SortableHead column="patient" label="Patient" />
           <SortableHead column="drug" label="Drug" />
-          <TableHead>Genotype</TableHead>
-          <TableHead>Phenotype</TableHead>
+          <TableHead>Genetics</TableHead>
           <TableHead>Ordered by</TableHead>
           <SortableHead column="fired" label="Fired" />
           <TableHead className="sr-only">Open</TableHead>

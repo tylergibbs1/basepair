@@ -347,12 +347,20 @@ export function AlertDetailPage({ id }: { id: string }) {
             <aside className="grid content-start gap-5 lg:border-l lg:pl-8">
               <dl className="grid gap-5">
                 <Field label="Drug">{alert.drug}</Field>
-                <Field label="Genotype">
-                  <span className="font-mono tabular-nums">
-                    {alert.gene} {alert.diplotype}
+                {/* Phenotype-first: the gene + phenotype is the actionable
+                    clinical fact and reads as the Field value; the raw diplotype
+                    is folded beneath as the forensic identifier (quiet mono), so
+                    the rail matches how a pharmacist reads the finding. */}
+                <Field label="Phenotype">
+                  <span className="grid gap-0.5">
+                    <span>
+                      {alert.gene} {alert.phenotype}
+                    </span>
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                      {alert.diplotype}
+                    </span>
                   </span>
                 </Field>
-                <Field label="Phenotype">{alert.phenotype}</Field>
               </dl>
               <dl className="grid gap-5 border-t pt-5">
                 <Field label="Ordered by">{alert.orderedBy}</Field>

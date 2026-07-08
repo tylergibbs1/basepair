@@ -17,6 +17,7 @@ import {
   buildConsideredIssue,
   buildTask,
 } from "@/lib/medplum/fhir";
+import { writeAlertProvenance, ENGINE_AGENT } from "@/lib/alerts/provenance";
 import { citeAndVerify } from "@/lib/ai/verify";
 import { decideWithAgent } from "@/lib/ai/evaluate-agent";
 import { normalizeDrug } from "@/lib/ai/parse/drug";
@@ -133,6 +134,41 @@ const geneOf = (o: Observation): string | undefined =>
   o.component
     ?.find((c) => c.code?.coding?.some((x) => x.code === "48018-6"))
     ?.valueCodeableConcept?.coding?.[0]?.display;
+
+/**
+ * The genotype + phenotype Observation references for a gene, for FHIR-native
+ * provenance (issue #22): the genotype is the recommendation's source, the coded
+ * phenotype (when present) is its derivation. `phenotypeSource` records whether
+ * the phenotype was read from a coded Observation or derived from the diplotype.
+ */
+function sourceObservations(
+  obs: Observation[],
+  gene: string,
+): {
+  genotype?: Reference<Observation>;
+  phenotype?: Reference<Observation>;
+  phenotypeSource: "coded" | "derived-from-diplotype";
+} {
+  let genotype: Reference<Observation> | undefined;
+  let phenotype: Reference<Observation> | undefined;
+  for (const o of obs) {
+    if (!o.id) continue;
+    const codes = o.code?.coding?.map((c) => c.code) ?? [];
+    if (
+      codes.includes("84413-4") &&
+      (o.valueCodeableConcept?.text ?? "").startsWith(`${gene} `)
+    ) {
+      genotype = { reference: `Observation/${o.id}` };
+    } else if (codes.includes("53040-2") && geneOf(o) === gene) {
+      phenotype = { reference: `Observation/${o.id}` };
+    }
+  }
+  return {
+    genotype,
+    phenotype,
+    phenotypeSource: phenotype ? "coded" : "derived-from-diplotype",
+  };
+}
 
 /**
  * Read every gene result on the chart into { gene → {diplotype, phenotype} }.
@@ -281,6 +317,18 @@ export async function evaluateAndWrite(
       ? await medplum.createResourceIfNoneExist(clearedResource, clearedQuery)
       : await medplum.createResource(clearedResource);
 
+    // FHIR-native provenance for the considered-and-cleared decision (#22).
+    // Best-effort: never blocks the clinical result.
+    await writeAlertProvenance(medplum, {
+      lifecycle: "evaluation-cleared",
+      targets: [{ reference: `DetectedIssue/${clearedIssue.id}` }],
+      agent: ENGINE_AGENT,
+      patient,
+      decisionPath: decision.path,
+      extra: { drug, reason: rule.reason, genePhenotypes },
+      idempotent: true,
+    });
+
     return {
       alert: false,
       reason: rule.reason,
@@ -386,6 +434,43 @@ export async function evaluateAndWrite(
         ),
     );
   }
+
+  // FHIR-native provenance for the flag (#22): links the recommendation
+  // (DetectedIssue + Task) to (a) the source genotype Observation, (b) the
+  // phenotype derivation, (c) the matched CPIC rule + citation, (d) the verifier
+  // verdict + cited sentence. Best-effort: never blocks the clinical write.
+  const src = sourceObservations(observations, primary.gene);
+  await writeAlertProvenance(medplum, {
+    lifecycle: "evaluation-flagged",
+    targets: [
+      { reference: `DetectedIssue/${detectedIssue.id}` },
+      { reference: `Task/${pharmacistTask.id}` },
+    ],
+    agent: ENGINE_AGENT,
+    patient,
+    genotypeObservation: src.genotype,
+    phenotypeObservation: src.phenotype,
+    phenotypeSource: src.phenotypeSource,
+    citation: rule.citation,
+    citedSentence,
+    verifierVerdict: verification
+      ? verification.verified
+        ? "pass"
+        : "fail"
+      : "unverified",
+    verifierModel: verification?.model,
+    verifierRationale: verification?.rationale,
+    decisionPath: decision.path,
+    extra: {
+      drug: rule.drug,
+      gene: primary.gene,
+      diplotype: primary.diplotype,
+      phenotype: primary.phenotype,
+      severity: rule.severity,
+      foundBy: provenance.foundBy,
+    },
+    idempotent: true,
+  });
 
   return {
     alert: true,

@@ -362,6 +362,17 @@ export const SUBSTITUTE_ORDER_SYSTEM =
   "https://basepair.health/fhir/enactment-substitute";
 
 /**
+ * Identifier system carrying the Trigger.dev wait-token id on a pharmacist
+ * Task (issue #21). trigger/evaluate-order.ts stamps it after creating the
+ * durable approval waitpoint; the console's approve/dismiss/enact server
+ * actions read it back to complete the token and resume the paused run.
+ * Absent on Tasks that predate the token path and on population-sweep alerts
+ * (a batch sweep cannot pause per alert), which fall back to the synchronous
+ * mutation path.
+ */
+export const WAIT_TOKEN_SYSTEM = "https://basepair.health/fhir/wait-token";
+
+/**
  * Business-status marker stamped on a Task when its recommendation is *enacted*
  * (issue #2), distinct from a plain approve. Rides on `Task.businessStatus`, so
  * it never touches `Task.status` — the existing metrics/audit reads

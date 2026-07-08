@@ -1,30 +1,10 @@
 import type { Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import { NuqsAdapter } from "nuqs/adapters/next/app"
+import { Geist, Geist_Mono, Source_Serif_4 } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
-import { AppSidebar } from "@/components/console/app-sidebar"
-import { AlertsProvider } from "@/components/console/alerts-provider"
-import { SignalStatsProvider } from "@/components/console/signal-stats-provider"
-import { CommandProvider } from "@/components/console/command-provider"
-import { GlobalKeys } from "@/components/console/global-keys"
-import { CommandMenu } from "@/components/console/command-menu"
-import { ShortcutsSheet } from "@/components/console/shortcuts-sheet"
-import { ConsoleTopbar } from "@/components/console/console-topbar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { getOpenAlerts } from "@/lib/alerts/from-medplum"
-import { getSignalStats } from "@/lib/alerts/audit"
-import { getOrderablePatients } from "@/lib/alerts/orderable"
 import { cn } from "@/lib/utils"
-
-// The console is a live Medplum view — the queue, audit trail, and signal
-// stats are re-read on every render — and nuqs's adapter reads search params
-// above any page-level Suspense boundary, so a static prerender is both
-// meaningless and a build error (even /_not-found pulls this Medplum-fetching
-// layout). Render dynamic.
-export const dynamic = "force-dynamic"
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
 
@@ -33,30 +13,38 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
+// Marketing-shell display face (docs/DESIGN.md): a serif that never enters the
+// console. Loaded at the root so any marketing route can use `font-serif`;
+// the console styles everything with Geist and never references it.
+const fontSerif = Source_Serif_4({
+  subsets: ["latin"],
+  variable: "--font-serif",
+})
+
 // Align the browser UI (mobile address bar) with the page background.
 export const viewport: Viewport = {
   themeColor: "#ffffff",
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  // The console shell lives in the layout so it persists across the queue and
-  // the `/alerts/[id]` detail page, navigating between them never re-fetches
-  // or re-mounts the shell (and the AlertsProvider keeps the optimistic queue
-  // + undo state alive across the two routes).
-  const [alerts, patients, signalStats] = await Promise.all([
-    getOpenAlerts(),
-    getOrderablePatients(),
-    getSignalStats(),
-  ])
-
+  // The root layout is intentionally minimal — just the document shell, fonts,
+  // and the two truly-global providers. The console's live Medplum fetch and
+  // its sidebar shell live in app/(console)/layout.tsx, so marketing routes
+  // (e.g. /welcome) render clean and static, with no queue fetch.
   return (
     <html
       lang="en"
-      className={cn("antialiased", fontMono.variable, "font-sans", geist.variable)}
+      className={cn(
+        "antialiased",
+        fontMono.variable,
+        fontSerif.variable,
+        "font-sans",
+        geist.variable,
+      )}
     >
       <body>
         <a
@@ -65,35 +53,7 @@ export default async function RootLayout({
         >
           Skip to content
         </a>
-        {/* NuqsAdapter wraps the whole app subtree so every client island can
-            read/write URL search-param state (the queue's filters + sort). */}
-        <NuqsAdapter>
-          <ThemeProvider>
-            <SidebarProvider>
-              <AlertsProvider initialAlerts={alerts}>
-                <SignalStatsProvider stats={signalStats}>
-                  <CommandProvider>
-                    <AppSidebar />
-                    <SidebarInset className="h-svh overflow-hidden">
-                      <div
-                        id="main-content"
-                        tabIndex={-1}
-                        className="flex-1 overflow-y-auto outline-none"
-                      >
-                        <ConsoleTopbar patients={patients} />
-                        {children}
-                      </div>
-                    </SidebarInset>
-                    {/* Keyboard layer + the surfaces its shortcuts open. */}
-                    <GlobalKeys />
-                    <CommandMenu />
-                    <ShortcutsSheet />
-                  </CommandProvider>
-                </SignalStatsProvider>
-              </AlertsProvider>
-            </SidebarProvider>
-          </ThemeProvider>
-        </NuqsAdapter>
+        <ThemeProvider>{children}</ThemeProvider>
         <Toaster theme="light" position="bottom-right" />
       </body>
     </html>

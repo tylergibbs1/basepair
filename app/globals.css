@@ -6,6 +6,9 @@
     --font-heading: var(--font-sans);
     --font-sans: var(--font-sans);
     --font-mono: var(--font-mono);
+    /* Marketing-shell display serif (docs/DESIGN.md) — `font-serif` utility.
+       Never referenced by console components. */
+    --font-serif: var(--font-serif);
     --animate-shimmer: shimmer 2s linear infinite;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -200,6 +203,20 @@
     --sidebar-accent-foreground: var(--gray-1000);
     --sidebar-border: var(--gray-200);
     --sidebar-ring: var(--navy);
+}
+
+/* Marketing shell warmth (borrowed from Ease Health, adapted). Warms the
+   shared surfaces a notch toward cream and layers depth with warm-neutral
+   tinted panels instead of shadows. Deliberately keeps navy as the only accent
+   and leaves the status palette (red/amber/green/blue) untouched — we steal the
+   warmth and the panel-layering, never the "one hue for everything" rule.
+   Scoped to .marketing-shell so the console never inherits any of it. */
+.marketing-shell {
+  --background: #fcfaf6; /* warm cream canvas (was pure white) */
+  --card: #fcfaf6;
+  --popover: #fcfaf6;
+  --muted: #f4f1e9; /* sand — the recessed tinted panel one step down */
+  --border: #e9e3d7; /* warm hairline (was cool gray-alpha) */
 }
 
 /* Light theme only — no .dark block by design (docs/DESIGN.md). */

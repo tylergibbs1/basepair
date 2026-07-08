@@ -19,6 +19,7 @@ import {
 } from "@/lib/medplum/fhir";
 import { citeAndVerify } from "@/lib/ai/verify";
 import { decideWithAgent } from "@/lib/ai/evaluate-agent";
+import { normalizeDrug } from "@/lib/ai/parse/drug";
 import type { DecisionPath } from "@/lib/alerts/types";
 
 /**
@@ -216,13 +217,23 @@ export async function evaluateAndWrite(
   const genePhenotypes: Record<string, string> = {};
   for (const r of readings) genePhenotypes[r.gene] = r.phenotype;
 
+  await input.onPhase?.("normalizing-drug");
+  // Resolve the raw order string to a canonical RxNorm identifier + ATC class
+  // via the NLM RxNorm/RxClass API, so the CPIC lookup keys on a normalized
+  // name (brand → ingredient, e.g. "Plavix" → "clopidogrel") rather than the
+  // messy order text. normalizeDrug never throws: on any RxNav outage it degrades
+  // to the offline static alias map + raw string, so the evaluation continues.
+  const normalized = await normalizeDrug(drug);
+  const lookupDrug = normalized.name;
+
   await input.onPhase?.("matching-cpic");
   // The CPIC decision runs as an agent loop over cpicTools: the model drives
   // resolve→lookup through the tools, but decideWithAgent cross-checks the
   // agent's result against the deterministic engine and returns the authoritative
   // (deterministic) rule — the model can never move the published-rule decision.
-  // `path` records whether the agent agreed, surfaced in the Audit view.
-  const decision = await decideWithAgent(drug, readings, genePhenotypes);
+  // `path` records whether the agent agreed, surfaced in the Audit view. Keyed on
+  // the RxNorm-normalized name; lookupRule still applies the alias map internally.
+  const decision = await decideWithAgent(lookupDrug, readings, genePhenotypes);
   const rule = decision.rule;
 
   const patient: Reference<Patient> = { reference: patientRef };

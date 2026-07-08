@@ -11,6 +11,7 @@ import {
   resolvePhenotype,
   recommendedAlternative,
   genesForDrug,
+  ruleKey,
   type RecommendedAlternative,
 } from "@/lib/cpic-catalog";
 import {
@@ -20,6 +21,7 @@ import {
 } from "@/lib/medplum/fhir";
 import { writeAlertProvenance, ENGINE_AGENT } from "@/lib/alerts/provenance";
 import { citeAndVerify } from "@/lib/ai/verify";
+import { searchGuideline } from "@/lib/ai/guideline-search";
 import { decideWithAgent } from "@/lib/ai/evaluate-agent";
 import { normalizeDrug } from "@/lib/ai/parse/drug";
 import type { DecisionPath } from "@/lib/alerts/types";
@@ -461,6 +463,25 @@ export async function evaluateAndWrite(
     .map(({ gene, diplotype, phenotype }) => ({ gene, diplotype, phenotype }));
 
   await input.onPhase?.("verifying");
+  // Guideline vector search (#28): retrieve a citable passage for this rule from
+  // the Pinecone guideline corpus. We only adopt it as the citation source when
+  // it belongs to the SAME rule (ruleKey match) — that keeps the verifier's
+  // verbatim highlight a substring of the text we also store on the alert, so the
+  // UI can highlight it. No-op (null) when Pinecone is unset or nothing matches;
+  // we then use the rule's own catalog guidelineText. The verdict is NEVER graded
+  // against the retrieved span — only against rule.implications below — so this is
+  // strictly additive to the citation, never a new failure mode for the verdict.
+  const retrieved = await searchGuideline({
+    drug: rule.drug,
+    gene: primary.gene,
+    phenotype: primary.phenotype,
+    recommendation: rule.recommendation,
+  });
+  const guidelineText =
+    retrieved && retrieved.ruleKey === ruleKey(rule)
+      ? retrieved.text
+      : rule.guidelineText;
+
   // AI trust gate: the deterministic engine already made the call; the model
   // picks the verbatim supporting sentence (from the full guidelineText) and
   // grades the verdict against the EVIDENCE ONLY. We pass rule.implications as
@@ -476,7 +497,7 @@ export async function evaluateAndWrite(
     phenotype: primary.phenotype,
     drug: rule.drug,
     recommendation: rule.recommendation,
-    guidelineText: rule.guidelineText,
+    guidelineText,
     evidenceText: rule.implications,
   }).catch((err) => {
     console.error("citeAndVerify failed; emitting unverified alert", err);
@@ -485,8 +506,8 @@ export async function evaluateAndWrite(
 
   const citedSentence =
     verification?.citedSentence?.trim() ||
-    rule.guidelineText.match(/^[^.]*\./)?.[0]?.trim() ||
-    rule.guidelineText;
+    guidelineText.match(/^[^.]*\./)?.[0]?.trim() ||
+    guidelineText;
   await emit({
     kind: "verify",
     label:
@@ -514,7 +535,7 @@ export async function evaluateAndWrite(
       recommendation: rule.recommendation,
       citation: rule.citation,
       citedSentence,
-      guidelineText: rule.guidelineText,
+      guidelineText,
       orderedBy: provenance.orderedBy,
       foundBy: provenance.foundBy,
       verified: verification?.verified ?? false,

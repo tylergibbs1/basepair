@@ -12,18 +12,22 @@
  *      "fluorouracil" — exactly the canonical name the CPIC catalog keys on.
  *
  * The typed result is validated through {@link NormalizedDrugSchema}, declared in
- * AI-SDK terms via {@link normalizedDrugOutput} (`Output.object`) so a future
- * model-driven synonym step (the optional Pinecone drug-synonym index) can
- * compose the same shape. Today the fields come from deterministic HTTP.
+ * AI-SDK terms via {@link normalizedDrugOutput} (`Output.object`).
  *
- * SAFETY: never throws for the caller. If RxNav is unreachable, returns no match,
- * or errors, we fall back to the offline static alias map (resolveDrugAlias) and
- * the raw string, marked `source: "fallback"`, so an evaluation is never failed
- * by a terminology outage. RxCUIs are stable, so results are cached.
+ * SAFETY / resolution order (each degrades to the next, never throws):
+ *   1. RxNav (authoritative) — cached, since RxCUIs are stable.
+ *   2. static alias map (resolveDrugAlias) — offline, when it lands on a covered drug.
+ *   3. Pinecone drug-synonym index (searchDrugSynonym) — semantic last resort for
+ *      messy/brand/misspelled strings; no-op when Pinecone is unset. Conservative
+ *      score floor so a wrong match can't slip through (see drug-synonym.ts).
+ *   4. the raw/alias string, marked `source: "fallback"` — an evaluation is never
+ *      failed by a terminology outage; an unresolved drug just yields "no rule".
+ * Only step 1 is cached — a fallback must not poison later lookups.
  */
 import { Output } from "ai";
 import { z } from "zod";
-import { resolveDrugAlias } from "@/lib/cpic-catalog";
+import { resolveDrugAlias, isPgxRelevantDrug } from "@/lib/cpic-catalog";
+import { searchDrugSynonym } from "@/lib/ai/parse/drug-synonym";
 import { getRedis } from "@/lib/cache/redis";
 import {
   terminologyKey,
@@ -208,11 +212,31 @@ export async function normalizeDrug(
     },
   );
 
-  const normalized = NormalizedDrugSchema.parse(resolved ?? aliasFallback(drug));
+  // Authoritative RxNav hit — cache it (RxCUIs are stable) and return.
+  if (resolved) {
+    const normalized = NormalizedDrugSchema.parse(resolved);
+    await cache.set(key, normalized);
+    return normalized;
+  }
 
-  // Only cache authoritative RxNav hits. A fallback (outage / no-match) must not
-  // be cached, or a transient outage would poison later successful lookups.
-  if (normalized.source === "rxnav") await cache.set(key, normalized);
+  // RxNav missed or was unreachable. Try the static alias map next; if it lands
+  // on a drug the CPIC catalog actually covers, that's a confident resolution.
+  const alias = aliasFallback(drug);
+  if (isPgxRelevantDrug(alias.name)) return NormalizedDrugSchema.parse(alias);
 
-  return normalized;
+  // Last resort: the Pinecone drug-synonym index (no-op/null when Pinecone is
+  // unset or the match is below the safety floor). A hit maps a messy/brand/
+  // misspelled string to a covered drug name. Fallbacks are NEVER cached — a
+  // transient RxNav outage must not poison later lookups.
+  const synonym = await searchDrugSynonym(key);
+  if (synonym) {
+    return NormalizedDrugSchema.parse({
+      rxcui: synonym.rxcui,
+      name: synonym.name,
+      drugClass: null,
+      source: "fallback",
+    });
+  }
+
+  return NormalizedDrugSchema.parse(alias);
 }

@@ -9,6 +9,7 @@
         "@base-ui/react": "^1.6.0",
         "@medplum/core": "^5.1.24",
         "@medplum/fhirtypes": "^5.1.24",
+        "@pinecone-database/pinecone": "^8.0.0",
         "@trigger.dev/react-hooks": "^4.5.1",
         "@trigger.dev/sdk": "^4.5.1",
         "@upstash/ratelimit": "2.0.8",
@@ -496,6 +497,8 @@
     "@oxlint/binding-win32-ia32-msvc": ["@oxlint/binding-win32-ia32-msvc@1.73.0", "", { "os": "win32", "cpu": "ia32" }, "sha512-5lWj+3h+74Fm1jYOO9qkJA4xkAlZA099DkXppuXsk7UpnpZLttsefrZU469vChGaG6hcSqrkKXQOvMTZtbjeNg=="],
 
     "@oxlint/binding-win32-x64-msvc": ["@oxlint/binding-win32-x64-msvc@1.73.0", "", { "os": "win32", "cpu": "x64" }, "sha512-WaNRvh4f6zY9CvUQk2YoA1O90ieWrIklI84+HXFr9Isjz9CSESrdqo/RtIYt4Dll/cAchqGDMehfaZd0vqEFZw=="],
+
+    "@pinecone-database/pinecone": ["@pinecone-database/pinecone@8.0.0", "", {}, "sha512-dItFqLdis2Pd5lC67aKn8HhvXajzlOz4+0RyK1CRcZMdSwG8YxUCBtH4yXPC8/6uLxfr2dvMWnRFuKgtPwwajQ=="],
 
     "@prisma/config": ["@prisma/config@6.19.3", "", { "dependencies": { "c12": "3.1.0", "deepmerge-ts": "7.1.5", "effect": "3.21.0", "empathic": "2.0.0" } }, "sha512-CBPT44BjlQxEt8kiMEauji2WHTDoVBOKl7UlewXmUgBPnr/oPRZC3psci5chJnYmH0ivEIog2OU9PGWoki3DLQ=="],
 

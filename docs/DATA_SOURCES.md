@@ -4,32 +4,36 @@ Every dataset and code system Basepair uses, its license, how we use it, and the
 
 All licenses below were verified against primary sources (linked). None require a paid or gated license for our use.
 
+This doc is the researched *superset* of licensing-cleared sources gathered up front. Only some are wired into the running app today; the **Status** column in the summary table is the source of truth for what's live vs. planned vs. optional. The load-bearing spine is **CPIC → Supabase → Medplum FHIR**, with **RxNorm** live and **LOINC/HGNC** as codes.
+
 ## Summary
 
-| Source | License | Redistribute? | Role in Basepair |
-|---|---|---|---|
-| **CPIC** (DB dump + API) | **CC0 1.0** (public domain) | Yes, no strings | The rulebook: diplotype→phenotype + phenotype→drug recommendation tables, guideline text. Loaded from the official versioned Postgres dump. Feeds `/rules` and the Pinecone corpus. |
-| **DPWG** (via ClinPGx annotations) | **CC BY-SA 4.0** | Yes, attribution + share-alike | Second, independent guideline authority alongside CPIC. Lets an alert cite two bodies when they agree, and flag divergence when they don't. |
-| **FDA Table of Pharmacogenetic Associations** | **US Gov — public domain** | Yes, no strings | Third, regulatory-grade citation source. Three tables (therapeutic mgmt / safety-response / PK-only). Adds regulatory weight to alerts. |
-| **PharmCAT** | **MPL 2.0** (open source) | Yes (per MPL) | Generate correct seed diplotypes/phenotypes; its example/test cases seed the **ground-truth eval set**. |
-| **Synthea** | **Apache 2.0** | Yes | Generate PHI-free synthetic FHIR patients loaded into Medplum; PGx Observations attached on top. |
-| **PharmGKB / ClinPGx** | **CC BY-SA 4.0** | Yes, with attribution + share-alike | Richer clinical annotations, drug-label PGx info, allele definitions/frequencies to augment the corpus. Also the delivery channel for DPWG annotations. |
-| **PharmVar** | Open (academic, freely available) | Yes | Authoritative star-allele definitions (naming correctness) for `parseGenotype` + seed data. |
-| **CDC GeT-RM** | Public (US Government / CDC) | Yes | Optional: consensus PGx genotypes for reference samples → stronger eval truth set. |
-| **DailyMed (SPL)** | **NLM — public domain** | Yes (API + bulk) | Optional: FDA structured product labels to quote a drug's actual label PGx section. |
-| **LOINC** | Regenstrief royalty-free license | Yes (attribution; no competing vocabulary) | Code system for the FHIR Observations (84413-4, 48018-6, 53040-2, LL3856-3). |
-| **HGNC** (genenames.org) | Free / open (EMBL-EBI) | Yes | Gene IDs for the `gene-studied` component. |
-| **RxNorm / RxClass** | NLM, public-domain core (open API) | Via API | `normalizeDrug`: drug name → RxCUI → drug class. |
-| **HL7 FHIR + Genomics Reporting IG** | Open (HL7) | Yes | FHIR resource shapes / example templates. |
+**Status legend** — *Shipped*: wired into the running app. *Attribution only*: present as license text or a citation label, not as a data feed. *Planned*: intended by this doc, not yet built. *Optional*: explicitly post-week / nice-to-have.
 
-> **Note — the portals merged.** As of July 2025, PharmGKB, CPIC, and PharmCAT are unified under **[ClinPGx](https://www.clinpgx.org/)** (clinpgx.org). Old `pharmgkb.org` / `cpicpgx.org` links redirect to their ClinPGx equivalents; both domains still resolve and the download/API endpoints below are stable. Licenses are unchanged by the merge (CPIC = CC0, PharmGKB-derived = CC BY-SA 4.0).
+| Source | License | Redistribute? | Status | Role in Basepair |
+|---|---|---|---|---|
+| **CPIC** (via ClinPGx API) | **CC BY-SA 4.0** (attribution + share-alike) | Yes, with attribution + share-alike | **Shipped** | The rulebook: diplotype→phenotype + phenotype→drug recommendation tables, guideline text. Ingested from the ClinPGx/CPIC API (`api.cpicpgx.org`) into `data/cpic/*.json` → Supabase; queried across `lib/cpic-*` and `lib/alerts/*`. The per-rule `guidelineText` is also the seed corpus for the **Pinecone** guideline index (`bun run pinecone:guidelines`, [#28](https://github.com/tylergibbs1/basepair/issues/28)); the verifier still grades the verdict against the catalog text directly, retrieval only supplies the citation span. |
+| **DPWG** (via ClinPGx annotations) | **CC BY-SA 4.0** | Yes, attribution + share-alike | **Shipped** | Second, independent guideline authority alongside CPIC. Ingested from PharmGKB's `guidelineAnnotations.json.zip` into `data/cpic/dpwg.json` (56 in-scope annotations) and surfaced by `lib/cpic-catalog.ts` (`dpwgRulesForDrug`, `LookupResult.dpwg`). Lets an alert cite two bodies when they agree, and flag divergence when they don't. |
+| **FDA Table of Pharmacogenetic Associations** | **US Gov — public domain** | Yes, no strings | **Planned** | Third, regulatory-grade citation source. Not yet wired. Three tables (therapeutic mgmt / safety-response / PK-only). Adds regulatory weight to alerts. |
+| **PharmCAT** | **MPL 2.0** (open source) | Yes (per MPL) | **Planned** | Seed diplotypes/phenotypes are currently hand-authored, not PharmCAT-generated. Its example/test cases are meant to seed the **ground-truth eval set** (backs the demo's precision claim) — not yet built. |
+| **Synthea** | **Apache 2.0** | Yes | **Planned** | Demo patients are currently seeded directly via `scripts/seed-medplum.ts`, not Synthea-generated. Intended to generate PHI-free synthetic FHIR patients with PGx Observations attached on top. |
+| **PharmGKB / ClinPGx** | **CC BY-SA 4.0** | Yes, with attribution + share-alike | **Attribution only** | Used as license attribution in `scripts/cpic-ingest.ts` and a citation-host label in `lib/alerts/citation.ts`; CPIC's citation URLs point at clinpgx.org (the merged portal). Not used as the independent enrichment/DPWG-delivery feed described below. |
+| **PharmVar** | Open (academic, freely available) | Yes | **Planned** | Authoritative star-allele definitions (naming correctness) for `parseGenotype` + seed data. Not yet wired. |
+| **CDC GeT-RM** | Public (US Government / CDC) | Yes | **Optional** | Consensus PGx genotypes for reference samples → stronger eval truth set. |
+| **DailyMed (SPL)** | **NLM — public domain** | Yes (API + bulk) | **Optional** | FDA structured product labels to quote a drug's actual label PGx section. |
+| **LOINC** | Regenstrief royalty-free license | Yes (attribution; no competing vocabulary) | **Shipped** | Code system for the FHIR Observations — codes 84413-4, 48018-6, 53040-2, LL3856-3 in `lib/medplum/fhir.ts` and `lib/alerts/evaluate.ts`. |
+| **HGNC** (genenames.org) | Free / open (EMBL-EBI) | Yes | **Shipped** | Gene IDs for the `gene-studied` component (baked-in constants in `lib/medplum/fhir.ts`). |
+| **RxNorm / RxClass** | NLM, public-domain core (open API) | Via API | **Shipped** | `normalizeDrug` (`lib/ai/parse/drug.ts`): drug name → RxCUI → drug class, via the live RxNav API. |
+| **HL7 FHIR + Genomics Reporting IG** | Open (HL7) | Yes | **Shipped** | FHIR resource shapes for the Observations / write-back (`lib/medplum/fhir.ts`, via Medplum). |
+
+> **Note — the portals merged, and the license changed.** As of July 2025, PharmGKB, CPIC, and PharmCAT are unified under **[ClinPGx](https://www.clinpgx.org/)** (clinpgx.org). Old `pharmgkb.org` / `cpicpgx.org` links redirect to their ClinPGx equivalents; both domains still resolve and the download/API endpoints below are stable. **CPIC's historical dedication was CC0**, but content delivered through the merged **ClinPGx/PharmGKB API and bulk downloads is distributed under CC BY-SA 4.0** ([licensing change](https://blog.clinpgx.org/changes-to-pharmgkb-data-licensing/)). Our pipeline ingests via that API (`api.cpicpgx.org`), so **everything in `data/cpic/*.json` ships under CC BY-SA 4.0** — matching `data/cpic/MANIFEST.json`, `data/cpic/LICENSE.txt`, and the ingest/build stamps. We attribute and share-alike accordingly.
 
 ## Details
 
 ### CPIC — the rulebook (primary)
-- **License:** [CC0 1.0 Universal](https://cpicpgx.org/license/) — public domain dedication. Freely usable and redistributable with no attribution obligation (we attribute anyway as good practice, acknowledging cpicpgx.org as primary source).
+- **License:** **CC BY-SA 4.0** — as delivered through the ClinPGx/CPIC API (`api.cpicpgx.org`) our pipeline ingests from. (CPIC's *historical* dedication was [CC0 1.0](https://cpicpgx.org/license/); post-2025 ClinPGx merger, data served via the API/downloads carries CC BY-SA 4.0 — see the merger note above.) Redistributable with attribution + share-alike; we attribute CPIC/ClinPGx and keep the derived `data/cpic/*.json` under the same license (`data/cpic/LICENSE.txt`).
 - **Use — load the official DB dump, don't transcribe by hand.** CPIC publishes its entire relational database as a versioned Postgres dump: the diplotype→phenotype and phenotype→recommendation tables, allele functions/frequencies, and guideline prose are all in it. Load the dump into a `cpic` schema and query it, or snapshot the four demo pairs (CYP2C19/clopidogrel, TPMT/thiopurines, DPYD/fluoropyrimidines, SLCO1B1/statins) to `/rules/cpic.json` from those tables. Either way the rules are authoritative and versioned, not hand-typed — which matters for a safety tool. Index the prose in Pinecone for the verifier.
-- **Why it's the backbone:** public domain = zero licensing risk, it fully covers the four demo pairs, and the DB dump removes transcription error as a failure mode. Prefer CPIC over PharmGKB/DPWG wherever both cover a pair, to keep the CC0 (no-strings) path load-bearing and the share-alike path optional.
+- **Why it's the backbone:** it fully covers the four demo pairs, and ingesting the authoritative API/dump removes transcription error as a failure mode. Prefer CPIC over DPWG wherever both cover a pair, to keep CPIC the load-bearing decision and DPWG corroborating (both are CC BY-SA 4.0, so the share-alike + attribution obligation applies uniformly — see the merger note above).
 - **Sources:**
   - DB dump (versioned): `https://files.cpicpgx.org/data/database/cpic_db_dump-v1.59.1.sql.gz` — load via `gzip -dc cpic_db_dump-v1.59.1.sql.gz | psql <db>`. Latest release: https://github.com/cpicpgx/cpic-data/releases
   - REST API (PostgREST): https://api.cpicpgx.org/
@@ -37,7 +41,7 @@ All licenses below were verified against primary sources (linked). None require 
 
 ### DPWG — second guideline authority (attribution + share-alike)
 - **License:** CC BY-SA 4.0. The machine-readable DPWG guideline annotations are delivered through ClinPGx/PharmGKB under CC BY-SA — attribution required, and any redistributed derived dataset stays CC BY-SA. (The underlying DPWG guideline *publications* are copyrighted by KNMP/journals; we use only the CC BY-SA annotations, not the papers.)
-- **Use:** A second, independent guideline body (Dutch Pharmacogenetics Working Group). PharmCAT already emits DPWG recommendations alongside CPIC, so it comes nearly for free. When CPIC and DPWG agree, an alert cites two authorities; when they diverge, surface that. Keep DPWG-derived files in `/data/pharmgkb/` (CC BY-SA), never mixed into the CC0 CPIC files.
+- **Use:** A second, independent guideline body (Dutch Pharmacogenetics Working Group). When CPIC and DPWG agree, an alert cites two authorities; when they diverge, surface that. **Shipped:** ingested from PharmGKB's `guidelineAnnotations.json.zip` (`source: "DPWG"`, in-scope drugs only) into `data/cpic/dpwg.json`, built into `lib/cpic/catalog.json` as `dpwgRules`, and surfaced by `lib/cpic-catalog.ts` (`dpwgRulesForDrug`, `LookupResult.dpwg`). CPIC and DPWG carry the same CC BY-SA 4.0 license here, so they co-locate in `data/cpic/`; CPIC still leads the decision (DPWG never gates an alert).
 - **Source:** https://www.pharmgkb.org/page/dpwg (redirects to ClinPGx). Bundled in the `guidelineAnnotations.json.zip` download.
 
 ### FDA Table of Pharmacogenetic Associations — regulatory citation
@@ -95,8 +99,8 @@ All licenses below were verified against primary sources (linked). None require 
 
 ## Repo licensing plan (rules compliance)
 - **Code:** MIT or Apache-2.0 (`LICENSE` at repo root).
-- **Data:** `/data` with an `ATTRIBUTION.md` listing each dataset, its license, and a link. Public-domain (CPIC/CC0, FDA table, DailyMed), Synthea output (Apache/ours), LOINC (license notice + attribution), and share-alike (PharmGKB/DPWG, CC BY-SA 4.0, kept separate).
-- **Separation principle:** data-file licenses do not infect the code license; keep public-domain (`/data/cpic`, `/data/fda`) and share-alike (`/data/pharmgkb`, including DPWG) data in separate directories so obligations stay clear. Where CPIC and DPWG cover the same pair, lead with CPIC so the CC0 path stays load-bearing and CC BY-SA stays optional.
+- **Data:** `/data` with an `ATTRIBUTION.md` listing each dataset, its license, and a link. Share-alike (CPIC + DPWG via ClinPGx, CC BY-SA 4.0), public-domain (FDA table, DailyMed), Synthea output (Apache/ours), and LOINC (license notice + attribution).
+- **Separation principle:** data-file licenses do not infect the code license. CPIC and DPWG are both CC BY-SA 4.0 (post-merger) and co-locate in `/data/cpic`; the code stays MIT/Apache. Where CPIC and DPWG cover the same pair, lead with CPIC so it stays the load-bearing decision and DPWG stays corroborating.
 
 ## Local raw archive (not committed)
 
@@ -104,7 +108,7 @@ Raw source snapshots live on the external SSD, **not** in the repo (they're rege
 
 ```
 /Volumes/Extreme Pro/basepair/
-├── cpic/      cpic_db_dump-v1.59.1.sql.gz   (CC0 — 24 tables; load via psql)
+├── cpic/      cpic_db_dump-v1.59.1.sql.gz   (CC BY-SA 4.0 via ClinPGx — 24 tables; load via psql)
 ├── pharmgkb/  guidelineAnnotations.json.zip (CC BY-SA — 219 files: 111 DPWG, 78 CPIC, 18 FDA)
 │              clinicalAnnotations.zip, drugLabels.zip, genes.zip, drugs.zip
 ├── fda/       fda-table-pharmacogenetic-associations.html   (public domain snapshot)

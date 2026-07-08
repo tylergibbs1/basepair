@@ -35,7 +35,7 @@ Two independent build inputs: the **rules** (deterministic tables + prose corpus
 - **Build step (offline):** load the dump into a local `cpic` Postgres schema (`gzip -dc … | psql`). Two extractions:
   1. **`diplotype→phenotype`** rows for the four demo genes → `/data/cpic/diplotype-phenotype.json`. This is what **`parseGenotype`** maps against deterministically — the model only handles the messy-input path (§5d), never the mapping itself.
   2. **`phenotype→recommendation`** rows → `/data/cpic/cpic.json`. This is the **`cpicLookup`** tool's entire source of truth. If a (phenotype, drug) pair isn't here, the tool returns "no rule" and the run ends with no alert.
-- **Corpus:** the guideline **prose** fields → chunked, embedded (`embedMany`, ai@7), upserted to **Pinecone**. This is the primary half of the `guidelineSearch` / `verifier` corpus.
+- **Corpus (built, [#28](https://github.com/tylergibbs1/basepair/issues/28)):** the per-rule guideline **prose** (`guidelineText`) → upserted to **Pinecone** via **integrated inference** (Pinecone embeds server-side with a hosted model — no separate embedding provider), by `bun run pinecone:guidelines`. This is the `guidelineSearch` corpus the verifier retrieves its citation span from. The verdict is still graded against the catalog `implications`, never the retrieved span (see ARCHITECTURE §10 for the honest redundancy caveat while the corpus is CPIC-only).
 - **Why the dump not hand-JSON:** authoritative + versioned (v1.59.1 pinned), so transcription error is designed out — non-negotiable for a safety tool. Re-pull a newer version = re-run the extraction script, diff the JSON.
 
 ### DPWG annotations — second guideline authority

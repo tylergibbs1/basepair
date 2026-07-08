@@ -224,6 +224,29 @@ export function isPgxRelevantDrug(drug: string): boolean {
   return PGX_DRUGS.has(normDrug(drug));
 }
 
+/** Every encoded CPIC rule — the source corpus for the guideline vector index
+ *  (scripts/build-guideline-index.ts). Server-only (pulls the full catalog). */
+export function allRules(): readonly CatalogRule[] {
+  return catalog.rules;
+}
+
+/**
+ * Stable string key for a rule — its drug plus the gene→phenotype pairs it
+ * matches on. Shared by the guideline-index ingest (record id) and the verifier
+ * retrieval (lib/ai/guideline-search.ts) so a retrieved passage can be matched
+ * back to the exact rule it was built from before its text is used as the
+ * citation source. Deterministic (genes sorted) so both sides agree.
+ */
+export function ruleKey(
+  rule: Pick<CatalogRule, "drug" | "genes" | "key">,
+): string {
+  const pairs = [...rule.genes]
+    .sort()
+    .map((g) => `${g}=${rule.key[g] ?? ""}`)
+    .join(",");
+  return `${norm(rule.drug)}::${pairs}`;
+}
+
 /**
  * The pharmacogene(s) this drug's CPIC rules key on (aliases resolved). Lets a
  * caller show the gene RELEVANT to the ordered drug (e.g. CYP2C19 for

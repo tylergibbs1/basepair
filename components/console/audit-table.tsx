@@ -3,6 +3,7 @@
 import * as React from "react"
 import type { ComponentType } from "react"
 import {
+  Bot,
   ChevronDown,
   ChevronsUpDown,
   ChevronUp,
@@ -26,7 +27,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SeverityChip } from "@/components/ui/severity-chip"
-import { formatFiredAt } from "@/lib/alerts/types"
+import { decisionProvenance, formatFiredAt } from "@/lib/alerts/types"
+import type { DecisionPath } from "@/lib/alerts/types"
 import type { AuditEntry } from "@/lib/alerts/audit"
 import {
   applyAuditFilters,
@@ -84,6 +86,39 @@ function OutcomeChip({ entry }: { entry: AuditEntry }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
       <Icon aria-hidden className="size-3.5" />
+      {label}
+    </span>
+  )
+}
+
+/** Full explanation shown on hover, one per path. */
+const PROVENANCE_TITLE: Record<DecisionPath, string> = {
+  agent:
+    "The CPIC rule lookup ran as an agent loop and agreed with the deterministic engine.",
+  "agent-mismatch":
+    "The agent reached a different rule than the deterministic engine; the engine's result was used.",
+  "agent-fallback":
+    "The agent did not return a rule; the deterministic engine's result was used as the backstop.",
+}
+
+/**
+ * How Basepair reached this decision: a quiet second line under the outcome. The
+ * healthy "agent confirmed" case is muted (it's the norm, not news); a mismatch
+ * or fallback takes the caution tone — the deterministic backstop carried the
+ * decision, worth a calm flag but never an alarm. Absent for pre-agent records.
+ */
+function DecisionProvenance({ path }: { path?: DecisionPath }) {
+  if (!path) return null
+  const { label, anomaly } = decisionProvenance(path)
+  return (
+    <span
+      title={PROVENANCE_TITLE[path]}
+      className={cn(
+        "inline-flex items-center gap-1 text-[11px]",
+        anomaly ? "text-caution-fg" : "text-muted-foreground",
+      )}
+    >
+      <Bot aria-hidden className="size-3" />
       {label}
     </span>
   )
@@ -441,7 +476,10 @@ export function AuditTable({ entries }: { entries: AuditEntry[] }) {
             {filtered.map((entry) => (
               <TableRow key={`${entry.kind}-${entry.id}`}>
                 <TableCell>
-                  <OutcomeChip entry={entry} />
+                  <div className="grid gap-1">
+                    <OutcomeChip entry={entry} />
+                    <DecisionProvenance path={entry.decisionPath} />
+                  </div>
                 </TableCell>
                 <TableCell className="font-medium text-foreground">
                   {entry.patientName}

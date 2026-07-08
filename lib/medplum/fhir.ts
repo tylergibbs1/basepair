@@ -13,6 +13,7 @@ import type {
   Patient,
 } from "@medplum/fhirtypes";
 import type { RecommendedAlternative } from "@/lib/cpic-catalog";
+import type { DecisionPath } from "@/lib/alerts/types";
 
 const LOINC = "http://loinc.org";
 const HGNC = "http://www.genenames.org";
@@ -211,6 +212,9 @@ export type AlertFacts = {
    * label without re-deriving it. Absent when no alternative is curated.
    */
   recommendedAlternative?: RecommendedAlternative;
+  /** How the CPIC decision was reached (agent loop vs deterministic backstop),
+   *  surfaced in the Audit view. Absent when the caller doesn't record it. */
+  decisionPath?: DecisionPath;
 };
 
 /**
@@ -260,6 +264,7 @@ export function buildDetectedIssue(
     ...(facts.recommendedAlternative
       ? { recommendedAlternative: facts.recommendedAlternative }
       : {}),
+    ...(facts.decisionPath ? { decisionPath: facts.decisionPath } : {}),
   };
   return {
     resourceType: "DetectedIssue",
@@ -284,6 +289,8 @@ export type ConsideredFacts = {
   genePhenotypes: Record<string, string>
   /** Why no alert fired, e.g. "no-rule" or "missing-genes". */
   reason: string
+  /** How the decision was reached (agent loop vs deterministic backstop). */
+  decisionPath?: DecisionPath
 }
 
 /**
@@ -304,6 +311,7 @@ export function buildConsideredIssue(
     drug: facts.drug,
     genePhenotypes: facts.genePhenotypes,
     reason: facts.reason,
+    ...(facts.decisionPath ? { decisionPath: facts.decisionPath } : {}),
   }
   const genes = Object.keys(facts.genePhenotypes)
   const considered = genes.length ? genes.join(", ") : "no relevant genes"

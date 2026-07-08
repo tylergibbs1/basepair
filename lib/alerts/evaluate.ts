@@ -9,7 +9,6 @@ import type { MedplumClient } from "@medplum/core";
 
 import {
   resolvePhenotype,
-  lookupRule,
   recommendedAlternative,
   type RecommendedAlternative,
 } from "@/lib/cpic-catalog";
@@ -19,6 +18,8 @@ import {
   buildTask,
 } from "@/lib/medplum/fhir";
 import { citeAndVerify } from "@/lib/ai/verify";
+import { decideWithAgent } from "@/lib/ai/evaluate-agent";
+import type { DecisionPath } from "@/lib/alerts/types";
 
 /**
  * The shared evaluate-and-write core: given a patient + a single drug, read the
@@ -110,6 +111,8 @@ export type EvaluateResult =
       verified: boolean;
       verifierRationale: string;
       verifierModel: string;
+      /** How the CPIC decision was reached (agent loop vs deterministic backstop). */
+      decisionPath: DecisionPath;
       detectedIssueId?: string;
       taskId?: string;
     }
@@ -118,6 +121,8 @@ export type EvaluateResult =
       reason: string;
       drug: string;
       genePhenotypes?: Record<string, string>;
+      /** Present once a CPIC decision was made; absent when there's no genotype. */
+      decisionPath?: DecisionPath;
       detectedIssueId?: string;
     };
 
@@ -212,7 +217,13 @@ export async function evaluateAndWrite(
   for (const r of readings) genePhenotypes[r.gene] = r.phenotype;
 
   await input.onPhase?.("matching-cpic");
-  const rule = lookupRule({ drug, genePhenotypes });
+  // The CPIC decision runs as an agent loop over cpicTools: the model drives
+  // resolve→lookup through the tools, but decideWithAgent cross-checks the
+  // agent's result against the deterministic engine and returns the authoritative
+  // (deterministic) rule — the model can never move the published-rule decision.
+  // `path` records whether the agent agreed, surfaced in the Audit view.
+  const decision = await decideWithAgent(drug, readings, genePhenotypes);
+  const rule = decision.rule;
 
   const patient: Reference<Patient> = { reference: patientRef };
   const orderTag = orderId
@@ -238,13 +249,20 @@ export async function evaluateAndWrite(
     // it (writeClearedRecord=false) to avoid flooding Audit with already-fine
     // drugs. Keyed idempotently on the order id exactly like the alert path.
     if (!writeClearedRecord) {
-      return { alert: false, reason: rule.reason, genePhenotypes, drug };
+      return {
+        alert: false,
+        reason: rule.reason,
+        genePhenotypes,
+        drug,
+        decisionPath: decision.path,
+      };
     }
     const clearedResource: DetectedIssue = {
       ...buildConsideredIssue(patient, {
         drug,
         genePhenotypes,
         reason: rule.reason,
+        decisionPath: decision.path,
       }),
       ...(clearedTag ? { identifier: clearedTag } : {}),
     };
@@ -257,6 +275,7 @@ export async function evaluateAndWrite(
       reason: rule.reason,
       genePhenotypes,
       drug,
+      decisionPath: decision.path,
       detectedIssueId: clearedIssue.id,
     };
   }
@@ -316,6 +335,7 @@ export async function evaluateAndWrite(
       verifierModel: verification?.model ?? "",
       verifierHighlight: verification?.highlight ?? "",
       recommendedAlternative: recommendedAlternative(rule.drug) ?? undefined,
+      decisionPath: decision.path,
     }),
     ...(orderTag ? { identifier: orderTag } : {}),
   };
@@ -371,6 +391,7 @@ export async function evaluateAndWrite(
     verified: verification?.verified ?? false,
     verifierRationale: verification?.rationale ?? "",
     verifierModel: verification?.model ?? "",
+    decisionPath: decision.path,
     detectedIssueId: detectedIssue.id,
     taskId: pharmacistTask.id,
   };

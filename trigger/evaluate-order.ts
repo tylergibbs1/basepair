@@ -43,7 +43,7 @@ export const evaluateOrder = task({
 
     const medplum = await createMedplumClient();
 
-    return evaluateAndWrite({
+    const result = await evaluateAndWrite({
       medplum,
       patientRef: payload.patientRef,
       drug: payload.drug,
@@ -53,5 +53,12 @@ export const evaluateOrder = task({
       writeClearedRecord: true,
       onPhase: setPhase,
     });
+
+    // Surface how the CPIC decision was reached (agent loop vs deterministic
+    // backstop) as run metadata for the live stepper; also persisted on the
+    // DetectedIssue for the Audit view.
+    if (result.decisionPath) metadata.set("cpicDecisionPath", result.decisionPath);
+
+    return result;
   },
 });

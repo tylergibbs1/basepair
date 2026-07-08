@@ -13,6 +13,7 @@ import {
   SUBSTITUTE_ORDER_SYSTEM,
 } from "@/lib/medplum/fhir"
 import { parsePgxAlert, isCleared } from "@/lib/alerts/pgx"
+import { formatDose } from "@/lib/format/dose"
 import {
   writeAlertProvenance,
   PHARMACIST_AGENT,
@@ -196,7 +197,9 @@ export async function enactAlert(
   const communication: Communication = {
     ...buildCommunication(patient, detectedIssue, {
       drug: pgx.drug,
-      recommendation: pgx.recommendation,
+      // ISMP dose formatting at the outward seam (#38): the recommendation is
+      // free text that may carry a dose, and this is the prescriber-facing body.
+      recommendation: formatDose(pgx.recommendation),
       orderedBy: pgx.orderedBy,
       action,
     }),
@@ -214,7 +217,9 @@ export async function enactAlert(
   //    discipline; priorPrescription links it to the offending order.
   if (choice.kind === "switch") {
     const substitute: MedicationRequest = {
-      ...buildMedicationRequest(patient, choice.altDrug),
+      // ISMP dose formatting at the outward seam (#38): the substitute order's
+      // medication text is prescriber-facing; normalize any dose it carries.
+      ...buildMedicationRequest(patient, formatDose(choice.altDrug)),
       ...(orderId
         ? { priorPrescription: { reference: `MedicationRequest/${orderId}` } }
         : {}),

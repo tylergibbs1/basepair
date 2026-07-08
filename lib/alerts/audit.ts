@@ -144,17 +144,19 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
 const STATS_LIMIT = 1000
 
 /**
- * Live signal-quality counts for the trust metric (topbar + Audit header),
- * sourced from Medplum, not mocked. A sibling to getAuditEntries: it reads the
- * same DetectedIssue / Task resources but only tallies them (no per-row patient
- * resolution), reusing parsePgxAlert / isCleared so the flagged-vs-cleared logic
- * lives in exactly one place.
+ * Live signal-quality counts for the trust metric (queue empty state + Audit
+ * header), sourced from Medplum, not mocked. A sibling to getAuditEntries: it
+ * reads the same DetectedIssue / Task resources but only tallies them (no
+ * per-row patient resolution), reusing parsePgxAlert / isCleared so the
+ * flagged-vs-cleared logic lives in exactly one place.
  *
  * Counts (per issue #1): a considered-and-cleared DetectedIssue (`outcome:
  * "cleared"`, no Task) is a `cleared`; a flagged DetectedIssue (has a pharmacist
- * Task) is a `flagged`; a dismissed Task (`status:"cancelled"`) is a
- * `falseAlarm` — the pharmacist judged it not clinically valid. Approved
- * (completed) Tasks are true positives and never count as false alarms.
+ * Task) is a `flagged`; a completed Task is an `approved` (reviewed and held
+ * up); a cancelled Task is a `falseAlarm` (reviewed and judged not clinically
+ * valid). Flagged minus (approved + falseAlarms) is still pending in the queue,
+ * and the metric must never present those as reviewed — that's why approved is
+ * counted here rather than inferred as flagged − falseAlarms.
  *
  * Scope: all-time (bounded by STATS_LIMIT), so the counts summarise exactly the
  * records the Audit table shows. Server-only, never import into a client
@@ -163,10 +165,10 @@ const STATS_LIMIT = 1000
 export async function getSignalStats(): Promise<SignalStats> {
   const medplum = await createMedplumClient()
 
-  const [issues, dismissedTasks] = await Promise.all([
+  const [issues, triagedTasks] = await Promise.all([
     medplum.searchResources("DetectedIssue", { _count: STATS_LIMIT }),
     medplum.searchResources("Task", {
-      status: "cancelled",
+      status: "completed,cancelled",
       _count: STATS_LIMIT,
     }),
   ])
@@ -180,12 +182,18 @@ export async function getSignalStats(): Promise<SignalStats> {
     else flagged++
   }
 
-  const falseAlarms = dismissedTasks.length
+  let approved = 0
+  let falseAlarms = 0
+  for (const task of triagedTasks) {
+    if (task.status === "completed") approved++
+    else if (task.status === "cancelled") falseAlarms++
+  }
 
   return {
     evaluated: flagged + cleared,
     flagged,
     cleared,
+    approved,
     falseAlarms,
   }
 }

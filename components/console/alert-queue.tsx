@@ -23,7 +23,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { SeverityChip } from "@/components/ui/severity-chip"
 import { spring } from "@/lib/springs"
-import { formatFiredAt, type Alert } from "@/lib/alerts/types"
+import {
+  formatFiredAt,
+  type Alert,
+  type SignalStats,
+} from "@/lib/alerts/types"
+import { SignalMetric } from "@/components/console/signal-metric"
 import type { SortColumn } from "@/lib/alerts/query-params"
 import { useAlerts } from "@/components/console/alerts-provider"
 import { useCommand } from "@/components/console/command-provider"
@@ -37,7 +42,12 @@ const SEVERITY_LABEL: Record<Alert["severity"], string> = {
   info: "Info",
 }
 
-function EmptyState() {
+/** The triaged/inbox-zero state doubles as the product's proof of work: a quiet
+ *  queue is only reassuring next to evidence that orders *were* evaluated, so
+ *  the signal stats render as the receipt. When the stats fetch degrades (page
+ *  passes null), the copy stands alone rather than leaving a gap. SignalMetric
+ *  speaks its own aria sentence — nothing here repeats it. */
+function EmptyState({ signalStats }: { signalStats?: SignalStats | null }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-24 text-center">
       <div
@@ -48,13 +58,16 @@ function EmptyState() {
       </div>
       <div className="grid gap-1">
         <p className="text-sm font-medium text-balance text-foreground">
-          No open alerts
+          All clear
         </p>
         <p className="max-w-xs text-sm text-pretty text-muted-foreground">
           Every pending alert has been triaged. New alerts appear here as orders
           fire.
         </p>
       </div>
+      {signalStats && (
+        <SignalMetric stats={signalStats} variant="inline" className="mt-1" />
+      )}
     </div>
   )
 }
@@ -221,7 +234,13 @@ function AlertRow({
   )
 }
 
-export function AlertQueue() {
+export function AlertQueue({
+  signalStats,
+}: {
+  /** Server-fetched by the page; null when the stats fetch failed, so the
+   *  empty state falls back to copy alone instead of blocking the queue. */
+  signalStats?: SignalStats | null
+}) {
   const { alerts, filteredAlerts, query, clearFilters } = useAlerts()
   const { cursorId, setCursorId } = useCommand()
 
@@ -237,7 +256,7 @@ export function AlertQueue() {
   // No open alerts at all is the triaged/inbox-zero state; an active query that
   // simply matches nothing is a distinct dead-end and reads differently.
   if (alerts.length === 0) {
-    return <EmptyState />
+    return <EmptyState signalStats={signalStats} />
   }
 
   if (filteredAlerts.length === 0) {

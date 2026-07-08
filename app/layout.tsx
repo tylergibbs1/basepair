@@ -18,6 +18,12 @@ import { getSignalStats } from "@/lib/alerts/audit"
 import { getOrderablePatients } from "@/lib/alerts/orderable"
 import { cn } from "@/lib/utils"
 
+// The console is a live Medplum view — the queue, audit trail, and signal
+// stats are re-read on every render — and nuqs's adapter reads search params
+// above any page-level Suspense boundary, so a static prerender is both
+// meaningless and a build error (CSR bailout at build time). Render dynamic.
+export const dynamic = "force-dynamic"
+
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
 
 const fontMono = Geist_Mono({

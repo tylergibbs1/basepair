@@ -43,8 +43,10 @@ export interface Alert {
  * fires when it provably matches a guideline, so the suppression is on-screen.
  *
  * - `evaluated`   — total orders assessed (flagged + cleared).
- * - `flagged`     — orders that produced a pharmacist alert.
+ * - `flagged`     — orders that produced a pharmacist alert, including alerts
+ *                   still pending in the queue that no one has reviewed yet.
  * - `cleared`     — orders evaluated with nothing to flag (the suppression proof).
+ * - `approved`    — flagged alerts a pharmacist reviewed and accepted.
  * - `falseAlarms` — flagged alerts a pharmacist dismissed as not clinically
  *                   valid (target: 0).
  */
@@ -52,7 +54,27 @@ export interface SignalStats {
   evaluated: number
   flagged: number
   cleared: number
+  approved: number
   falseAlarms: number
+}
+
+/** Below ~95% precision pharmacists start tuning alerts out — alert fatigue is
+ *  the documented failure mode of PGx alerting — so the target is the line the
+ *  director defends, not decoration. */
+export const PRECISION_TARGET = 0.95
+
+/**
+ * Share of *reviewed* alerts that held up clinically:
+ * approved / (approved + falseAlarms). Deliberately not flagged-based — a
+ * pending alert nobody has reviewed is not a success, and counting it as one
+ * would let the metric overclaim whenever the queue is non-empty. `null` when
+ * nothing has been reviewed yet — precision is undefined then, not a perfect
+ * score.
+ */
+export function precision(stats: SignalStats): number | null {
+  const reviewed = stats.approved + stats.falseAlarms
+  if (reviewed === 0) return null
+  return stats.approved / reviewed
 }
 
 /** Result of the AI verification step (see lib/ai/verify.ts). */

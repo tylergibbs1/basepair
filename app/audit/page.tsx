@@ -45,15 +45,12 @@ export default async function AuditPage() {
 
   return (
     <div>
-      {/* Header: the one-line description of what the trail proves, plus the
-          quantified proof — the signal-quality stat block. This is the view
-          where "we evaluated everything" is the whole point, so the metric gets
-          the room to read as a block, not the topbar's inline row. */}
-      <div className="flex flex-col gap-5 border-b border-border px-4 py-5">
-        <p className="text-sm text-muted-foreground text-pretty">
-          Every order Basepair evaluated, including the ones it cleared.
-        </p>
-        <SignalMetric stats={signalStats} variant="block" />
+      {/* Header: the evidence sentence *is* the header. It says what the old
+          description line said ("every order evaluated, including the ones it
+          cleared") but with the live numbers as receipts, so a separate
+          description would just repeat it without the proof. */}
+      <div className="border-b border-border px-4 py-5">
+        <SignalMetric stats={signalStats} variant="sentence" />
       </div>
 
       {entries.length === 0 ? (

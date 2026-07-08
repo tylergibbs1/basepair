@@ -401,17 +401,3 @@ export async function runPopulationSweep(): Promise<PopulationSweepResult> {
     accessToken: handle.publicAccessToken,
   }
 }
-
-/**
- * Count the open pharmacist worklist items (Tasks with status "requested").
- * The console polls this after placing an order to detect when the async
- * evaluation has flagged a new alert.
- */
-export async function getOpenAlertCount(): Promise<number> {
-  const medplum = await createMedplumClient()
-  const openTasks = await medplum.searchResources("Task", {
-    status: "requested",
-    _count: 100,
-  })
-  return openTasks.length
-}

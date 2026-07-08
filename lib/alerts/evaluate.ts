@@ -84,6 +84,12 @@ export type EvalEvent = {
     | "verify";
   label: string;
   detail: string;
+  /**
+   * Status color for the feed, set only where a finding IS a status: the
+   * verify verdict, and a cross-check disagreement. Everything else renders
+   * neutral — color is reserved for status (docs/DESIGN.md).
+   */
+  tone?: "positive" | "caution";
 };
 
 export type EvaluateAndWriteInput = {
@@ -380,6 +386,7 @@ export async function evaluateAndWrite(
         : decision.path === "agent-mismatch"
           ? "Second check disagreed; used the published CPIC rule"
           : "Used the published CPIC rule",
+    ...(decision.path === "agent-mismatch" ? { tone: "caution" as const } : {}),
   });
 
   const patient: Reference<Patient> = { reference: patientRef };
@@ -495,6 +502,7 @@ export async function evaluateAndWrite(
           ? "Verified against guideline"
           : "Verifier flagged for review",
     detail: citedSentence,
+    tone: verification?.verified ? "positive" : "caution",
   });
 
   // Write the alert as a DetectedIssue + a pharmacist Task. Both writes are

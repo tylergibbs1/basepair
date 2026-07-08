@@ -19,6 +19,7 @@ import type { EvalEvent } from "@/lib/alerts/evaluate"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
 import { DRUGS, PRESCRIBERS } from "@/lib/orders"
 import { spring } from "@/lib/springs"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -37,12 +38,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Task,
-  TaskContent,
-  TaskItem,
-  TaskTrigger,
-} from "@/components/ai-elements/task"
 
 /** Floor on the "Placing order" step so a sub-500ms write doesn't flash past it
  * (CONVENTIONS: loading states get a min-visible duration to avoid flicker). */
@@ -185,10 +180,12 @@ const PHASE_WORKING_LABEL: Partial<Record<Phase, string>> = {
  * Live feed of what Basepair found, streamed over Trigger.dev Realtime as the
  * evaluation runs — each finding is appended to run.metadata.events by the task
  * (genotype read, phenotype derived, drug normalized, CPIC rule matched, agent
- * cross-check, guideline verified). Replaces the fixed phase stepper: completed
- * findings render as checked evidence lines; a single spinner row names the
- * stage currently running. Built on AI Elements' Task primitive so it themes
- * with the rest of the console; the resolved outcome block is unchanged.
+ * cross-check, guideline verified). Rendered as a dot-and-connector timeline —
+ * the same rail idiom as the reasoning trace on the alert detail page — so the
+ * live evaluation and the saved evidence chain read as one thing. Findings
+ * animate in as they land; the trailing row shimmers with the stage currently
+ * running. Dots stay neutral except where a finding IS a status (the verify
+ * verdict, a cross-check disagreement), which follows its `tone`.
  */
 export function EvaluationFeed({
   events,
@@ -199,55 +196,121 @@ export function EvaluationFeed({
 }) {
   const resolved =
     phase === "flagged" || phase === "cleared" || phase === "timeout"
-  const workingLabel = PHASE_WORKING_LABEL[phase]
+  const workingLabel =
+    events.length === 0 ? "Reading the chart" : PHASE_WORKING_LABEL[phase]
+
+  // Findings usually land one at a time, but a snapshot can deliver several at
+  // once (first paint after reconnect, a fast pipeline). Stagger only the items
+  // NEW to this render — 50ms apart, claimgraph's cascade — so a batch reads as
+  // a sequence of findings instead of one block appearing. The ref holds the
+  // count from the previous committed render; items below it are already
+  // mounted and never re-animate.
+  const prevCountRef = React.useRef(0)
+  const firstNew = prevCountRef.current
+  React.useEffect(() => {
+    prevCountRef.current = events.length
+  }, [events.length])
 
   return (
     <div className="grid gap-4 py-1">
-      <Task defaultOpen>
-        <TaskTrigger title="What Basepair found" />
-        <TaskContent>
-          {/* Live region: the evidence chain streams in as findings land, so a
-              screen-reader pharmacist hears each stage announced (genotype →
-              phenotype → CPIC → verified) instead of only the resolve toast.
-              aria-busy clears once the run resolves. */}
-          <div role="status" aria-live="polite" aria-busy={!resolved} className="grid gap-2">
-            {events.length === 0 && !resolved && (
-              <TaskItem className="flex items-center gap-2 text-foreground">
-                <Loader2Icon aria-hidden className="size-3 shrink-0 animate-spin" />
-                <span className="text-sm">Reading the chart…</span>
-              </TaskItem>
-            )}
-            {events.map((e) => (
-              <TaskItem
-                key={e.kind}
-                className="flex items-start gap-2 text-foreground"
-              >
-                <Check
+      <div>
+        <p className="text-sm text-muted-foreground">What Basepair found</p>
+        {/* Live region: the evidence chain streams in as findings land, so a
+            screen-reader pharmacist hears each stage announced (genotype →
+            phenotype → CPIC → verified) instead of only the resolve toast.
+            aria-busy clears once the run resolves. */}
+        <ol
+          role="status"
+          aria-live="polite"
+          aria-busy={!resolved}
+          className="mt-3 grid"
+        >
+          {events.map((e, i) => (
+            <FeedItem
+              key={e.kind}
+              event={e}
+              last={resolved && i === events.length - 1}
+              delay={Math.max(0, i - firstNew) * 0.05}
+            />
+          ))}
+          {!resolved && workingLabel && (
+            <li className="flex gap-3">
+              <span className="flex size-4 shrink-0 items-center justify-center">
+                <Loader2Icon
                   aria-hidden
-                  className="mt-0.5 size-3.5 shrink-0 text-success-fg"
+                  className="size-3.5 animate-spin text-muted-foreground"
                 />
-                <span className="grid gap-0.5">
-                  <span className="text-sm font-medium leading-snug text-foreground">
-                    {e.label}
-                  </span>
-                  <span className="line-clamp-2 text-xs text-muted-foreground">
-                    {e.detail}
-                  </span>
-                </span>
-              </TaskItem>
-            ))}
-            {!resolved && events.length > 0 && workingLabel && (
-              <TaskItem className="flex items-center gap-2 text-muted-foreground">
-                <Loader2Icon aria-hidden className="size-3 shrink-0 animate-spin" />
-                <span className="text-sm">{workingLabel}…</span>
-              </TaskItem>
-            )}
-          </div>
-        </TaskContent>
-      </Task>
+              </span>
+              <span
+                className={cn(
+                  "pb-0.5 text-sm",
+                  // Shimmer while working (claimgraph idiom): a sweeping
+                  // gradient clipped to the text. Reduced motion drops the
+                  // gradient entirely so the label stays plainly readable.
+                  "animate-shimmer bg-gradient-to-r from-muted-foreground via-foreground via-50% to-muted-foreground bg-[length:200%_100%] bg-clip-text text-transparent",
+                  "motion-reduce:animate-none motion-reduce:bg-none motion-reduce:text-muted-foreground"
+                )}
+              >
+                {workingLabel}…
+              </span>
+            </li>
+          )}
+        </ol>
+      </div>
 
       <ResolvedOutcome phase={phase} />
     </div>
+  )
+}
+
+/**
+ * One landed finding on the feed timeline: checked dot + connector down to the
+ * next row (the working spinner while the run is live), label + one-line
+ * evidence beside it. Mirrors `Step` on the alert detail page at feed scale.
+ * Enters with a fade-rise and a slight pop (claimgraph's popIn, tuned down);
+ * `delay` staggers items that mount in the same batch.
+ */
+function FeedItem({
+  event,
+  last,
+  delay = 0,
+}: {
+  event: EvalEvent
+  last: boolean
+  delay?: number
+}) {
+  return (
+    <motion.li
+      initial={{ opacity: 0, y: 4, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ ...spring.moderate, delay }}
+      style={{ transformOrigin: "left center" }}
+      className="flex gap-3"
+    >
+      <div className="flex flex-col items-center">
+        <span
+          className={cn(
+            "flex size-4 shrink-0 items-center justify-center rounded-full border",
+            event.tone === "positive"
+              ? "border-success-br bg-success-bg text-success-fg"
+              : event.tone === "caution"
+                ? "border-sev-caution-br bg-sev-caution-bg text-sev-caution-fg"
+                : "text-muted-foreground"
+          )}
+        >
+          <Check aria-hidden className="size-2.5" />
+        </span>
+        {!last && <span aria-hidden className="w-px flex-1 bg-border" />}
+      </div>
+      <div className={cn("grid gap-0.5", last ? "pb-0.5" : "pb-3")}>
+        <span className="text-sm font-medium leading-snug text-foreground">
+          {event.label}
+        </span>
+        <span className="line-clamp-2 text-xs text-muted-foreground">
+          {event.detail}
+        </span>
+      </div>
+    </motion.li>
   )
 }
 

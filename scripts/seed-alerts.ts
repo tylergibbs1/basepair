@@ -25,6 +25,11 @@ import {
   buildDetectedIssue,
   buildMedicationRequest,
   buildTask,
+  buildBodyWeightObservation,
+  buildRenalObservation,
+  buildAllergyIntolerance,
+  BODY_WEIGHT_LOINC,
+  RENAL_LOINC,
 } from "../lib/medplum/fhir";
 import { resolvePhenotype, lookupRule } from "../lib/cpic-catalog";
 import { citeAndVerify } from "../lib/ai/verify";
@@ -64,6 +69,19 @@ type SeedCase = {
    * data. The alert drug is always seeded; these add to it.
    */
   coPrescribed?: string[];
+  /**
+   * Patient-safety context the alert-detail band renders (allergies, renal,
+   * weight) and the second-identifier DOB on the enact confirm. Seeded as real
+   * FHIR resources so those ICP features have data to show. All optional.
+   */
+  dob?: string; // ISO date, e.g. "1961-03-12"
+  /** Named allergy substances. Omit + set noKnownAllergies for an explicit NKA. */
+  allergies?: string[];
+  /** Write an explicit "no known allergies" record (distinct from absent data). */
+  noKnownAllergies?: boolean;
+  weightKg?: number;
+  /** eGFR (mL/min/1.73m²) or serum creatinine (mg/dL); exercises both readers. */
+  renal?: { kind: "egfr"; value: number } | { kind: "creatinine"; value: number };
 };
 
 const CASES: SeedCase[] = [
@@ -76,6 +94,10 @@ const CASES: SeedCase[] = [
     drug: "clopidogrel",
     orderedBy: "Dr. Alan Reyes",
     hoursAgo: 1,
+    dob: "1958-09-14",
+    allergies: ["Penicillin"],
+    weightKg: 82,
+    renal: { kind: "egfr", value: 88 },
   },
   {
     given: "Rosa",
@@ -89,6 +111,11 @@ const CASES: SeedCase[] = [
     drug: "capecitabine",
     orderedBy: "Dr. Priya Nair",
     hoursAgo: 3,
+    dob: "1971-02-03",
+    noKnownAllergies: true,
+    weightKg: 61,
+    // Capecitabine dosing is renally sensitive; a reduced eGFR is clinically apt.
+    renal: { kind: "egfr", value: 72 },
   },
   {
     given: "Helen",
@@ -99,6 +126,10 @@ const CASES: SeedCase[] = [
     drug: "simvastatin",
     orderedBy: "Dr. Alan Reyes",
     hoursAgo: 6,
+    dob: "1949-11-30",
+    allergies: ["Sulfa drugs"],
+    weightKg: 74,
+    renal: { kind: "egfr", value: 95 },
   },
   {
     given: "Daniel",
@@ -118,6 +149,11 @@ const CASES: SeedCase[] = [
     // real, dangerous interaction) plus a PPI — three PGx-relevant drugs on
     // file, so the multi-drug indicator has honest data on a multi-gene alert.
     coPrescribed: ["allopurinol", "pantoprazole"],
+    dob: "1966-06-21",
+    allergies: ["Aspirin"],
+    weightKg: 90,
+    // Mildly reduced renal function — relevant context alongside allopurinol.
+    renal: { kind: "egfr", value: 65 },
   },
   {
     given: "Grace",
@@ -131,6 +167,10 @@ const CASES: SeedCase[] = [
     drug: "5-fluorouracil",
     orderedBy: "Dr. Priya Nair",
     hoursAgo: 16,
+    dob: "1962-04-08",
+    allergies: ["Codeine"],
+    weightKg: 68,
+    renal: { kind: "egfr", value: 80 },
   },
   {
     given: "Thomas",
@@ -141,6 +181,11 @@ const CASES: SeedCase[] = [
     drug: "simvastatin",
     orderedBy: "Dr. Susan Okafor",
     hoursAgo: 22,
+    dob: "1955-01-17",
+    noKnownAllergies: true,
+    weightKg: 79,
+    // Serum creatinine instead of eGFR, so the seed exercises both renal readers.
+    renal: { kind: "creatinine", value: 1.1 },
   },
 ];
 
@@ -235,6 +280,11 @@ for (const c of CASES) {
   let patient: Patient;
   if (existing[0]) {
     patient = existing[0];
+    // Backfill DOB on a patient seeded before it carried one, so the enact
+    // confirm's second identifier has data on a re-run.
+    if (c.dob && patient.birthDate !== c.dob) {
+      patient = await medplum.updateResource({ ...patient, birthDate: c.dob });
+    }
     const openTasks = await medplum.searchResources(
       "Task",
       `patient=Patient/${patient.id}&status=requested`,
@@ -247,6 +297,7 @@ for (const c of CASES) {
       resourceType: "Patient",
       name: [{ given: [c.given], family: c.family }],
       identifier: [{ system: MRN_SYSTEM, value: c.mrn }],
+      ...(c.dob ? { birthDate: c.dob } : {}),
     });
   }
   const patientRef: Reference<Patient> = { reference: `Patient/${patient.id}` };
@@ -289,6 +340,38 @@ for (const c of CASES) {
     if (activeDrugs.has(drug.trim().toLowerCase())) continue;
     await medplum.createResource(buildMedicationRequest(patientRef, drug));
     activeDrugs.add(drug.trim().toLowerCase());
+  }
+
+  // Patient-safety context the alert-detail band reads (allergies, weight,
+  // renal). Idempotent: only write a category the chart doesn't already carry,
+  // so a re-run never stacks duplicate allergies/vitals. `chart` above already
+  // holds this patient's Observations.
+  const existingAllergies = await medplum.searchResources(
+    "AllergyIntolerance",
+    `patient=Patient/${patient.id}`,
+  );
+  if (existingAllergies.length === 0) {
+    for (const substance of c.allergies ?? []) {
+      await medplum.createResource(buildAllergyIntolerance(patientRef, substance));
+    }
+    if (c.noKnownAllergies && !(c.allergies ?? []).length) {
+      await medplum.createResource(buildAllergyIntolerance(patientRef, null));
+    }
+  }
+
+  const hasObs = (code: string) =>
+    chart.some((o) => o.code?.coding?.some((cc) => cc.code === code));
+  if (typeof c.weightKg === "number" && !hasObs(BODY_WEIGHT_LOINC)) {
+    await medplum.createResource(
+      buildBodyWeightObservation(patientRef, c.weightKg),
+    );
+  }
+  if (c.renal) {
+    const renalCode =
+      c.renal.kind === "egfr" ? RENAL_LOINC.egfr[0] : RENAL_LOINC.creatinine;
+    if (!hasObs(renalCode)) {
+      await medplum.createResource(buildRenalObservation(patientRef, c.renal));
+    }
   }
 
   // Run the same AI trust gate the live task uses, so seeded alerts carry a

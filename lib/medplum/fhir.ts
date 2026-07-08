@@ -196,6 +196,76 @@ export const BODY_WEIGHT_LOINC = "29463-7";
  *  an affirmed no-allergy chart from one that simply has no allergy data. */
 const NO_KNOWN_ALLERGY_SNOMED = "716186003";
 
+const SNOMED_SYS = "http://snomed.info/sct";
+const UCUM_SYS = "http://unitsofmeasure.org";
+const vitalSignsCategory = [
+  { coding: [{ system: CATEGORY_SYS, code: "vital-signs", display: "Vital Signs" }] },
+];
+
+/** Body-weight Observation (LOINC 29463-7) in kilograms — the weight the context
+ *  band reads via readBodyWeightKg. Category vital-signs, UCUM `kg`. */
+export function buildBodyWeightObservation(
+  patient: Reference<Patient>,
+  kg: number,
+): Observation {
+  return {
+    resourceType: "Observation",
+    status: "final",
+    category: vitalSignsCategory,
+    code: {
+      coding: [{ system: LOINC, code: BODY_WEIGHT_LOINC, display: "Body weight" }],
+    },
+    subject: patient,
+    valueQuantity: { value: kg, unit: "kg", system: UCUM_SYS, code: "kg" },
+  };
+}
+
+/** Renal-function Observation the context band reads via readRenalFunction:
+ *  eGFR (LOINC 48642-3, mL/min/1.73m²) or serum creatinine (2160-0, mg/dL). */
+export function buildRenalObservation(
+  patient: Reference<Patient>,
+  renal: { kind: "egfr"; value: number } | { kind: "creatinine"; value: number },
+): Observation {
+  const spec =
+    renal.kind === "egfr"
+      ? { code: RENAL_LOINC.egfr[0], display: "Glomerular filtration rate", unit: "mL/min/1.73m²" }
+      : { code: RENAL_LOINC.creatinine, display: "Creatinine", unit: "mg/dL" };
+  return {
+    resourceType: "Observation",
+    status: "final",
+    category: labCategory,
+    code: { coding: [{ system: LOINC, code: spec.code, display: spec.display }] },
+    subject: patient,
+    valueQuantity: { value: renal.value, unit: spec.unit },
+  };
+}
+
+/** AllergyIntolerance the context band reads via allergyDisplay. A substance name
+ *  builds a real allergy; `null` builds the explicit "no known allergies" record
+ *  (SNOMED 716186003) the band renders as "No known allergies". */
+export function buildAllergyIntolerance(
+  patient: Reference<Patient>,
+  substance: string | null,
+): AllergyIntolerance {
+  const code =
+    substance === null
+      ? { coding: [{ system: SNOMED_SYS, code: NO_KNOWN_ALLERGY_SNOMED, display: "No known allergy" }] }
+      : { coding: [{ system: SNOMED_SYS, display: substance }], text: substance };
+  return {
+    resourceType: "AllergyIntolerance",
+    clinicalStatus: {
+      coding: [
+        {
+          system: "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+          code: "active",
+        },
+      ],
+    },
+    code,
+    patient,
+  };
+}
+
 /** Is this AllergyIntolerance an explicit "no known allergies" marker record,
  *  rather than a real allergy? */
 export function isNoKnownAllergy(allergy: AllergyIntolerance): boolean {

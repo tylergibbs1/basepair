@@ -18,10 +18,9 @@
  * it is never silently dropped.
  */
 import { Output, generateText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 
-import { DEFAULT_MODEL } from "@/lib/ai/verify";
+import { resolveModel, modelLabel } from "@/lib/ai/models";
 
 export const ParsedGeneSchema = z.object({
   gene: z
@@ -88,16 +87,15 @@ Rules:
 
 /**
  * Parse a messy genetics report into structured gene results. Mirrors the
- * `citeAndVerify` pattern: `generateText` + `Output.object` + Zod, model from
- * `DEFAULT_MODEL` (overridable via `BASEPAIR_MODEL`). Phenotype resolution and
- * the "needs review" decision happen downstream in the intake action, so this
- * stays a pure extraction step.
+ * `citeAndVerify` pattern: `generateText` + `Output.object` + Zod, on the
+ * Opus-tier model (see lib/ai/models.ts; overridable via `BASEPAIR_MODEL`) —
+ * this is the genuine unstructured→structured cognition. Phenotype resolution
+ * and the "needs review" decision happen downstream in the intake action, so
+ * this stays a pure extraction step.
  */
 export async function parseGeneticsReport(
   source: ParseSource,
 ): Promise<ParsedResult> {
-  const model = process.env.BASEPAIR_MODEL ?? DEFAULT_MODEL;
-
   const content =
     source.kind === "text"
       ? [
@@ -122,10 +120,10 @@ export async function parseGeneticsReport(
         ];
 
   const { output } = await generateText({
-    model: anthropic(model),
+    model: resolveModel("opus"),
     output: Output.object({ schema: ParseGeneticsSchema }),
     messages: [{ role: "user", content }],
   });
 
-  return { ...output, model };
+  return { ...output, model: modelLabel("opus") };
 }

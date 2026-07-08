@@ -13,10 +13,9 @@
  * can surface whether the agent agreed (a trust signal), not just the verdict.
  */
 import { generateText, stepCountIs } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { lookupRule, type LookupResult } from "@/lib/cpic-catalog";
 import { cpicTools, toLookupOutput, type CpicLookupOutput } from "@/lib/ai/tools/cpic";
-import { DEFAULT_MODEL } from "@/lib/ai/verify";
+import { resolveModel } from "@/lib/ai/models";
 import type { DecisionPath } from "@/lib/alerts/types";
 
 export type GeneReading = { gene: string; diplotype: string; phenotype: string };
@@ -56,7 +55,10 @@ export async function decideWithAgent(
   const deterministic = lookupRule({ drug, genePhenotypes });
   const detOutput = toLookupOutput(deterministic);
 
-  const model = anthropic(process.env.BASEPAIR_MODEL ?? DEFAULT_MODEL);
+  // Deterministic/formatting step: the model only drives the resolve→lookup
+  // tools and reports the engine's result — a cheaper "fast" tier is enough,
+  // since decideWithAgent cross-checks against the deterministic rule anyway.
+  const model = resolveModel("fast");
   const readingLines = readings
     .map(
       (r) =>

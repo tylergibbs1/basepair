@@ -128,7 +128,25 @@ export async function ingestAndEvaluate(
       phenotype: g.phenotype,
     }),
   )
-  await Promise.all(observations.map((obs) => medplum.createResource(obs)))
+  // Conditional create keyed on patient + LOINC code + gene, so a retry after a
+  // mid-flight failure re-runs this write without duplicating the genotype /
+  // phenotype Observation for the same gene. The gene rides in the
+  // "gene studied" component as a coded HGNC value (component-value-concept);
+  // the LOINC code distinguishes genotype (84413-4) from phenotype (53040-2).
+  await Promise.all(
+    observations.map((obs) => {
+      const code = obs.code?.coding?.[0]
+      const geneCoding = obs.component?.[0]?.valueCodeableConcept?.coding?.[0]
+      if (!code?.system || !code.code || !geneCoding?.system || !geneCoding.code) {
+        return medplum.createResource(obs)
+      }
+      const query =
+        `subject=${input.patientRef}` +
+        `&code=${code.system}|${code.code}` +
+        `&component-value-concept=${geneCoding.system}|${geneCoding.code}`
+      return medplum.createResourceIfNoneExist(obs, query)
+    }),
+  )
 
   // Reuse the exact order path New Order uses: write a MedicationRequest and
   // trigger evaluate-order, which reads the genetics we just wrote.

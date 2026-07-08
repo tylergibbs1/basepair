@@ -39,6 +39,20 @@ import { citeAndVerify } from "@/lib/ai/verify";
 export const ORDER_ID_SYSTEM = "https://basepair.health/fhir/order-id";
 
 /**
+ * Distinct identifier system for the considered-and-cleared DetectedIssue's
+ * conditional-create key. It MUST differ from ORDER_ID_SYSTEM: both the cleared
+ * and the flagged writes are content-agnostic, first-writer-wins
+ * `createResourceIfNoneExist` calls, so if they shared one identifier query a
+ * pre-existing cleared record (written at order time before the genotype
+ * arrived) would alias the later flagged write — the flag would silently return
+ * the cleared record and never surface, suppressing a real contraindication.
+ * Keying cleared on its own system lets a flag always win while each outcome
+ * stays idempotent within itself.
+ */
+export const ORDER_ID_CLEARED_SYSTEM =
+  "https://basepair.health/fhir/order-id-cleared";
+
+/**
  * How this evaluation was reached. `order` is the just-prescribed path;
  * `sweep` is the population scan of a drug the patient is already taking. The
  * distinction rides through onto the DetectedIssue payload as provenance, so a
@@ -207,6 +221,16 @@ export async function evaluateAndWrite(
   const orderQuery = orderId
     ? `identifier=${ORDER_ID_SYSTEM}|${orderId}`
     : null;
+  // Cleared records live under their own identifier system so their
+  // conditional-create query can never alias the flagged write's (see
+  // ORDER_ID_CLEARED_SYSTEM). Used for BOTH the cleared conditional-create query
+  // and the cleared resource's identifier.
+  const clearedTag = orderId
+    ? [{ system: ORDER_ID_CLEARED_SYSTEM, value: orderId }]
+    : undefined;
+  const clearedQuery = orderId
+    ? `identifier=${ORDER_ID_CLEARED_SYSTEM}|${orderId}`
+    : null;
 
   if (!rule.applies) {
     // Considered-and-cleared. The order path records this as a lightweight,
@@ -222,10 +246,10 @@ export async function evaluateAndWrite(
         genePhenotypes,
         reason: rule.reason,
       }),
-      ...(orderTag ? { identifier: orderTag } : {}),
+      ...(clearedTag ? { identifier: clearedTag } : {}),
     };
-    const clearedIssue = orderQuery
-      ? await medplum.createResourceIfNoneExist(clearedResource, orderQuery)
+    const clearedIssue = clearedQuery
+      ? await medplum.createResourceIfNoneExist(clearedResource, clearedQuery)
       : await medplum.createResource(clearedResource);
 
     return {
@@ -309,6 +333,28 @@ export async function evaluateAndWrite(
   const pharmacistTask = orderQuery
     ? await medplum.createResourceIfNoneExist(taskResource, orderQuery)
     : await medplum.createResource(taskResource);
+
+  // A flag now stands for this order. If an earlier order-time evaluation wrote
+  // a considered-and-cleared DetectedIssue for the same order (under the
+  // distinct ORDER_ID_CLEARED_SYSTEM, so it never blocked the flagged write
+  // above), supersede it so the audit trail doesn't carry a "cleared" and a
+  // "flagged" record both claiming one order. Marking it entered-in-error drops
+  // it from getAuditEntries (which reads status:"mitigated"). Null-safe (no
+  // orderId → no clearedQuery → skipped) and idempotent (a re-run sweep finds
+  // the record already superseded and leaves it alone).
+  if (clearedQuery) {
+    const staleCleared = await medplum.searchResources(
+      "DetectedIssue",
+      clearedQuery,
+    );
+    await Promise.all(
+      staleCleared
+        .filter((c) => c.status !== "entered-in-error")
+        .map((c) =>
+          medplum.updateResource({ ...c, status: "entered-in-error" }),
+        ),
+    );
+  }
 
   return {
     alert: true,

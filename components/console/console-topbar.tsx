@@ -10,6 +10,8 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useAlerts } from "@/components/console/alerts-provider"
 import { useCommand } from "@/components/console/command-provider"
 import { NewOrderDialog } from "@/components/console/new-order-dialog"
+import { PopulationSweepButton } from "@/components/console/population-sweep-button"
+import { GeneticsIntakeDialog } from "@/components/console/genetics-intake-dialog"
 import { SignalMetric } from "@/components/console/signal-metric"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
 import type { SignalStats } from "@/lib/alerts/types"
@@ -25,8 +27,14 @@ export function ConsoleTopbar({
   signalStats: SignalStats
 }) {
   const { openCount, query, setQuery } = useAlerts()
-  const { searchInputRef, newOrderOpen, setNewOrderOpen, setPaletteOpen } =
-    useCommand()
+  const {
+    searchInputRef,
+    newOrderOpen,
+    setNewOrderOpen,
+    geneticsIntakeOpen,
+    setGeneticsIntakeOpen,
+    setPaletteOpen,
+  } = useCommand()
   // The shell (this bar) is shared across routes via app/layout. The alert
   // controls (open count, search, New Order) only make sense on the queue, so
   // on the Audit route the bar shows just the title.
@@ -98,6 +106,18 @@ export function ConsoleTopbar({
           <CommandIcon aria-hidden className="size-4" />
           <KbdGroup keys={getShortcut("command-palette").keys} />
         </Button>
+        {/* One-click population scan: finds patients already on a genetically
+            mismatched drug (not just new orders). A queue action, so it hides on
+            the Audit route alongside the other alert controls. */}
+        {!onAudit && <PopulationSweepButton />}
+        {/* Messy-input intake: parse a free-text/PDF genetics report into coded
+            genetics, then evaluate — the model reads what the EHR's CDS can't. */}
+        <GeneticsIntakeDialog
+          patients={patients}
+          open={geneticsIntakeOpen}
+          onOpenChange={setGeneticsIntakeOpen}
+          showTrigger={!onAudit}
+        />
         {/* Kept mounted on every route so `n` / the palette can open it; the
             button itself only shows on the queue. */}
         <NewOrderDialog

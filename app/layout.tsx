@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { AppSidebar } from "@/components/console/app-sidebar"
 import { AlertsProvider } from "@/components/console/alerts-provider"
+import { SignalStatsProvider } from "@/components/console/signal-stats-provider"
 import { CommandProvider } from "@/components/console/command-provider"
 import { GlobalKeys } from "@/components/console/global-keys"
 import { CommandMenu } from "@/components/console/command-menu"
@@ -63,26 +64,28 @@ export default async function RootLayout({
           <ThemeProvider>
             <SidebarProvider>
               <AlertsProvider initialAlerts={alerts}>
-                <CommandProvider>
-                  <AppSidebar />
-                  <SidebarInset className="h-svh overflow-hidden">
-                    <div
-                      id="main-content"
-                      tabIndex={-1}
-                      className="flex-1 overflow-y-auto outline-none"
-                    >
-                      <ConsoleTopbar
-                        patients={patients}
-                        signalStats={signalStats}
-                      />
-                      {children}
-                    </div>
-                  </SidebarInset>
-                  {/* Keyboard layer + the surfaces its shortcuts open. */}
-                  <GlobalKeys />
-                  <CommandMenu />
-                  <ShortcutsSheet />
-                </CommandProvider>
+                <SignalStatsProvider stats={signalStats}>
+                  <CommandProvider>
+                    <AppSidebar />
+                    <SidebarInset className="h-svh overflow-hidden">
+                      <div
+                        id="main-content"
+                        tabIndex={-1}
+                        className="flex-1 overflow-y-auto outline-none"
+                      >
+                        <ConsoleTopbar
+                          patients={patients}
+                          signalStats={signalStats}
+                        />
+                        {children}
+                      </div>
+                    </SidebarInset>
+                    {/* Keyboard layer + the surfaces its shortcuts open. */}
+                    <GlobalKeys />
+                    <CommandMenu />
+                    <ShortcutsSheet />
+                  </CommandProvider>
+                </SignalStatsProvider>
               </AlertsProvider>
             </SidebarProvider>
           </ThemeProvider>

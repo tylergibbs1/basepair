@@ -7,6 +7,7 @@ import {
   BellRing,
   Keyboard,
   PillIcon,
+  ScanTextIcon,
   ScrollText,
   Search,
 } from "lucide-react"
@@ -37,8 +38,13 @@ import { getShortcut } from "@/lib/shortcuts"
 export function CommandMenu() {
   const router = useRouter()
   const { alerts } = useAlerts()
-  const { paletteOpen, setPaletteOpen, setNewOrderOpen, setCheatsheetOpen } =
-    useCommand()
+  const {
+    paletteOpen,
+    setPaletteOpen,
+    setNewOrderOpen,
+    setGeneticsIntakeOpen,
+    setCheatsheetOpen,
+  } = useCommand()
 
   // Every selection closes the palette first, then acts.
   const run = React.useCallback(
@@ -90,6 +96,21 @@ export function CommandMenu() {
                   <CommandShortcut>
                     <KbdGroup keys={getShortcut("new-order").keys} />
                   </CommandShortcut>
+                </CommandItem>
+                <CommandItem
+                  keywords={[
+                    "read",
+                    "report",
+                    "parse",
+                    "genetics",
+                    "pdf",
+                    "intake",
+                    "diplotype",
+                  ]}
+                  onSelect={() => run(() => setGeneticsIntakeOpen(true))}
+                >
+                  <ScanTextIcon aria-hidden />
+                  Read genetics report
                 </CommandItem>
                 <CommandItem
                   keywords={["shortcuts", "keys", "help"]}

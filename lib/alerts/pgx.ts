@@ -1,6 +1,12 @@
-import type { DetectedIssue, Patient } from "@medplum/fhirtypes"
+import type { DetectedIssue, Patient, Task } from "@medplum/fhirtypes"
 
-import { PGX_ALERT_EXTENSION_URL } from "@/lib/medplum/fhir"
+import {
+  PGX_ALERT_EXTENSION_URL,
+  ENACTMENT_STATUS_SYSTEM,
+  ENACTED_CODE,
+  type ContributingGene,
+} from "@/lib/medplum/fhir"
+import type { RecommendedAlternative } from "@/lib/cpic-catalog"
 import type { Alert } from "@/lib/alerts/types"
 
 /**
@@ -19,6 +25,9 @@ export type FlaggedPgxPayload = {
   gene: string
   diplotype: string
   phenotype: string
+  /** Full contributing gene set for multi-gene rules. Absent on records written
+   *  before this field existed; the loader falls back to the single driving gene. */
+  contributingGenes?: ContributingGene[]
   drug: string
   severity: Alert["severity"]
   recommendation: string
@@ -26,11 +35,19 @@ export type FlaggedPgxPayload = {
   citedSentence: string
   guidelineText?: string
   orderedBy: string
+  // How the alert was reached. Absent on alerts written before provenance
+  // existed; treated as "order".
+  foundBy?: "order" | "sweep"
+  // ISO 8601 timestamp of the population sweep that surfaced this (sweep only).
+  sweptAt?: string
   // Added by the AI trust gate; absent on alerts written before it existed.
   verified?: boolean
   verifierRationale?: string
   verifierModel?: string
   verifierHighlight?: string
+  // Structured CPIC action for one-click enact (issue #2); absent on alerts
+  // written before it existed, and on rules with no curated alternative.
+  recommendedAlternative?: RecommendedAlternative
 }
 
 /** Payload buildConsideredIssue wrote onto a considered-and-cleared DetectedIssue. */
@@ -46,6 +63,19 @@ export type PgxPayload = FlaggedPgxPayload | ClearedPgxPayload
 /** Narrowing guard: is this the considered-and-cleared shape? */
 export function isCleared(pgx: PgxPayload): pgx is ClearedPgxPayload {
   return pgx.outcome === "cleared"
+}
+
+/**
+ * Did the pharmacist *enact* this Task's recommendation (issue #2), as opposed
+ * to a plain approve? Reads the `Task.businessStatus` marker, so it's true only
+ * for a completed Task that also wrote the Communication (+ substitute order).
+ */
+export function isEnacted(task: Task): boolean {
+  return (
+    task.businessStatus?.coding?.some(
+      (c) => c.system === ENACTMENT_STATUS_SYSTEM && c.code === ENACTED_CODE,
+    ) ?? false
+  )
 }
 
 export function patientName(patient: Patient): string {

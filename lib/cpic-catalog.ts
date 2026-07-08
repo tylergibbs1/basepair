@@ -15,6 +15,51 @@ import catalogData from "./cpic/catalog.json";
 
 export type Severity = "critical" | "caution" | "info";
 
+/**
+ * The CPIC-recommended action, structured so the console can enact it in one
+ * click (issue #2) rather than re-parse the free-text `recommendation`.
+ *
+ * - `switch` — a clean single-drug alternative exists; enacting writes a
+ *   substitute MedicationRequest for `altDrug` plus a prescriber Communication.
+ * - `dose`   — the guideline calls for a dose change (no clean drug swap);
+ *   enacting notifies the prescriber, carrying the recommendation text.
+ * - `avoid`  — the guideline calls for avoiding the drug (substitute is a
+ *   clinical decision, not a mechanical swap); enacting notifies the prescriber.
+ */
+export type RecommendedAlternative =
+  | { kind: "switch"; altDrug: string }
+  | { kind: "dose" }
+  | { kind: "avoid" };
+
+/**
+ * Curated structured alternative per demo gene-drug pair. Keyed on the CPIC drug
+ * name (post-alias, so "5-FU" resolves via normDrug). Sources are the CPIC
+ * guideline for each pair — a switch is only used where CPIC names a concrete
+ * single-drug alternative; dose/avoid fall back to a prescriber notification.
+ */
+const ALTERNATIVE_BY_DRUG: Record<string, RecommendedAlternative> = {
+  // CYP2C19 → clopidogrel: CPIC recommends an alternative antiplatelet
+  // (prasugrel or ticagrelor) for poor/intermediate metabolizers.
+  clopidogrel: { kind: "switch", altDrug: "prasugrel" },
+  // SLCO1B1 → simvastatin: CPIC recommends an alternative statin (e.g.
+  // pravastatin or rosuvastatin) or a lower dose for decreased/poor function.
+  simvastatin: { kind: "switch", altDrug: "pravastatin" },
+  // TPMT / NUDT15 → thiopurines: CPIC recommends a drastic dose reduction;
+  // there is no clean single-drug switch, so enacting notifies the prescriber.
+  azathioprine: { kind: "dose" },
+  mercaptopurine: { kind: "dose" },
+  thioguanine: { kind: "dose" },
+  // DPYD → fluoropyrimidines: CPIC recommends avoiding the drug for no-function
+  // metabolizers; choosing a non-fluoropyrimidine is a clinical decision.
+  fluorouracil: { kind: "avoid" },
+  capecitabine: { kind: "avoid" },
+};
+
+/** The structured CPIC alternative for a drug, or null when none is curated. */
+export function recommendedAlternative(drug: string): RecommendedAlternative | null {
+  return ALTERNATIVE_BY_DRUG[normDrug(drug)] ?? null;
+}
+
 export type CatalogRule = {
   drug: string;
   drugId: string;
@@ -59,6 +104,18 @@ const SEVERITY_RANK: Record<Severity, number> = { critical: 0, caution: 1, info:
 /** Authoritative diplotype → phenotype (returns null if the gene/diplotype isn't enumerated). */
 export function resolvePhenotype(gene: string, diplotype: string): string | null {
   return catalog.phenotypeByDiplotype[gene]?.[normDip(diplotype)] ?? null;
+}
+
+/** Every drug the CPIC catalog has any rule for, normalized. Backs the
+ *  multi-drug complexity indicator: a drug is "PGx-relevant" if CPIC has
+ *  guidance for it, regardless of the patient's genotype. */
+const PGX_DRUGS: ReadonlySet<string> = new Set(
+  catalog.rules.map((r) => norm(r.drug)),
+);
+
+/** Is there CPIC guidance for this drug (by name, aliases resolved)? */
+export function isPgxRelevantDrug(drug: string): boolean {
+  return PGX_DRUGS.has(normDrug(drug));
 }
 
 export type LookupInput = {

@@ -6,10 +6,13 @@ import type {
   Observation,
   DetectedIssue,
   MedicationRequest,
+  Communication,
+  CodeableConcept,
   Task,
   Reference,
   Patient,
 } from "@medplum/fhirtypes";
+import type { RecommendedAlternative } from "@/lib/cpic-catalog";
 
 const LOINC = "http://loinc.org";
 const HGNC = "http://www.genenames.org";
@@ -110,6 +113,30 @@ export function buildPhenotypeObservation(
 }
 
 /**
+ * A parsed genetics result written back as coded genomic Observation(s) in the
+ * EXACT shape `readGenetics()` (trigger/evaluate-order.ts) already consumes: a
+ * genotype Observation (LOINC 84413-4, diplotype in `valueCodeableConcept.text`)
+ * and, when the report stated one, a phenotype Observation (LOINC 53040-2).
+ *
+ * This is the write path for the messy-input intake (issue #4): the parser turns
+ * an unstructured note/PDF into `{ gene, diplotype, phenotype? }`, this makes it
+ * coded FHIR, and the existing engine picks it up — one read path, no fork. The
+ * phenotype Observation `derivedFrom` the genotype so provenance is preserved.
+ */
+export function buildGenomicObservation(
+  patient: Reference<Patient>,
+  result: { gene: string; diplotype: string; phenotype?: string },
+): Observation[] {
+  const genotype = buildGenotypeObservation(
+    patient,
+    result.gene,
+    result.diplotype,
+  );
+  if (!result.phenotype) return [genotype];
+  return [genotype, buildPhenotypeObservation(patient, result.gene, result.phenotype)];
+}
+
+/**
  * The prescriber's order, as a FHIR MedicationRequest. Writing this to Medplum
  * is what a real clinician does; a Subscription on MedicationRequest fires the
  * Bot that triggers the evaluate-order task (docs/ARCHITECTURE.md §3). The drug
@@ -130,10 +157,30 @@ export function buildMedicationRequest(
   };
 }
 
+/**
+ * One gene/diplotype/phenotype triple that contributed to a multi-gene rule
+ * (e.g. TPMT + NUDT15 for thiopurines). Persisted on the DetectedIssue so the
+ * console can render the full contributing set, not just the driving gene.
+ * The driving (primary) gene is carried separately on `AlertFacts.gene`; a
+ * co-tested normal gene is still recorded here as context.
+ */
+export type ContributingGene = {
+  gene: string;
+  diplotype: string;
+  phenotype: string;
+};
+
 export type AlertFacts = {
   gene: string;
   diplotype: string;
   phenotype: string;
+  /**
+   * Every gene/phenotype pair the matched CPIC rule keyed on (the driving gene
+   * plus any co-tested genes). Single-gene rules carry one entry. Optional so
+   * older callers/records without it still typecheck; the console falls back to
+   * the primary gene when it's absent.
+   */
+  contributingGenes?: ContributingGene[];
   drug: string;
   severity: "critical" | "caution" | "info";
   recommendation: string;
@@ -142,6 +189,14 @@ export type AlertFacts = {
   /** Full guideline paragraph, the source text the UI renders and highlights. */
   guidelineText: string;
   orderedBy: string;
+  /**
+   * How the alert was reached: `order` (just prescribed) or `sweep` (a
+   * population scan of a drug the patient is already taking). Distinguishes an
+   * "already at risk" finding from an order-time catch. Defaults to `order`.
+   */
+  foundBy?: "order" | "sweep";
+  /** ISO 8601 timestamp of the population sweep that surfaced this (sweep only). */
+  sweptAt?: string;
   /** AI trust gate: did the model confirm the guideline supports the rec? */
   verified: boolean;
   /** The model's plain-language reasoning (the observability surface). */
@@ -150,6 +205,12 @@ export type AlertFacts = {
   verifierModel: string;
   /** Verbatim span within guidelineText the UI highlights as the evidence. */
   verifierHighlight: string;
+  /**
+   * Structured CPIC action the console can enact in one click (issue #2).
+   * Carried on the alert so the console renders the "Approve & switch to X"
+   * label without re-deriving it. Absent when no alternative is curated.
+   */
+  recommendedAlternative?: RecommendedAlternative;
 };
 
 /**
@@ -173,6 +234,16 @@ export function buildDetectedIssue(
     gene: facts.gene,
     diplotype: facts.diplotype,
     phenotype: facts.phenotype,
+    // Full contributing set for multi-gene rules; the driving gene above stays
+    // the headline. Defaults to the single driving gene so a record always
+    // carries at least one entry.
+    contributingGenes: facts.contributingGenes ?? [
+      {
+        gene: facts.gene,
+        diplotype: facts.diplotype,
+        phenotype: facts.phenotype,
+      },
+    ],
     drug: facts.drug,
     severity: facts.severity,
     recommendation: facts.recommendation,
@@ -180,10 +251,15 @@ export function buildDetectedIssue(
     citedSentence: facts.citedSentence,
     guidelineText: facts.guidelineText,
     orderedBy: facts.orderedBy,
+    foundBy: facts.foundBy ?? "order",
+    ...(facts.sweptAt ? { sweptAt: facts.sweptAt } : {}),
     verified: facts.verified,
     verifierRationale: facts.verifierRationale,
     verifierModel: facts.verifierModel,
     verifierHighlight: facts.verifierHighlight,
+    ...(facts.recommendedAlternative
+      ? { recommendedAlternative: facts.recommendedAlternative }
+      : {}),
   };
   return {
     resourceType: "DetectedIssue",
@@ -244,6 +320,97 @@ export function buildConsideredIssue(
       },
     ],
   }
+}
+
+const COMMUNICATION_CATEGORY_SYS =
+  "http://terminology.hl7.org/CodeSystem/communication-category";
+
+/**
+ * Identifier system for the enactment Communication, and for the substitute
+ * MedicationRequest, both keyed on the source order id. This is what makes the
+ * enact writes idempotent (createResourceIfNoneExist), so an undo→redo or a
+ * retry can never write a second prescriber note or duplicate prescription.
+ */
+/** Identifier system that ties an alert's resources back to the source order.
+ *  The DetectedIssue + Task carry it (see trigger/evaluate-order.ts), and the
+ *  enact writes reuse the same order id as their idempotency key. */
+export const ORDER_ID_SYSTEM = "https://basepair.health/fhir/order-id";
+
+export const COMMUNICATION_ORDER_SYSTEM =
+  "https://basepair.health/fhir/enactment-communication";
+export const SUBSTITUTE_ORDER_SYSTEM =
+  "https://basepair.health/fhir/enactment-substitute";
+
+/**
+ * Business-status marker stamped on a Task when its recommendation is *enacted*
+ * (issue #2), distinct from a plain approve. Rides on `Task.businessStatus`, so
+ * it never touches `Task.status` — the existing metrics/audit reads
+ * (getSignalStats, getAuditEntries) are unaffected, and a later count can filter
+ * completed Tasks by this marker.
+ */
+export const ENACTMENT_STATUS_SYSTEM =
+  "https://basepair.health/fhir/enactment-status";
+export const ENACTED_CODE = "enacted";
+
+/** The `Task.businessStatus` value that flags an enacted recommendation. */
+export function enactedBusinessStatus(): CodeableConcept {
+  return {
+    coding: [
+      { system: ENACTMENT_STATUS_SYSTEM, code: ENACTED_CODE, display: "Enacted" },
+    ],
+    text: "Enacted",
+  };
+}
+
+export type CommunicationFacts = {
+  drug: string;
+  /** The CPIC recommendation text, forwarded verbatim to the prescriber. */
+  recommendation: string;
+  /** Free-text prescriber name (the alert's provenance line). */
+  orderedBy: string;
+  /** One-line summary of the action enacted, e.g. "Substituted prasugrel for clopidogrel". */
+  action: string;
+};
+
+/**
+ * The prescriber-facing recommendation, as a FHIR Communication (issue #2).
+ * Written on enact so the closed loop is a real, auditable resource: it carries
+ * the CPIC recommendation verbatim, points `about` the DetectedIssue that raised
+ * it, and names the ordering prescriber as the recipient (display-only, since
+ * the order carries the prescriber as free text). `status: "completed"` marks it
+ * sent; an undo flips it to "entered-in-error" to compensate.
+ */
+export function buildCommunication(
+  patient: Reference<Patient>,
+  detectedIssue: Reference<DetectedIssue>,
+  facts: CommunicationFacts,
+): Communication {
+  return {
+    resourceType: "Communication",
+    status: "completed",
+    category: [
+      {
+        coding: [
+          {
+            system: COMMUNICATION_CATEGORY_SYS,
+            code: "notification",
+            display: "Notification",
+          },
+        ],
+        text: "Pharmacogenomic recommendation",
+      },
+    ],
+    priority: "urgent",
+    subject: patient,
+    about: [detectedIssue],
+    ...(facts.orderedBy ? { recipient: [{ display: facts.orderedBy }] } : {}),
+    sent: new Date().toISOString(),
+    payload: [
+      {
+        contentString: `${facts.action}. ${facts.recommendation} (re: ${facts.drug})`,
+      },
+    ],
+  };
 }
 
 /** The pharmacist worklist item, as a FHIR Task (status requested). */

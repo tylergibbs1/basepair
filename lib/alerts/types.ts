@@ -1,4 +1,8 @@
 import type { Severity } from "@/components/ui/severity-chip"
+import type { ContributingGene } from "@/lib/medplum/fhir"
+import type { RecommendedAlternative } from "@/lib/cpic-catalog"
+
+export type { ContributingGene, RecommendedAlternative }
 
 /**
  * A single pharmacogenomic clinical alert awaiting pharmacist triage.
@@ -13,16 +17,41 @@ export interface Alert {
   /** Star-allele diplotype, e.g. "*2/*2". Render in font-mono. */
   diplotype: string
   phenotype: string
+  /**
+   * Every gene/phenotype pair the matched CPIC rule keyed on. For a multi-gene
+   * rule (e.g. TPMT + NUDT15) this holds all contributing genes; `gene`/
+   * `diplotype`/`phenotype` above remain the driving one. Always has at least
+   * one entry (the driving gene) even for single-gene rules.
+   */
+  contributingGenes: ContributingGene[]
   drug: string
+  /**
+   * How many PGx-relevant drugs the patient has active on file (incl. this
+   * one). Derived from the patient's active MedicationRequests. `>1` is the
+   * complexity signal the literature flags as the pharmacist's hard case.
+   */
+  pgxDrugCount: number
   /** Clinical severities only, success/hold are lifecycle states, not alerts. */
   severity: Extract<Severity, "critical" | "caution" | "info">
   recommendation: string
+  /** Structured CPIC action the console can enact in one click (issue #2). A
+   *  "switch" carries the concrete alternative drug for the button label;
+   *  dose/avoid fall back to notifying the prescriber. Absent when uncurated. */
+  recommendedAlternative?: RecommendedAlternative
   /** The exact guideline sentence the recommendation is drawn from. */
   citedSentence: string
   /** Full guideline paragraph, rendered in the UI with `verification.highlight` marked. */
   guidelineText: string
   citation: string
   orderedBy: string
+  /**
+   * How the alert was reached: `order` (just prescribed) or `sweep` (a
+   * population scan found the patient already on a mismatched drug). Drives the
+   * sweep-originated tag in the queue + detail provenance.
+   */
+  foundBy: "order" | "sweep"
+  /** ISO 8601 timestamp of the population sweep that surfaced this (sweep only). */
+  sweptAt?: string
   /** AI trust gate: how Basepair verified the alert against the guideline. */
   verification: Verification
   /** ISO 8601 timestamp of when the alert fired. */
@@ -58,6 +87,26 @@ export interface Verification {
   model: string
   /** Verbatim span within the guideline the UI highlights as the evidence. */
   highlight: string
+}
+
+/**
+ * Contributing genes with the driving gene first, then co-tested genes in their
+ * recorded order. The driving gene is the one on `alert.gene` (what set the
+ * severity); the UI emphasizes it and renders the rest as subordinate context.
+ * Falls back to the single driving gene if the set is somehow empty.
+ */
+export function orderedContributingGenes(alert: Alert): ContributingGene[] {
+  const set = alert.contributingGenes ?? []
+  const driving = set.find((g) => g.gene === alert.gene)
+  const rest = set.filter((g) => g.gene !== alert.gene)
+  const primary =
+    driving ??
+    ({
+      gene: alert.gene,
+      diplotype: alert.diplotype,
+      phenotype: alert.phenotype,
+    } satisfies ContributingGene)
+  return [primary, ...rest]
 }
 
 const SEVERITY_ORDER: Record<Alert["severity"], number> = {

@@ -16,6 +16,8 @@ import {
   approveAlert,
   dismissAlert,
   reopenAlert,
+  enactAlert,
+  unenactAlert,
 } from "@/lib/alerts/actions"
 
 /** Typing into the search box shouldn't spam browser history; throttle the URL
@@ -57,6 +59,10 @@ interface AlertsContextValue {
   getAlert: (id: string) => Alert | null
   approve: (id: string) => void
   dismiss: (id: string) => void
+  /** Enact the CPIC recommendation (issue #2): write the prescriber
+   *  Communication (+ substitute order for a switch) and mark the alert
+   *  enacted. Optimistic, with a safe undo that reverses those writes. */
+  enact: (id: string) => void
 }
 
 /** The direction a column sorts by when you first click it. Severity and Fired
@@ -182,29 +188,40 @@ export function AlertsProvider({
     )
   }, [])
 
-  const removeWithUndo = React.useCallback(
-    (id: string, verb: "approved" | "dismissed") => {
+  // One optimistic-with-undo flow for every triage action (approve, dismiss,
+  // enact): pull the alert from the queue now, run `persist` in the background,
+  // and offer an Undo that restores the row and runs `undo`. The verb + optional
+  // description are the only per-action copy; the mechanics are shared.
+  const runWithUndo = React.useCallback(
+    (
+      id: string,
+      opts: {
+        verb: "approved" | "dismissed" | "enacted"
+        description?: string
+        persist: () => Promise<void>
+        undo: () => Promise<void>
+      }
+    ) => {
       const alert = byId.get(id)
       if (!alert) return
 
       // Optimistic: pull it from the queue immediately, persist in background.
       setPending((prev) => prev.filter((a) => a.id !== id))
 
-      const persist = verb === "approved" ? approveAlert : dismissAlert
-      persist(id).catch(() => {
+      opts.persist().catch(() => {
         restore(alert)
         toast.error("Couldn't save that", {
           description: "The alert has been restored. Please try again.",
         })
       })
 
-      toast(`Alert ${verb}`, {
-        description: `${alert.drug} · ${alert.patientName}`,
+      toast(`Alert ${opts.verb}`, {
+        description: opts.description ?? `${alert.drug} · ${alert.patientName}`,
         action: {
           label: "Undo",
           onClick: () => {
             restore(alert)
-            reopenAlert(id).catch(() => {
+            opts.undo().catch(() => {
               toast.error("Couldn't undo that", {
                 description: "Please refresh to see the latest state.",
               })
@@ -214,6 +231,26 @@ export function AlertsProvider({
       })
     },
     [byId, restore]
+  )
+
+  const enact = React.useCallback(
+    (id: string) => {
+      const alert = byId.get(id)
+      // A rule with no curated alternative still notifies the prescriber; "avoid"
+      // carries the recommendation text without writing a substitute order.
+      const choice = alert?.recommendedAlternative ?? { kind: "avoid" as const }
+      const description =
+        choice.kind === "switch"
+          ? `Switched to ${choice.altDrug} · ${alert?.patientName ?? ""}`.trim()
+          : `Prescriber notified · ${alert?.patientName ?? ""}`.trim()
+      runWithUndo(id, {
+        verb: "enacted",
+        description,
+        persist: () => enactAlert(id, choice),
+        undo: () => unenactAlert(id),
+      })
+    },
+    [byId, runWithUndo]
   )
 
   const value = React.useMemo<AlertsContextValue>(
@@ -232,8 +269,19 @@ export function AlertsProvider({
       setSort,
       getAlert: (id) =>
         byId.get(id) ?? pending.find((a) => a.id === id) ?? null,
-      approve: (id) => removeWithUndo(id, "approved"),
-      dismiss: (id) => removeWithUndo(id, "dismissed"),
+      approve: (id) =>
+        runWithUndo(id, {
+          verb: "approved",
+          persist: () => approveAlert(id),
+          undo: () => reopenAlert(id),
+        }),
+      dismiss: (id) =>
+        runWithUndo(id, {
+          verb: "dismissed",
+          persist: () => dismissAlert(id),
+          undo: () => reopenAlert(id),
+        }),
+      enact,
     }),
     [
       pending,
@@ -248,7 +296,8 @@ export function AlertsProvider({
       dir,
       setSort,
       byId,
-      removeWithUndo,
+      runWithUndo,
+      enact,
     ]
   )
 

@@ -23,6 +23,7 @@ import {
   buildGenotypeObservation,
   buildPhenotypeObservation,
   buildDetectedIssue,
+  buildMedicationRequest,
   buildTask,
 } from "../lib/medplum/fhir";
 import { resolvePhenotype, lookupRule } from "../lib/cpic-catalog";
@@ -56,6 +57,13 @@ type SeedCase = {
   hoursAgo: number;
   /** Other genes on the panel; needed for multi-gene rules (e.g. NUDT15). */
   coTested?: CoTestedGene[];
+  /**
+   * Other PGx-relevant drugs the patient has active on file (besides the one
+   * that fired this alert). Seeded as active MedicationRequests so the console's
+   * multi-drug complexity indicator ("N PGx-relevant drugs on file") has real
+   * data. The alert drug is always seeded; these add to it.
+   */
+  coPrescribed?: string[];
 };
 
 const CASES: SeedCase[] = [
@@ -106,6 +114,10 @@ const CASES: SeedCase[] = [
     coTested: [
       { gene: "NUDT15", diplotype: "*1/*1", phenotype: "Normal metabolizer" },
     ],
+    // Also a complexity case: azathioprine co-prescribed with allopurinol (a
+    // real, dangerous interaction) plus a PPI — three PGx-relevant drugs on
+    // file, so the multi-drug indicator has honest data on a multi-gene alert.
+    coPrescribed: ["allopurinol", "pantoprazole"],
   },
   {
     given: "Grace",
@@ -207,6 +219,13 @@ for (const c of CASES) {
   // gene, picked exactly the way the live task picks it.
   const primary = primaryGene(rule.genes, readings);
 
+  // Full contributing set (all rule genes, in rule order) persisted alongside
+  // the driving gene, exactly as the live task does it.
+  const contributingGenes = rule.genes
+    .map((g) => readings.find((r) => r.gene === g))
+    .filter((r): r is GeneReading => r !== undefined)
+    .map(({ gene, diplotype, phenotype }) => ({ gene, diplotype, phenotype }));
+
   // Idempotent by MRN: reuse the patient if it exists, and cancel its open
   // ("requested") Tasks so a re-run doesn't leave stale worklist items.
   const existing = await medplum.searchResources(
@@ -253,6 +272,25 @@ for (const c of CASES) {
     );
   }
 
+  // Ensure the patient's active PGx drugs are on file as MedicationRequests
+  // (the alert drug plus any co-prescriptions), so the console's multi-drug
+  // indicator reads real data. Idempotent: skip any drug already active on the
+  // chart so a re-run doesn't stack duplicates.
+  const activeMeds = await medplum.searchResources(
+    "MedicationRequest",
+    `subject=Patient/${patient.id}&status=active`,
+  );
+  const activeDrugs = new Set(
+    activeMeds
+      .map((m) => m.medicationCodeableConcept?.text?.trim().toLowerCase())
+      .filter((d): d is string => !!d),
+  );
+  for (const drug of [rule.drug, ...(c.coPrescribed ?? [])]) {
+    if (activeDrugs.has(drug.trim().toLowerCase())) continue;
+    await medplum.createResource(buildMedicationRequest(patientRef, drug));
+    activeDrugs.add(drug.trim().toLowerCase());
+  }
+
   // Run the same AI trust gate the live task uses, so seeded alerts carry a
   // real verdict + rationale (not a placeholder) and the demo queue is uniform.
   // On any model error we still emit the alert, just unverified, never drop a flag.
@@ -270,6 +308,7 @@ for (const c of CASES) {
       gene: primary.gene,
       diplotype: primary.diplotype,
       phenotype: primary.phenotype,
+      contributingGenes,
       drug: rule.drug,
       severity: rule.severity,
       recommendation: rule.recommendation,

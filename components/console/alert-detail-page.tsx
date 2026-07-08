@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { SeverityChip } from "@/components/ui/severity-chip"
+import { SeverityChip, severityActionVerb } from "@/components/ui/severity-chip"
 import { VerificationChip } from "@/components/ui/verification-chip"
 import { Source, SourceContent, SourceTrigger } from "@/components/ui/source"
 import { EnactConfirmDialog } from "@/components/console/enact-confirm-dialog"
@@ -26,6 +26,7 @@ import {
   formatFiredAtAbsolute,
   orderedContributingGenes,
   type Alert,
+  type PatientContext,
 } from "@/lib/alerts/types"
 import { cn } from "@/lib/utils"
 
@@ -35,6 +36,73 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="text-sm text-foreground">{children}</dd>
     </div>
+  )
+}
+
+/**
+ * A compact patient-context band (issue #36): the clinical facts a pharmacist
+ * checks before acting on a PGx alert — known allergies, renal function, body
+ * weight, and how many PGx-relevant drugs are active. NEUTRAL chrome, never
+ * clinical color (severity owns that). Each field renders only when Medplum
+ * returned it, and the whole band is omitted when nothing is known. An explicit
+ * FHIR "no known allergies" record (an empty `allergies` array) reads distinctly
+ * from simply-absent allergy data (an omitted field).
+ */
+function PatientContextBand({
+  context,
+  pgxDrugCount,
+}: {
+  context?: PatientContext
+  pgxDrugCount: number
+}) {
+  const items: React.ReactNode[] = []
+
+  if (context?.allergies) {
+    items.push(
+      <Field key="allergies" label="Allergies">
+        {context.allergies.length === 0 ? (
+          <span className="text-muted-foreground">No known allergies</span>
+        ) : (
+          context.allergies.join(", ")
+        )}
+      </Field>,
+    )
+  }
+  if (context?.renal) {
+    items.push(
+      <Field key="renal" label={context.renal.label}>
+        <span className="tabular-nums">{context.renal.value}</span>{" "}
+        <span className="text-muted-foreground">{context.renal.unit}</span>
+      </Field>,
+    )
+  }
+  if (typeof context?.weightKg === "number") {
+    items.push(
+      <Field key="weight" label="Weight">
+        <span className="tabular-nums">{context.weightKg}</span>{" "}
+        <span className="text-muted-foreground">kg</span>
+      </Field>,
+    )
+  }
+  if (pgxDrugCount > 1) {
+    // The multi-drug complexity signal, reused here as the band's active-med
+    // fact (the rail still names it against the ordered drug).
+    items.push(
+      <Field key="meds" label="Active PGx drugs">
+        <span className="tabular-nums">{pgxDrugCount}</span>
+      </Field>,
+    )
+  }
+
+  if (items.length === 0) return null
+
+  return (
+    <section
+      aria-label="Patient context"
+      className="mt-6 rounded-md border bg-secondary/40 px-4 py-3"
+    >
+      <dl className="flex flex-wrap gap-x-8 gap-y-3">{items}</dl>
+    </section>
   )
 }
 
@@ -314,7 +382,16 @@ export function AlertDetailPage({ id }: { id: string }) {
           <header className="mt-4 flex flex-wrap items-start justify-between gap-4">
             <div className="grid gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <SeverityChip severity={alert.severity} />
+                {/* Severity reads as an instruction: the chip carries the action
+                    verb (avoid/modify/monitor) after the severity label, which
+                    still leads. */}
+                <SeverityChip
+                  severity={alert.severity}
+                  action={severityActionVerb(
+                    alert.severity,
+                    alert.recommendedAlternative,
+                  )}
+                />
                 <VerificationChip verified={alert.verification.verified} />
               </div>
               <div className="grid gap-0.5">
@@ -348,9 +425,18 @@ export function AlertDetailPage({ id }: { id: string }) {
             kind={enactKind}
             patientName={alert.patientName}
             patientMrn={alert.patientMrn}
+            patientDob={alert.patientDob}
             actionText={enactActionText}
             confirmLabel={enactLabel}
             onConfirm={() => act(enact)}
+          />
+
+          {/* Patient-context band (#36): the clinical facts to check before
+              acting, sat between identity and the decision surface. Neutral
+              chrome; renders only what the chart returned. */}
+          <PatientContextBand
+            context={alert.patientContext}
+            pgxDrugCount={alert.pgxDrugCount}
           />
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -361,8 +447,11 @@ export function AlertDetailPage({ id }: { id: string }) {
               {!alert.verification.verified && <NeedsReviewNote />}
 
               {/* Verdict first: the recommendation is the decision the
-                  pharmacist is here to make. Rendered verbatim from the CPIC
-                  engine. */}
+                  pharmacist is here to make. The action LEADS (#39) — the verb
+                  the pharmacist acts on, derived from the CPIC action/severity —
+                  then the CPIC recommendation renders verbatim below it. The
+                  headline is UI emphasis/ordering only; the guideline wording is
+                  never paraphrased. */}
               <section aria-labelledby="rec-label" className="grid gap-2">
                 <h3
                   id="rec-label"
@@ -370,6 +459,14 @@ export function AlertDetailPage({ id }: { id: string }) {
                 >
                   Recommendation
                 </h3>
+                <p className="text-balance text-xl font-semibold tracking-tight text-foreground">
+                  {severityActionVerb(
+                    alert.severity,
+                    alert.recommendedAlternative,
+                  )}{" "}
+                  {alert.drug.charAt(0).toUpperCase()}
+                  {alert.drug.slice(1)}
+                </p>
                 <p className="max-w-prose text-pretty text-base leading-relaxed text-foreground">
                   {alert.recommendation}
                 </p>

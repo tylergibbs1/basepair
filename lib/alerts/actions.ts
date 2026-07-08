@@ -327,12 +327,14 @@ export type PlaceOrderResult = {
  * Place a real prescription order: write a FHIR MedicationRequest to Medplum,
  * then evaluate it against the patient's genetics.
  *
- * Production trigger path (see bots/order-trigger.ts + scripts/setup-order-trigger.ts):
- * a create-only Medplum Subscription fires a Bot that triggers the task. That
- * path is fully built but requires the Medplum project to have **Bots enabled**
- * (a project-admin setting). Until then we trigger the same evaluate-order task
- * directly here, the order (MedicationRequest) and the whole evaluation are
- * still real; only the trigger source is the app instead of the Subscription.
+ * Production trigger paths (both additive to this action, all idempotent on
+ * the order id): the standards-shaped HTTP ingress `app/api/cds/prescribe`
+ * (CDS Hooks order-sign + Medplum Subscription rest-hook, issue #23), and a
+ * create-only Medplum Subscription firing a Bot (bots/order-trigger.ts +
+ * scripts/setup-order-trigger.ts; requires Medplum "Bots enabled"). This
+ * action triggers the same evaluate-order task directly, so the order
+ * (MedicationRequest) and the whole evaluation are identical regardless of
+ * which path fired.
  */
 export async function placeOrder(
   patientRef: string,

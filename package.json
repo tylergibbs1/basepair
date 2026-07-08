@@ -19,6 +19,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:cpic:load": "bun scripts/load-cpic-supabase.ts",
+    "db:seed:tenant": "bun scripts/seed-tenant.ts",
     "doctor": "npx react-doctor@latest"
   },
   "dependencies": {

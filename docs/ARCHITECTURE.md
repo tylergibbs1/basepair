@@ -172,6 +172,15 @@ export const alertCache = pgTable('alert_cache', {
 })
 ```
 
+#### Secret handling — `medplum_client_creds` (encryption at rest)
+
+The `tenants.medplum_client_creds` column never holds plaintext. Credentials are sealed **app-side** with AES-256-GCM (`lib/db/tenant-creds.ts`) into a versioned envelope `{ v: 1, alg: "aes-256-gcm", iv, ct, tag }` before insert, and opened only inside the per-tenant Medplum client factory (`createMedplumClient(tenantId)` → `lib/db/queries.ts#getTenantMedplumConfig`) at login time.
+
+- **Key:** `TENANT_CREDS_KEY`, a 32-byte base64 key (`openssl rand -base64 32`). It lives ONLY in the app / Trigger.dev environment (synced at deploy via `trigger.config.ts`), never in Postgres — so a DB dump, a leaked Supabase key, or an RLS mistake exposes ciphertext that cannot be opened without also compromising the app environment.
+- **Rotation:** set the new key, re-run `bun scripts/seed-tenant.ts` per tenant (the upsert re-seals from the source creds under the current key), retire the old key. The envelope's `v`/`alg` fields allow algorithm rotation later.
+- **Seeding:** `bun run db:seed:tenant` seals the dev ClientApplication (`MEDPLUM_CLIENT_ID/SECRET/BASE_URL`) into a `basepair-dev` tenant row and prints the id; pin the deployment with `BASEPAIR_TENANT_ID=<id>`. With no tenant id anywhere, the factory falls back to the env ClientApplication (dev-only path).
+- **RLS:** enabled on `tenants` and `alert_cache` (migration `drizzle/0001_*.sql`, policies defined in `lib/db/schema.ts`). Client-facing roles get `select` only, row-scoped to the JWT's `tenant_id` claim (`auth.jwt() ->> 'tenant_id'`, wrapped in a scalar subquery per Supabase's RLS-performance guidance) — and the `tenants` column grant excludes `medplum_client_creds`, so even the owning tenant's users never read the ciphertext. Writes and cross-tenant reads happen solely over the server Drizzle connection, which is the table owner and bypasses RLS by design.
+
 ### 5c. The transient alert object (in the loop)
 
 The `Output.object` the model assembles before it becomes a Medplum `DetectedIssue`:

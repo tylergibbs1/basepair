@@ -9,4 +9,11 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL_SESSION ?? process.env.DATABASE_URL!,
   },
+  // RLS policies reference Supabase's predefined roles (anon/authenticated);
+  // tell drizzle-kit they're provider-managed so it never tries to create them.
+  entities: {
+    roles: {
+      provider: "supabase",
+    },
+  },
 });

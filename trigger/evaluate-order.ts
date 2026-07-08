@@ -26,6 +26,13 @@ export type EvaluateOrderPayload = {
   orderId?: string;
   /** The ordering prescriber, shown on the alert's provenance line. */
   orderedBy?: string;
+  /**
+   * The tenant whose Medplum credential this evaluation must use. Resolved
+   * from the `tenants` table inside the task (per-tenant client factory,
+   * lib/medplum/client.ts). Optional: absent (dev/direct triggers) the factory
+   * falls back to BASEPAIR_TENANT_ID, then to the env ClientApplication.
+   */
+  tenantId?: string;
 };
 
 export const evaluateOrder = task({
@@ -41,7 +48,9 @@ export const evaluateOrder = task({
       await metadata.flush();
     };
 
-    const medplum = await createMedplumClient();
+    // Per-tenant FHIR access: the payload names the tenant; the factory
+    // resolves that tenant's Medplum credential from the tenants table.
+    const medplum = await createMedplumClient(payload.tenantId);
 
     const result = await evaluateAndWrite({
       medplum,

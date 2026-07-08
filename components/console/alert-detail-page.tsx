@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { SeverityChip } from "@/components/ui/severity-chip"
 import { Source, SourceContent, SourceTrigger } from "@/components/ui/source"
+import { EnactConfirmDialog } from "@/components/console/enact-confirm-dialog"
 import { useAlerts } from "@/components/console/alerts-provider"
 import {
   citationSourceLabel,
@@ -272,6 +273,17 @@ export function AlertDetailPage({ id }: { id: string }) {
       ? `Approve & Switch to ${alt.altDrug.charAt(0).toUpperCase()}${alt.altDrug.slice(1)}`
       : "Approve & Notify Prescriber"
 
+  // Enact writes outward (prescriber notification, plus a substitute order for a
+  // switch), so it opens a patient-identity confirm before firing — the
+  // wrong-patient guard. Approve and dismiss are internal and stay direct.
+  const [enactOpen, setEnactOpen] = React.useState(false)
+  const enactKind = alt?.kind === "switch" ? "switch" : "notify"
+  const enactActionText = alert
+    ? alt?.kind === "switch"
+      ? `Substitute ${alt.altDrug.charAt(0).toUpperCase()}${alt.altDrug.slice(1)} for ${alert.drug} and notify ${alert.orderedBy}.`
+      : `Notify ${alert.orderedBy} of the recommendation for ${alert.drug}.`
+    : ""
+
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-6 lg:px-8">
       <Button
@@ -309,7 +321,9 @@ export function AlertDetailPage({ id }: { id: string }) {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => act(enact)}>{enactLabel}</Button>
+              {/* Enact opens the wrong-patient confirm first; the actual enact
+                  (optimistic pull + undo toast + navigate) runs on Confirm. */}
+              <Button onClick={() => setEnactOpen(true)}>{enactLabel}</Button>
               <Button variant="outline" onClick={() => act(approve)}>
                 Approve Alert
               </Button>
@@ -321,6 +335,17 @@ export function AlertDetailPage({ id }: { id: string }) {
               </Button>
             </div>
           </header>
+
+          <EnactConfirmDialog
+            open={enactOpen}
+            onOpenChange={setEnactOpen}
+            kind={enactKind}
+            patientName={alert.patientName}
+            patientMrn={alert.patientMrn}
+            actionText={enactActionText}
+            confirmLabel={enactLabel}
+            onConfirm={() => act(enact)}
+          />
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
             <div className="grid content-start gap-8">

@@ -15,6 +15,7 @@ import { toast } from "sonner"
 
 import { placeOrder } from "@/lib/alerts/actions"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
+import type { EvalEvent } from "@/lib/alerts/evaluate"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
 import { DRUGS, PRESCRIBERS } from "@/lib/orders"
 import { spring } from "@/lib/springs"
@@ -37,6 +38,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Task,
+  TaskContent,
+  TaskItem,
+  TaskTrigger,
+} from "@/components/ai-elements/task"
 
 /** Floor on the "Placing order" step so a sub-500ms write doesn't flash past it
  * (CONVENTIONS: loading states get a min-visible duration to avoid flicker). */
@@ -69,6 +76,15 @@ function readPhase(metadata: unknown): string | undefined {
     if (typeof phase === "string") return phase
   }
   return undefined
+}
+
+/** Safely read the growing `events` feed the task publishes via metadata.append. */
+function readEvents(metadata: unknown): EvalEvent[] {
+  if (metadata && typeof metadata === "object" && "events" in metadata) {
+    const events = (metadata as { events: unknown }).events
+    if (Array.isArray(events)) return events as EvalEvent[]
+  }
+  return []
 }
 
 /**
@@ -269,24 +285,160 @@ export function EvaluationStepper({ phase }: { phase: Phase }) {
   )
 }
 
+/** The label for the trailing "working now" row, derived from the live phase. */
+const PHASE_WORKING_LABEL: Partial<Record<Phase, string>> = {
+  placing: "Placing the order",
+  genetics: "Evaluating genetics",
+  verifying: "Verifying against the guideline",
+}
+
+/**
+ * Live feed of what Basepair found, streamed over Trigger.dev Realtime as the
+ * evaluation runs — each finding is appended to run.metadata.events by the task
+ * (genotype read, phenotype derived, drug normalized, CPIC rule matched, agent
+ * cross-check, guideline verified). Replaces the fixed phase stepper: completed
+ * findings render as checked evidence lines; a single spinner row names the
+ * stage currently running. Built on AI Elements' Task primitive so it themes
+ * with the rest of the console; the resolved outcome block is unchanged.
+ */
+export function EvaluationFeed({
+  events,
+  phase,
+}: {
+  events: EvalEvent[]
+  phase: Phase
+}) {
+  const resolved =
+    phase === "flagged" || phase === "cleared" || phase === "timeout"
+  const workingLabel = PHASE_WORKING_LABEL[phase]
+
+  return (
+    <div className="grid gap-4 py-1">
+      <Task defaultOpen>
+        <TaskTrigger title="What Basepair found" />
+        <TaskContent>
+          {events.length === 0 && !resolved && (
+            <TaskItem className="flex items-center gap-2 text-foreground">
+              <Loader2Icon aria-hidden className="size-3 shrink-0 animate-spin" />
+              <span className="text-sm">Reading the chart…</span>
+            </TaskItem>
+          )}
+          {events.map((e) => (
+            <TaskItem
+              key={e.kind}
+              className="flex items-start gap-2 text-foreground"
+            >
+              <Check
+                aria-hidden
+                className="mt-0.5 size-3.5 shrink-0 text-success-fg"
+              />
+              <span className="grid gap-0.5">
+                <span className="text-sm font-medium leading-snug text-foreground">
+                  {e.label}
+                </span>
+                <span className="line-clamp-2 text-xs text-muted-foreground">
+                  {e.detail}
+                </span>
+              </span>
+            </TaskItem>
+          ))}
+          {!resolved && events.length > 0 && workingLabel && (
+            <TaskItem className="flex items-center gap-2 text-muted-foreground">
+              <Loader2Icon aria-hidden className="size-3 shrink-0 animate-spin" />
+              <span className="text-sm">{workingLabel}…</span>
+            </TaskItem>
+          )}
+        </TaskContent>
+      </Task>
+
+      {/* Resolved outcome — same honest framing as the phase stepper: flagged is
+          a notable result (neutral, not a claimed severity), cleared greens, a
+          lost-connection timeout points at the queue. */}
+      <AnimatePresence>
+        {resolved && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, transition: spring.moderate.exit }}
+            transition={spring.moderate}
+            className="flex items-start gap-2.5 border-t pt-4"
+          >
+            {phase === "flagged" ? (
+              <>
+                <ShieldAlert
+                  aria-hidden
+                  className="mt-px size-4 shrink-0 text-foreground"
+                />
+                <div className="grid gap-0.5">
+                  <p className="text-sm font-medium text-foreground">
+                    Alert flagged
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    It’s in the queue for review.
+                  </p>
+                </div>
+              </>
+            ) : phase === "cleared" ? (
+              <>
+                <Check
+                  aria-hidden
+                  className="mt-px size-4 shrink-0 text-success-fg"
+                />
+                <div className="grid gap-0.5">
+                  <p className="text-sm font-medium text-foreground">
+                    Cleared — no alert
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Evaluated with nothing to flag.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <Clock
+                  aria-hidden
+                  className="mt-px size-4 shrink-0 text-sev-caution-fg"
+                />
+                <div className="grid gap-0.5">
+                  <p className="text-sm font-medium text-foreground">
+                    Still evaluating
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Check the queue shortly.
+                  </p>
+                </div>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 /**
  * Headless subscriber: streams the evaluate-order run over Trigger.dev Realtime
- * and reports the live pipeline phase up to the dialog (which renders the
- * stepper). The order is already written by the time this mounts, so it only
- * drives steps 2–3 and the resolved outcome. On any terminal state it refreshes
- * the queue so the new alert lands, toasts the result, then schedules the close.
+ * and reports the live pipeline phase + findings feed up to the dialog (which
+ * renders them). The order is already written by the time this mounts, so it
+ * only drives the feed and the resolved outcome. On any terminal state it
+ * refreshes the queue so the new alert lands, toasts the result, then schedules
+ * the close.
  */
 export function OrderEvaluation({
   runId,
   accessToken,
   drug,
   onPhaseChange,
+  onEventsChange,
   onClose,
 }: {
   runId: string
   accessToken: string
   drug: string
   onPhaseChange: (phase: Phase) => void
+  /** Optional: the new-order dialog renders the live findings feed; other
+   *  callers (genetics intake) only want the phase stepper. */
+  onEventsChange?: (events: EvalEvent[]) => void
   onClose: () => void
 }) {
   const router = useRouter()
@@ -324,6 +476,15 @@ export function OrderEvaluation({
   React.useEffect(() => {
     onPhaseChange(phase)
   }, [phase, onPhaseChange])
+
+  // Report the growing findings feed up to the dialog. Keyed on count: the
+  // metadata array only ever appends, so a new length is the only change worth
+  // propagating (a same-length re-render is a no-op).
+  const events = readEvents(run?.metadata)
+  React.useEffect(() => {
+    onEventsChange?.(events)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events.length, onEventsChange])
 
   // Resolve exactly once (a `run` update can re-render at the same phase).
   const resolved =
@@ -368,6 +529,7 @@ export function NewOrderDialog({
     accessToken: string
   } | null>(null)
   const [runPhase, setRunPhase] = React.useState<Phase | null>(null)
+  const [events, setEvents] = React.useState<EvalEvent[]>([])
 
   // One derived phase drives the stepper AND the button label: "placing" while
   // the order write runs, then whatever the live run streams (defaulting to
@@ -398,6 +560,7 @@ export function NewOrderDialog({
     setSubmitting(false)
     setSubmission(null)
     setRunPhase(null)
+    setEvents([])
     setDrug(null)
     setPatientRef(null)
     onOpenChange(false)
@@ -467,6 +630,7 @@ export function NewOrderDialog({
             accessToken={submission.accessToken}
             drug={drug ?? ""}
             onPhaseChange={setRunPhase}
+            onEventsChange={setEvents}
             onClose={reset}
           />
         )}
@@ -480,7 +644,7 @@ export function NewOrderDialog({
               exit={{ opacity: 0, transition: spring.moderate.exit }}
               transition={spring.moderate}
             >
-              <EvaluationStepper phase={phase} />
+              <EvaluationFeed events={events} phase={phase} />
             </motion.div>
           ) : (
             <motion.div

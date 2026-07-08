@@ -65,6 +65,26 @@ export type EvalProvenance =
   | { foundBy: "order"; orderedBy: string }
   | { foundBy: "sweep"; orderedBy: string; sweptAt: string };
 
+/**
+ * A single resolved finding streamed as the evaluation runs — the console
+ * renders these as a live feed of what Basepair actually found (genotype read,
+ * phenotype derived, drug normalized, CPIC rule matched, agent cross-check,
+ * guideline verified), rather than a fixed set of phase labels. Each is a
+ * completed fact; `kind` is a stable key, `label` is the short heading, `detail`
+ * is the one-line evidence.
+ */
+export type EvalEvent = {
+  kind:
+    | "genetics"
+    | "phenotype"
+    | "drug"
+    | "cpic"
+    | "cross-check"
+    | "verify";
+  label: string;
+  detail: string;
+};
+
 export type EvaluateAndWriteInput = {
   /**
    * An authenticated Medplum client (the caller owns login/memoization). The
@@ -103,6 +123,12 @@ export type EvaluateAndWriteInput = {
   writeClearedRecord?: boolean;
   /** Optional phase reporter, e.g. evaluate-order streams it as run metadata. */
   onPhase?: (phase: string) => Promise<void> | void;
+  /**
+   * Optional per-finding reporter. evaluate-order appends each to the run
+   * metadata so the console can stream a live "what Basepair found" feed. Emits
+   * a completed fact at each stage; never affects the clinical result.
+   */
+  onEvent?: (event: EvalEvent) => Promise<void> | void;
 };
 
 /** Discriminated result: a flag (with its written resource ids) or a no-alert. */
@@ -247,6 +273,7 @@ export async function evaluateAndWrite(
 ): Promise<EvaluateResult> {
   const { medplum, patientRef, drug, orderId, provenance } = input;
   const writeClearedRecord = input.writeClearedRecord ?? true;
+  const emit = (event: EvalEvent) => input.onEvent?.(event);
 
   await input.onPhase?.("reading-genetics");
 
@@ -262,6 +289,18 @@ export async function evaluateAndWrite(
   const genePhenotypes: Record<string, string> = {};
   for (const r of readings) genePhenotypes[r.gene] = r.phenotype;
 
+  // Surface the notable reading (the abnormal gene drives the alert; a co-tested
+  // normal gene is context) as the first two feed findings.
+  const notable =
+    readings.find((r) => !/normal|indeterminate/i.test(r.phenotype)) ??
+    readings[0];
+  await emit({
+    kind: "genetics",
+    label: "Read genetics",
+    detail: `${notable.gene} ${notable.diplotype}`.trim(),
+  });
+  await emit({ kind: "phenotype", label: "Phenotype", detail: notable.phenotype });
+
   await input.onPhase?.("normalizing-drug");
   // Resolve the raw order string to a canonical RxNorm identifier + ATC class
   // via the NLM RxNorm/RxClass API, so the CPIC lookup keys on a normalized
@@ -270,6 +309,13 @@ export async function evaluateAndWrite(
   // to the offline static alias map + raw string, so the evaluation continues.
   const normalized = await normalizeDrug(drug);
   const lookupDrug = normalized.name;
+  await emit({
+    kind: "drug",
+    label: "Normalized drug",
+    detail: normalized.rxcui
+      ? `${normalized.name} · RxCUI ${normalized.rxcui}`
+      : normalized.name,
+  });
 
   await input.onPhase?.("matching-cpic");
   // The CPIC decision runs as an agent loop over cpicTools: the model drives
@@ -280,6 +326,21 @@ export async function evaluateAndWrite(
   // the RxNorm-normalized name; lookupRule still applies the alias map internally.
   const decision = await decideWithAgent(lookupDrug, readings, genePhenotypes);
   const rule = decision.rule;
+  await emit({
+    kind: "cpic",
+    label: rule.applies ? "Matched CPIC guidance" : "CPIC guidance",
+    detail: rule.applies ? rule.recommendation : "No applicable rule",
+  });
+  await emit({
+    kind: "cross-check",
+    label: "Agent cross-check",
+    detail:
+      decision.path === "agent"
+        ? "Agent agreed with the engine"
+        : decision.path === "agent-mismatch"
+          ? "Agent mismatch — engine authoritative"
+          : "Deterministic engine (agent fallback)",
+  });
 
   const patient: Reference<Patient> = { reference: patientRef };
   const orderTag = orderId
@@ -378,6 +439,16 @@ export async function evaluateAndWrite(
     verification?.citedSentence?.trim() ||
     rule.guidelineText.match(/^[^.]*\./)?.[0]?.trim() ||
     rule.guidelineText;
+  await emit({
+    kind: "verify",
+    label:
+      verification == null
+        ? "Verifier unavailable"
+        : verification.verified
+          ? "Verified against guideline"
+          : "Verifier flagged for review",
+    detail: citedSentence,
+  });
 
   // Write the alert as a DetectedIssue + a pharmacist Task. Both writes are
   // idempotent on the order id (when present): a retry OR a re-run sweep that

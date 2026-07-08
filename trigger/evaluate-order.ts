@@ -6,7 +6,7 @@ import {
   WaitpointTimeoutError,
 } from "@trigger.dev/sdk";
 import { createMedplumClient } from "@/lib/medplum/client";
-import { evaluateAndWrite } from "@/lib/alerts/evaluate";
+import { evaluateAndWrite, type EvalEvent } from "@/lib/alerts/evaluate";
 import {
   stampWaitToken,
   writeBackDecision,
@@ -73,6 +73,19 @@ export const evaluateOrder = task({
       await metadata.flush();
     };
 
+    // Publish the growing findings list as run metadata so the console streams a
+    // live "what Basepair found" feed over Realtime (useRealtimeRun reads
+    // run.metadata.events). We keep the array locally and re-`set` the whole key
+    // on each finding rather than `append`: metadata.set is what reliably
+    // propagates to run.metadata over Realtime here (append did not surface).
+    // Flush so short-lived findings appear promptly, not on the periodic flush.
+    const findings: EvalEvent[] = [];
+    const addEvent = async (event: EvalEvent) => {
+      findings.push(event);
+      metadata.set("events", findings);
+      await metadata.flush();
+    };
+
     // Per-tenant FHIR access: the payload names the tenant; the factory
     // resolves that tenant's Medplum credential from the tenants table.
     const medplum = await createMedplumClient(payload.tenantId);
@@ -86,6 +99,7 @@ export const evaluateOrder = task({
       // Order-time evaluation records the considered-and-cleared proof in Audit.
       writeClearedRecord: true,
       onPhase: setPhase,
+      onEvent: addEvent,
     });
 
     // Surface how the CPIC decision was reached (agent loop vs deterministic

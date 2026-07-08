@@ -11,9 +11,12 @@
  *
  * All calls go through the direct @ai-sdk/anthropic provider (ANTHROPIC_API_KEY).
  *
- * BASEPAIR_MODEL stays the global override for testing: set it to pin every
- * tier to one model id (e.g. "claude-opus-4-8"), matching the historical
- * `anthropic(BASEPAIR_MODEL)` behavior.
+ * BASEPAIR_MODEL is a LOCAL-ONLY testing override: set it to pin every tier to
+ * one model id (e.g. "claude-opus-4-8"). It is deliberately IGNORED in
+ * production — pinning one model there silently disables these tiers and defeats
+ * the whole cost/latency split (it did, until we caught it: the var had been
+ * synced to prod, so every step ran Opus). So the override only applies outside
+ * production; prod always resolves the per-step tier.
  */
 import { anthropic } from "@ai-sdk/anthropic";
 import type { LanguageModel } from "ai";
@@ -26,19 +29,27 @@ const ANTHROPIC_ID: Record<ModelTier, string> = {
   fast: "claude-sonnet-4-6",
 };
 
+/** The testing override, honored only outside production (see file header). */
+function overrideModel(): string | undefined {
+  return process.env.NODE_ENV === "production"
+    ? undefined
+    : process.env.BASEPAIR_MODEL || undefined;
+}
+
 /**
- * The model id string used for a tier (respecting BASEPAIR_MODEL). This is the
- * label surfaced for telemetry / provenance (e.g. an alert's verifierModel),
+ * The model id string used for a tier (respecting the local override). This is
+ * the label surfaced for telemetry / provenance (e.g. an alert's verifierModel),
  * not the live provider handle — use resolveModel for the call itself.
  */
 export function modelLabel(tier: ModelTier): string {
-  return process.env.BASEPAIR_MODEL || ANTHROPIC_ID[tier];
+  return overrideModel() ?? ANTHROPIC_ID[tier];
 }
 
 /**
  * Resolve a tier to an AI SDK LanguageModel for a generateText call, via the
- * direct @ai-sdk/anthropic provider. BASEPAIR_MODEL, if set, pins every tier.
+ * direct @ai-sdk/anthropic provider. The local override pins every tier; in
+ * production the per-step tier always wins.
  */
 export function resolveModel(tier: ModelTier): LanguageModel {
-  return anthropic(process.env.BASEPAIR_MODEL || ANTHROPIC_ID[tier]);
+  return anthropic(overrideModel() ?? ANTHROPIC_ID[tier]);
 }

@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { tasks } from "@trigger.dev/sdk"
+import { tasks, wait } from "@trigger.dev/sdk"
 
 import { createMedplumClient } from "@/lib/medplum/client"
 import {
@@ -13,6 +13,11 @@ import {
   SUBSTITUTE_ORDER_SYSTEM,
 } from "@/lib/medplum/fhir"
 import { parsePgxAlert, isCleared } from "@/lib/alerts/pgx"
+import {
+  findWaitTokenId,
+  orderKeyOf,
+  type ApprovalDecision,
+} from "@/lib/alerts/write-back"
 import type { RecommendedAlternative } from "@/lib/cpic-catalog"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
 import type { sweepPopulation } from "@/trigger/sweep-population"
@@ -22,14 +27,45 @@ import type {
   DetectedIssue,
   Communication,
   MedicationRequest,
+  Task,
 } from "@medplum/fhirtypes"
 
 type TaskStatus = "completed" | "cancelled" | "requested"
 
-/** Read the Task and persist a new lifecycle status. */
+/**
+ * Best-effort completion of the alert's durable approval waitpoint (issue #21).
+ * When the Task carries a wait-token id, completing it resumes the paused
+ * evaluate-order run, which performs the durable write-back
+ * (lib/alerts/write-back.ts). Failures are swallowed deliberately: the
+ * synchronous mutation that follows stays authoritative until the token path
+ * is verified end to end, and a token that already completed or timed out
+ * must never fail the pharmacist's click. Tasks without a token (pre-token
+ * alerts, population-sweep alerts) are a silent no-op.
+ */
+async function completeApprovalToken(task: Task, approved: boolean): Promise<void> {
+  const tokenId = findWaitTokenId(task)
+  if (!tokenId) return
+  try {
+    await wait.completeToken<ApprovalDecision>(tokenId, { approved })
+  } catch (err) {
+    console.error(`completeToken failed for Task/${task.id}`, err)
+  }
+}
+
+/**
+ * Read the Task and persist a new lifecycle status. An approve/dismiss also
+ * completes the durable waitpoint first, so the paused evaluate-order run
+ * resumes and writes the same outcome inside the durable run; both writers are
+ * idempotent, so they converge (see write-back.ts). Reopen (Undo) completes no
+ * token — a waitpoint is one-shot — so an undone alert is handled by this
+ * synchronous path alone from then on.
+ */
 async function setTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
   const medplum = await createMedplumClient()
   const task = await medplum.readResource("Task", taskId)
+  if (status !== "requested") {
+    await completeApprovalToken(task, status === "completed")
+  }
   await medplum.updateResource({ ...task, status })
   revalidatePath("/")
 }
@@ -47,17 +83,6 @@ export async function dismissAlert(taskId: string): Promise<void> {
 /** Reopen an alert, reverses an approve/dismiss (Undo). */
 export async function reopenAlert(taskId: string): Promise<void> {
   await setTaskStatus(taskId, "requested")
-}
-
-/**
- * The order id an alert's Task is keyed on (the source MedicationRequest id).
- * Every enact write reuses this as its idempotency key, so retries and
- * undo→redo can never double-write. Falls back to the Task id for direct/test
- * triggers that carried no order id, which is still stable per alert.
- */
-function orderKeyOf(task: { id?: string; identifier?: { system?: string; value?: string }[] }): string {
-  const orderId = task.identifier?.find((i) => i.system === ORDER_ID_SYSTEM)?.value
-  return orderId ?? task.id ?? ""
 }
 
 /**
@@ -147,6 +172,13 @@ export async function enactAlert(
     status: "completed",
     businessStatus: enactedBusinessStatus(),
   })
+
+  // 4) Enact counts as an approval: resume the paused evaluate-order run (if
+  //    any) so its durable lifecycle resolves instead of dangling to the 48h
+  //    timeout, which would try to cancel this just-enacted Task. Done AFTER
+  //    the writes above so the resume-side conditional-creates find and reuse
+  //    them (same order-keyed identifiers) rather than racing them.
+  await completeApprovalToken(task, true)
   revalidatePath("/")
 }
 

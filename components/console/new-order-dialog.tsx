@@ -298,6 +298,10 @@ export function OrderEvaluation({
   // sits on genetics or verifying (from its phase metadata); a COMPLETED run
   // resolves by its output (`alert`); an errored/failed/lost run degrades to the
   // honest "timeout" ("check the queue") rather than claiming an outcome.
+  // A flagged run no longer completes here: it pauses on the durable approval
+  // waitpoint (issue #21) with the alert + Task already written — for the
+  // stepper that IS the flagged outcome, so the awaiting-approval/writing-back
+  // phases resolve as "flagged" while the run stays open for the pharmacist.
   let phase: Phase
   if (error) {
     phase = "timeout"
@@ -308,7 +312,13 @@ export function OrderEvaluation({
   } else if (FAILED_STATUSES.has(run.status)) {
     phase = "timeout"
   } else {
-    phase = readPhase(run.metadata) === "verifying" ? "verifying" : "genetics"
+    const live = readPhase(run.metadata)
+    phase =
+      live === "awaiting-approval" || live === "writing-back" || live === "resolved"
+        ? "flagged"
+        : live === "verifying"
+          ? "verifying"
+          : "genetics"
   }
 
   React.useEffect(() => {

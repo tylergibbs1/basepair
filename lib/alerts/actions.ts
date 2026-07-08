@@ -13,12 +13,21 @@ import {
   SUBSTITUTE_ORDER_SYSTEM,
 } from "@/lib/medplum/fhir"
 import { parsePgxAlert, isCleared } from "@/lib/alerts/pgx"
+import {
+  writeAlertProvenance,
+  PHARMACIST_AGENT,
+  type AlertProvenanceContext,
+} from "@/lib/alerts/provenance"
+import type { AuditLifecycle } from "@/lib/medplum/fhir"
 import type { RecommendedAlternative } from "@/lib/cpic-catalog"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
 import type { sweepPopulation } from "@/trigger/sweep-population"
+import type { MedplumClient } from "@medplum/core"
 import type {
   Patient,
   Reference,
+  Resource,
+  Task,
   DetectedIssue,
   Communication,
   MedicationRequest,
@@ -26,27 +35,83 @@ import type {
 
 type TaskStatus = "completed" | "cancelled" | "requested"
 
-/** Read the Task and persist a new lifecycle status. */
-async function setTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
+/**
+ * The pharmacist-triage provenance for a Task (issue #22). Reads the Task's
+ * DetectedIssue for the rule/verifier facts and records the approver +
+ * timestamp against the recommendation resources. Best-effort: a read/write
+ * failure here is logged, never surfaced to the caller — the triage itself has
+ * already been persisted by the time this runs.
+ */
+async function recordTriageProvenance(
+  medplum: MedplumClient,
+  task: Task,
+  lifecycle: AuditLifecycle,
+  extraTargets: Reference<Resource>[] = [],
+  extra?: Record<string, unknown>,
+): Promise<void> {
+  try {
+    const ctx: AlertProvenanceContext = {
+      lifecycle,
+      agent: PHARMACIST_AGENT,
+      targets: [
+        { reference: `Task/${task.id}` },
+        ...(task.focus?.reference ? [{ reference: task.focus.reference }] : []),
+        ...extraTargets,
+      ],
+    }
+    const issueRef = task.focus as Reference<DetectedIssue> | undefined
+    if (issueRef?.reference) {
+      const issue = (await medplum.readReference(issueRef)) as DetectedIssue
+      ctx.patient = issue.patient
+      const pgx = parsePgxAlert(issue)
+      if (pgx && !isCleared(pgx)) {
+        ctx.citation = pgx.citation
+        ctx.citedSentence = pgx.citedSentence
+        ctx.verifierVerdict = pgx.verified ? "pass" : "fail"
+        ctx.verifierModel = pgx.verifierModel
+        ctx.verifierRationale = pgx.verifierRationale
+        ctx.decisionPath = pgx.decisionPath
+        ctx.extra = {
+          drug: pgx.drug,
+          gene: pgx.gene,
+          phenotype: pgx.phenotype,
+          severity: pgx.severity,
+          ...extra,
+        }
+      }
+    }
+    await writeAlertProvenance(medplum, ctx)
+  } catch (err) {
+    console.error("recordTriageProvenance failed (non-fatal)", err)
+  }
+}
+
+/** Read the Task, persist a new lifecycle status, and record FHIR provenance. */
+async function setTaskStatus(
+  taskId: string,
+  status: TaskStatus,
+  lifecycle: AuditLifecycle,
+): Promise<void> {
   const medplum = await createMedplumClient()
   const task = await medplum.readResource("Task", taskId)
   await medplum.updateResource({ ...task, status })
+  await recordTriageProvenance(medplum, task, lifecycle)
   revalidatePath("/")
 }
 
 /** Approve an alert, the pharmacist accepted the recommendation. */
 export async function approveAlert(taskId: string): Promise<void> {
-  await setTaskStatus(taskId, "completed")
+  await setTaskStatus(taskId, "completed", "approve")
 }
 
 /** Dismiss an alert, the pharmacist declined it. */
 export async function dismissAlert(taskId: string): Promise<void> {
-  await setTaskStatus(taskId, "cancelled")
+  await setTaskStatus(taskId, "cancelled", "dismiss")
 }
 
 /** Reopen an alert, reverses an approve/dismiss (Undo). */
 export async function reopenAlert(taskId: string): Promise<void> {
-  await setTaskStatus(taskId, "requested")
+  await setTaskStatus(taskId, "requested", "reopen")
 }
 
 /**
@@ -147,6 +212,24 @@ export async function enactAlert(
     status: "completed",
     businessStatus: enactedBusinessStatus(),
   })
+
+  // FHIR-native provenance for the write-back (#22): the Provenance targets the
+  // resources actually written (Communication + substitute order) alongside the
+  // Task/DetectedIssue, attributing the enacting pharmacist + timestamp.
+  const enactTargets: Reference<Resource>[] = [
+    { reference: `Communication/${savedComm.id}` },
+  ]
+  if (choice.kind === "switch") {
+    const sub = await medplum.searchResources(
+      "MedicationRequest",
+      `identifier=${SUBSTITUTE_ORDER_SYSTEM}|${key}`,
+    )
+    for (const s of sub) if (s.id) enactTargets.push({ reference: `MedicationRequest/${s.id}` })
+  }
+  await recordTriageProvenance(medplum, task, "enact", enactTargets, {
+    action,
+    ...(choice.kind === "switch" ? { altDrug: choice.altDrug } : {}),
+  })
   revalidatePath("/")
 }
 
@@ -184,6 +267,14 @@ export async function unenactAlert(taskId: string): Promise<void> {
   const reopened = { ...task, status: "requested" as const }
   delete reopened.businessStatus
   await medplum.updateResource(reopened)
+
+  // FHIR-native provenance for the reversal (#22): targets the reversed
+  // Communication + substitute order so the undo is itself auditable.
+  const undoTargets: Reference<Resource>[] = [
+    ...comms.filter((c) => c.id).map((c) => ({ reference: `Communication/${c.id}` })),
+    ...subs.filter((s) => s.id).map((s) => ({ reference: `MedicationRequest/${s.id}` })),
+  ]
+  await recordTriageProvenance(medplum, task, "unenact", undoTargets)
   revalidatePath("/")
 }
 

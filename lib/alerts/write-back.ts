@@ -15,6 +15,7 @@ import {
 } from "@/lib/medplum/fhir";
 import type { AuditAgentInput, AuditLifecycle } from "@/lib/medplum/fhir";
 import { parsePgxAlert, isCleared } from "@/lib/alerts/pgx";
+import { formatDose } from "@/lib/format/dose";
 import {
   writeAlertProvenance,
   PHARMACIST_AGENT,
@@ -187,7 +188,9 @@ async function writeApprovalCommunication(
       { reference: `DetectedIssue/${issue.id}` },
       {
         drug: pgx.drug,
-        recommendation: pgx.recommendation,
+        // ISMP dose formatting at the outward seam (#38): the recommendation is
+        // free text that may carry a dose, and this is the prescriber-facing body.
+        recommendation: formatDose(pgx.recommendation),
         orderedBy: pgx.orderedBy,
         action: `Recommendation approved for ${pgx.drug}`,
       },

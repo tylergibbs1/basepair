@@ -18,6 +18,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "db:cpic:load": "bun scripts/load-cpic-supabase.ts",
     "doctor": "npx react-doctor@latest"
   },
   "dependencies": {

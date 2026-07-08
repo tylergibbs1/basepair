@@ -1,7 +1,7 @@
 import type { DetectedIssue, Patient } from "@medplum/fhirtypes"
 
 import { createMedplumClient } from "@/lib/medplum/client"
-import type { Alert, SignalStats } from "@/lib/alerts/types"
+import type { Alert, DecisionPath, SignalStats } from "@/lib/alerts/types"
 import { isCleared, isEnacted, parsePgxAlert, patientName } from "@/lib/alerts/pgx"
 
 /**
@@ -23,6 +23,8 @@ export type AuditEntry =
       gene?: string
       phenotype?: string
       reason: string
+      /** How the CPIC decision was reached; absent on pre-agent-loop records. */
+      decisionPath?: DecisionPath
       /** ISO 8601 timestamp of when the record was written. */
       at: string
     }
@@ -34,6 +36,8 @@ export type AuditEntry =
       gene: string
       phenotype: string
       severity: Alert["severity"]
+      /** How the CPIC decision was reached; absent on pre-agent-loop records. */
+      decisionPath?: DecisionPath
       /** True when the pharmacist *enacted* the recommendation (issue #2): the
        *  Communication (+ substitute order) was written, not just a plain
        *  approve. Only meaningful for "approved". */
@@ -98,6 +102,7 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
       gene,
       phenotype,
       reason: pgx.reason,
+      decisionPath: pgx.decisionPath,
       at: resourceTimestamp(issue),
     })
   }
@@ -128,6 +133,7 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
       gene: pgx.gene,
       phenotype: pgx.phenotype,
       severity: pgx.severity,
+      decisionPath: pgx.decisionPath,
       enacted: task.status === "completed" ? isEnacted(task) : undefined,
       at: task.lastModified ?? resourceTimestamp(task),
     })

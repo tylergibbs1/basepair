@@ -7,7 +7,7 @@ import {
   type ContributingGene,
 } from "@/lib/medplum/fhir"
 import type { RecommendedAlternative } from "@/lib/cpic-catalog"
-import type { Alert } from "@/lib/alerts/types"
+import type { Alert, DecisionPath } from "@/lib/alerts/types"
 
 /**
  * Shared helpers for reading the structured PGx payload off a DetectedIssue and
@@ -48,6 +48,9 @@ export type FlaggedPgxPayload = {
   // Structured CPIC action for one-click enact (issue #2); absent on alerts
   // written before it existed, and on rules with no curated alternative.
   recommendedAlternative?: RecommendedAlternative
+  // How the CPIC decision was reached (agent loop vs deterministic backstop);
+  // absent on alerts written before the agent loop existed.
+  decisionPath?: DecisionPath
 }
 
 /** Payload buildConsideredIssue wrote onto a considered-and-cleared DetectedIssue. */
@@ -56,6 +59,8 @@ export type ClearedPgxPayload = {
   drug: string
   genePhenotypes: Record<string, string>
   reason: string
+  // See FlaggedPgxPayload.decisionPath; absent on pre-agent-loop records.
+  decisionPath?: DecisionPath
 }
 
 export type PgxPayload = FlaggedPgxPayload | ClearedPgxPayload

@@ -5,6 +5,38 @@ import type { RecommendedAlternative } from "@/lib/cpic-catalog"
 export type { ContributingGene, RecommendedAlternative }
 
 /**
+ * How the CPIC decision was reached in evaluate-order. The rule lookup runs as an
+ * agent loop over cpicTools, cross-checked against the deterministic engine:
+ * - "agent"          — the agent loop ran and agreed with the rulebook.
+ * - "agent-mismatch" — the agent reached a different rule; the deterministic
+ *                      engine's result was used instead (and the miss logged).
+ * - "agent-fallback" — the agent never returned a lookup; the deterministic
+ *                      engine's result was used as the backstop.
+ * The decision *content* is always deterministic; this only records the path.
+ */
+export type DecisionPath = "agent" | "agent-mismatch" | "agent-fallback"
+
+/**
+ * UI reading of a DecisionPath: a short label plus whether it's an anomaly
+ * (mismatch/fallback mean the agent loop did not cleanly confirm the rulebook,
+ * so the deterministic backstop carried the decision — worth a calm attention
+ * tone, never an alarm). Distinct from `verified`, which is the guideline gate.
+ */
+export function decisionProvenance(path: DecisionPath): {
+  label: string
+  anomaly: boolean
+} {
+  switch (path) {
+    case "agent":
+      return { label: "Agent confirmed", anomaly: false }
+    case "agent-mismatch":
+      return { label: "Engine override", anomaly: true }
+    case "agent-fallback":
+      return { label: "Engine fallback", anomaly: true }
+  }
+}
+
+/**
  * A single pharmacogenomic clinical alert awaiting pharmacist triage.
  * Sourced from a live Medplum `Task` + `DetectedIssue`. The clinical wording is
  * authored by the CPIC engine and must be rendered verbatim, never paraphrased.

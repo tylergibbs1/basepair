@@ -7,9 +7,14 @@ import { ArrowLeft, Check, SearchX, ShieldCheck, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { SeverityChip } from "@/components/ui/severity-chip"
+import { Source, SourceContent, SourceTrigger } from "@/components/ui/source"
 import { DismissMenu } from "@/components/console/dismiss-menu"
 import { useAlerts } from "@/components/console/alerts-provider"
 import { formatFiredAtAbsolute } from "@/lib/alerts/types"
+import {
+  citationSourceLabel,
+  citationSourceUrl,
+} from "@/lib/alerts/citation"
 import { cn } from "@/lib/utils"
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -19,6 +24,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <dd className="text-sm text-foreground">{children}</dd>
     </div>
   )
+}
+
+// The guideline body the pharmacist trusts, named at the head of the CPIC
+// citation string ("CPIC Guideline: …"). Falls back to the link's origin.
+function authorityLabel(citation: string, url: string): string {
+  const m = citation.match(/^(CPIC|DPWG|FDA|PharmGKB)\b/i)
+  return m ? m[1].toUpperCase() : citationSourceLabel(url)
 }
 
 /** Prettify a model id like "claude-opus-4-8" → "Claude Opus 4.8". */
@@ -199,6 +211,10 @@ export function AlertDetailPage({ id }: { id: string }) {
       ? `Approve & Switch to ${alt.altDrug.charAt(0).toUpperCase()}${alt.altDrug.slice(1)}`
       : "Approve & Notify Prescriber"
 
+  // Resolve the citation to a safe source URL once (null when none is verifiable
+  // — then Step 4 keeps the plain, honest cite instead of a dead link).
+  const sourceUrl = alert ? citationSourceUrl(alert.citation) : null
+
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-6 lg:px-8">
       <Button
@@ -313,9 +329,23 @@ export function AlertDetailPage({ id }: { id: string }) {
                         verified={alert.verification.verified}
                       />
                     </blockquote>
-                    <cite className="mt-1.5 block text-xs not-italic text-muted-foreground">
-                      {alert.citation}
-                    </cite>
+                    {sourceUrl ? (
+                      <Source href={sourceUrl}>
+                        <SourceTrigger
+                          label={authorityLabel(alert.citation, sourceUrl)}
+                          showFavicon={false}
+                          className="mt-1.5"
+                        />
+                        <SourceContent
+                          title={alert.citation}
+                          description={alert.citedSentence}
+                        />
+                      </Source>
+                    ) : (
+                      <cite className="mt-1.5 block text-xs not-italic text-muted-foreground">
+                        {alert.citation}
+                      </cite>
+                    )}
                   </Step>
                   <Step
                     n={5}

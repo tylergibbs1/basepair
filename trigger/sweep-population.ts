@@ -34,6 +34,15 @@ const ACTIVE_ORDER_LIMIT = 100;
  *  calls. Idempotency already makes overlap safe; this just makes it cheap. */
 const sweepQueue = queue({ name: "population-sweep", concurrencyLimit: 1 });
 
+export type SweepPopulationPayload = {
+  /**
+   * The tenant whose Medplum project to sweep; the task resolves that tenant's
+   * credential from the `tenants` table. Optional: absent, the client factory
+   * falls back to BASEPAIR_TENANT_ID, then to the env ClientApplication.
+   */
+  tenantId?: string;
+};
+
 export type SweepResult = {
   /** Distinct active patients scanned. */
   patientsScanned: number;
@@ -66,9 +75,9 @@ function byPatient(
 export const sweepPopulation = task({
   id: "sweep-population",
   queue: sweepQueue,
-  run: async (): Promise<SweepResult> => {
+  run: async (payload: SweepPopulationPayload): Promise<SweepResult> => {
     metadata.set("phase", "loading");
-    const medplum = await createMedplumClient();
+    const medplum = await createMedplumClient(payload.tenantId);
 
     // Every currently-active order. status=active is the "currently taking"
     // filter; a page is enough at demo scale.

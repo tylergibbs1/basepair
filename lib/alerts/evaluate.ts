@@ -66,7 +66,16 @@ export type EvalProvenance =
   | { foundBy: "sweep"; orderedBy: string; sweptAt: string };
 
 export type EvaluateAndWriteInput = {
-  /** An authenticated Medplum client (the caller owns login/memoization). */
+  /**
+   * An authenticated Medplum client (the caller owns login/memoization). The
+   * trigger tasks resolve this PER TENANT from the payload's tenantId via
+   * createMedplumClient(tenantId). It stays an explicit param — not ai@7
+   * contextSchema/toolsContext injection — because no agent tool performs
+   * Medplum I/O: all FHIR reads/writes happen in this deterministic shell, and
+   * the agent loop (decideWithAgent) only sees the CPIC catalog tools. If a
+   * tool ever needs FHIR access, give it a contextSchema and pass the client
+   * via toolsContext at the generateText call instead of widening this shell.
+   */
   medplum: MedplumClient;
   /** FHIR reference, e.g. "Patient/<id>". */
   patientRef: string;

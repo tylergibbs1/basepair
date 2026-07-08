@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { tasks, wait } from "@trigger.dev/sdk"
 
-import { createMedplumClient } from "@/lib/medplum/client"
+import { createMedplumClient, defaultTenantId } from "@/lib/medplum/client"
 import {
   buildMedicationRequest,
   buildCommunication,
@@ -350,10 +350,12 @@ export async function placeOrder(
   // Interim: trigger the durable task directly (Bot path pending Bots-enabled).
   // idempotencyKey dedupes re-triggers of the same order; orderId in the payload
   // lets the task dedupe its own Medplum writes on retry; orderedBy attributes
-  // the prescriber on the resulting alert.
+  // the prescriber on the resulting alert. tenantId names whose Medplum
+  // credential the task must use (today the deployment's pinned tenant; with
+  // console auth it becomes the session's tenant claim).
   const handle = await tasks.trigger<typeof evaluateOrder>(
     "evaluate-order",
-    { patientRef, drug, orderId: order.id, orderedBy },
+    { patientRef, drug, orderId: order.id, orderedBy, tenantId: defaultTenantId() },
     { idempotencyKey: order.id },
   )
 
@@ -388,7 +390,8 @@ export type PopulationSweepResult = {
 export async function runPopulationSweep(): Promise<PopulationSweepResult> {
   const handle = await tasks.trigger<typeof sweepPopulation>(
     "sweep-population",
-    undefined,
+    // tenantId scopes the sweep to this deployment's tenant credential.
+    { tenantId: defaultTenantId() },
   )
 
   return {

@@ -8,12 +8,13 @@ import {
   Check,
   Radar,
   SearchX,
-  ShieldCheck,
+  ShieldAlert,
   Sparkles,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { SeverityChip } from "@/components/ui/severity-chip"
+import { VerificationChip } from "@/components/ui/verification-chip"
 import { Source, SourceContent, SourceTrigger } from "@/components/ui/source"
 import { EnactConfirmDialog } from "@/components/console/enact-confirm-dialog"
 import { useAlerts } from "@/components/console/alerts-provider"
@@ -141,22 +142,27 @@ function HighlightedGuideline({
 }
 
 /**
- * The AI trust gate, rendered by the status-vs-tag rule: severity is the loud,
- * act-on *status*, so verification must not compete with it. When verified, it
- * recedes to a quiet classification *tag*, squared and muted, shaped unlike
- * the round severity pill, and labeled "AI-verified" (never a bare "Verified"
- * that could read as a human sign-off). It only *escalates* to a caution
- * status when it needs review, the moment worth acting on.
+ * A prominent, plain-language account of what the "needs review" flag means, so
+ * the state is unmistakable and actionable rather than a bare badge. Only shown
+ * when the AI verifier did not match the recommendation to guideline text. It
+ * does NOT undercut the alert: the deterministic CPIC engine still made the call
+ * (rendered above), the verifier is a secondary check that could not confirm it.
  */
-function VerificationChip({ verified }: { verified: boolean }) {
-  if (!verified) {
-    return <SeverityChip severity="caution">Needs review</SeverityChip>
-  }
+function NeedsReviewNote() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-sm border bg-secondary px-1.5 py-0.5 text-xs text-muted-foreground">
-      <ShieldCheck aria-hidden className="size-3.5" />
-      AI-verified
-    </span>
+    <div className="flex gap-2.5 rounded-sm border border-sev-caution-br bg-sev-caution-bg px-3 py-2.5">
+      <ShieldAlert
+        aria-hidden
+        className="mt-0.5 size-4 shrink-0 text-sev-caution"
+      />
+      <p className="max-w-prose text-pretty text-sm leading-relaxed text-sev-caution-fg">
+        The AI verifier could not match this recommendation to a supporting
+        sentence in the guideline text, so it needs your review. The alert still
+        stands: the CPIC rule below made the call, and the verifier is only a
+        secondary check. Read the guideline yourself before you approve or
+        dismiss.
+      </p>
+    </div>
   )
 }
 
@@ -349,6 +355,11 @@ export function AlertDetailPage({ id }: { id: string }) {
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
             <div className="grid content-start gap-8">
+              {/* When the verifier could not confirm the alert, lead with a
+                  plain-language account of what that means so the state is
+                  unmistakable, not a bare badge. Verified alerts skip it. */}
+              {!alert.verification.verified && <NeedsReviewNote />}
+
               {/* Verdict first: the recommendation is the decision the
                   pharmacist is here to make. Rendered verbatim from the CPIC
                   engine. */}

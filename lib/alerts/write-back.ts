@@ -3,6 +3,7 @@ import type {
   Communication,
   DetectedIssue,
   Reference,
+  Resource,
   Task,
 } from "@medplum/fhirtypes";
 
@@ -12,7 +13,14 @@ import {
   ORDER_ID_SYSTEM,
   WAIT_TOKEN_SYSTEM,
 } from "@/lib/medplum/fhir";
+import type { AuditAgentInput, AuditLifecycle } from "@/lib/medplum/fhir";
 import { parsePgxAlert, isCleared } from "@/lib/alerts/pgx";
+import {
+  writeAlertProvenance,
+  PHARMACIST_AGENT,
+  ENGINE_AGENT,
+  type AlertProvenanceContext,
+} from "@/lib/alerts/provenance";
 
 /**
  * Resume-side write-back for the durable HITL approval loop (issue #21).
@@ -106,15 +114,25 @@ export async function writeBackDecision(input: {
   const task = await medplum.readResource("Task", taskId);
 
   if (decision.approved) {
-    await writeApprovalCommunication(medplum, task);
+    const commRef = await writeApprovalCommunication(medplum, task);
     if (task.status === "requested") {
       await medplum.updateResource({ ...task, status: "completed" });
     }
-  } else if (task.status === "requested") {
-    await medplum.updateResource({ ...task, status: "cancelled" });
+    // Issue #22: emit AuditEvent + Provenance from the durable run (mirrors the
+    // synchronous recordTriageProvenance in lib/alerts/actions.ts). The approval
+    // was a pharmacist decision; targets are the Task, its focus DetectedIssue,
+    // and the prescriber Communication written above.
+    await recordResumeProvenance(medplum, task, "approve", PHARMACIST_AGENT, {
+      extraTargets: commRef ? [commRef] : [],
+    });
+  } else {
+    if (task.status === "requested") {
+      await medplum.updateResource({ ...task, status: "cancelled" });
+    }
+    // Issue #22: a pharmacist rejection. Targets are the Task and its focus
+    // DetectedIssue (no Communication is written on the rejected branch).
+    await recordResumeProvenance(medplum, task, "dismiss", PHARMACIST_AGENT);
   }
-  // Issue #22: emit AuditEvent + Provenance for the final outcome here (agent =
-  // decision.actor ?? system, entity = the Task/DetectedIssue written above).
 }
 
 /**
@@ -132,7 +150,14 @@ export async function writeBackTimeout(input: {
   const task = await medplum.readResource("Task", taskId);
   if (task.status !== "requested") return false;
   await medplum.updateResource({ ...task, status: "cancelled" });
-  // Issue #22: emit the timeout AuditEvent here.
+  // Issue #22: emit AuditEvent + Provenance for the timeout cancellation. This
+  // is a system action (the waitpoint expired unattended), so the agent is the
+  // ENGINE_AGENT. The AuditLifecycle union has no "timeout" member, so the
+  // closest-matching terminal transition — "dismiss" — is used; the timeout
+  // origin is recorded in the reproduce-record via `extra`.
+  await recordResumeProvenance(medplum, task, "dismiss", ENGINE_AGENT, {
+    extra: { timeout: true },
+  });
   return true;
 }
 
@@ -146,14 +171,14 @@ export async function writeBackTimeout(input: {
 async function writeApprovalCommunication(
   medplum: MedplumClient,
   task: Task,
-): Promise<void> {
+): Promise<Reference<Communication> | undefined> {
   const issueRef = task.focus as Reference<DetectedIssue> | undefined;
-  if (!issueRef?.reference) return;
+  if (!issueRef?.reference) return undefined;
   const issue = (await medplum.readReference(issueRef)) as DetectedIssue;
   const pgx = parsePgxAlert(issue);
-  if (!pgx || isCleared(pgx)) return;
+  if (!pgx || isCleared(pgx)) return undefined;
   const patient = issue.patient;
-  if (!patient) return;
+  if (!patient) return undefined;
 
   const key = orderKeyOf(task);
   const communication: Communication = {
@@ -175,5 +200,69 @@ async function writeApprovalCommunication(
   );
   if (saved.status !== "completed") {
     await medplum.updateResource({ ...saved, status: "completed" });
+  }
+  return saved.id ? { reference: `Communication/${saved.id}` } : undefined;
+}
+
+/**
+ * Emit the AuditEvent + Provenance for a durable resume-side transition (issue
+ * #22). This mirrors `recordTriageProvenance` in lib/alerts/actions.ts so the
+ * durable run and the synchronous console action produce equivalent provenance:
+ * both target the Task + its focus DetectedIssue (plus any extra targets), pull
+ * the patient and the CPIC rule/verifier facts from the Task's DetectedIssue,
+ * and attribute the acting agent + timestamp.
+ *
+ * Best-effort: `writeAlertProvenance` already swallows its own failures, but the
+ * DetectedIssue read that assembles the context is wrapped here too, so an audit
+ * write can never throw out of the resume path and undo a committed write-back.
+ */
+async function recordResumeProvenance(
+  medplum: MedplumClient,
+  task: Task,
+  lifecycle: AuditLifecycle,
+  agent: AuditAgentInput,
+  opts: {
+    extraTargets?: Reference<Resource>[];
+    extra?: Record<string, unknown>;
+  } = {},
+): Promise<void> {
+  try {
+    const ctx: AlertProvenanceContext = {
+      lifecycle,
+      agent,
+      targets: [
+        { reference: `Task/${task.id}` },
+        ...(task.focus?.reference ? [{ reference: task.focus.reference }] : []),
+        ...(opts.extraTargets ?? []),
+      ],
+    };
+    const issueRef = task.focus as Reference<DetectedIssue> | undefined;
+    if (issueRef?.reference) {
+      const issue = (await medplum.readReference(issueRef)) as DetectedIssue;
+      ctx.patient = issue.patient;
+      const pgx = parsePgxAlert(issue);
+      if (pgx && !isCleared(pgx)) {
+        ctx.citation = pgx.citation;
+        ctx.citedSentence = pgx.citedSentence;
+        ctx.verifierVerdict = pgx.verified ? "pass" : "fail";
+        ctx.verifierModel = pgx.verifierModel;
+        ctx.verifierRationale = pgx.verifierRationale;
+        ctx.decisionPath = pgx.decisionPath;
+        ctx.extra = {
+          drug: pgx.drug,
+          gene: pgx.gene,
+          phenotype: pgx.phenotype,
+          severity: pgx.severity,
+          ...opts.extra,
+        };
+      } else if (opts.extra) {
+        ctx.extra = { ...opts.extra };
+      }
+    } else if (opts.extra) {
+      ctx.extra = { ...opts.extra };
+    }
+    await writeAlertProvenance(medplum, ctx);
+  } catch (err) {
+    console.error("recordResumeProvenance failed (non-fatal)", err);
   }
 }

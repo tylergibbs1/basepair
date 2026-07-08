@@ -78,27 +78,32 @@ function Num({ value, inherit }: { value: number; inherit?: boolean }) {
 /**
  * The pharmacist-review clause of the evidence sentence.
  *
+ * "Held up on pharmacist review" means "was clinically valid" = approved +
+ * overrides. An override is a true positive (the alert correctly flagged a real
+ * interaction; the pharmacist made a clinical decision not to act), so it held
+ * up just as an approve did. Only a false alarm (wrong result or duplicate)
+ * counts against the review.
+ *
  * Invariant this protects: the sentence only asserts review outcomes for
- * alerts a pharmacist actually reviewed (approved + falseAlarms). Alerts still
- * pending in the queue are named as awaiting review, never counted as "held
- * up" — on a safety console, an unreviewed alert is not a success. When the
- * review is partial, "so far" carries the caveat; the pending count itself is
- * not enumerated because the queue badge already shows it.
+ * alerts a pharmacist actually reviewed (approved + overrides + falseAlarms).
+ * Alerts still pending in the queue are named as awaiting review, never counted
+ * as "held up" — on a safety console, an unreviewed alert is not a success. When
+ * the review is partial, "so far" carries the caveat; the pending count itself
+ * is not enumerated because the queue badge already shows it.
  *
  * The 95% bar is only mentioned on breach — color (and the target itself) is
  * spent on status, never on a healthy value, so the sentence stays calm when
  * the number is good. `Math.floor` on the percentage so 94.9% never rounds
- * itself over the bar. Pending is a state, not a problem: awaiting-review
- * copy never takes the caution tint.
+ * itself over the bar. Pending is a state, not a problem: awaiting-review copy
+ * never takes the caution tint.
  */
 function ReviewClause({ stats }: { stats: SignalStats }) {
-  const reviewed = stats.approved + stats.falseAlarms
+  const held = stats.approved + stats.overrides
+  const reviewed = held + stats.falseAlarms
   const p = precision(stats)
   const breach = p !== null && Math.floor(p * 100) < PRECISION_TARGET * 100
-  const dismissed =
-    stats.falseAlarms === 1
-      ? "was dismissed as a false alarm"
-      : "were dismissed as false alarms"
+  const falseAlarm =
+    stats.falseAlarms === 1 ? "was a false alarm" : "were false alarms"
 
   if (reviewed === 0) {
     return stats.flagged === 1 ? (
@@ -115,14 +120,11 @@ function ReviewClause({ stats }: { stats: SignalStats }) {
     if (stats.falseAlarms === 0) {
       return <> It held up on pharmacist review.</>
     }
-    // The one alert was dismissed. Technically 0 of 1 is below the bar, but
-    // quoting a percentage against a sample of one would be statistics
-    // theater; the words carry the status and the tint supplements them.
+    // The one alert was a false alarm. Technically 0 of 1 is below the bar, but
+    // quoting a percentage against a sample of one would be statistics theater;
+    // the words carry the status and the tint supplements them.
     return (
-      <span className="text-sev-caution-fg">
-        {" "}
-        It was dismissed as a false alarm.
-      </span>
+      <span className="text-sev-caution-fg"> It was a false alarm.</span>
     )
   }
 
@@ -147,11 +149,11 @@ function ReviewClause({ stats }: { stats: SignalStats }) {
     return (
       <span className="text-sev-caution-fg">
         {" "}
-        Only <Num value={stats.approved} inherit /> of{" "}
+        Only <Num value={held} inherit /> of{" "}
         <Num value={partial ? reviewed : stats.flagged} inherit />{" "}
         {partial ? "reviewed so far" : "alerts"} held up on pharmacist review,
         below the {Math.round(PRECISION_TARGET * 100)}% bar;{" "}
-        <Num value={stats.falseAlarms} inherit /> {dismissed}.
+        <Num value={stats.falseAlarms} inherit /> {falseAlarm}.
       </span>
     )
   }
@@ -159,16 +161,14 @@ function ReviewClause({ stats }: { stats: SignalStats }) {
   return partial ? (
     <>
       {" "}
-      Of the <Num value={reviewed} /> reviewed so far,{" "}
-      <Num value={stats.approved} /> held up;{" "}
-      <Num value={stats.falseAlarms} /> {dismissed}.
+      Of the <Num value={reviewed} /> reviewed so far, <Num value={held} /> held
+      up; <Num value={stats.falseAlarms} /> {falseAlarm}.
     </>
   ) : (
     <>
       {" "}
-      <Num value={stats.approved} /> of <Num value={stats.flagged} /> alerts
-      held up on pharmacist review; <Num value={stats.falseAlarms} />{" "}
-      {dismissed}.
+      <Num value={held} /> of <Num value={stats.flagged} /> alerts held up on
+      pharmacist review; <Num value={stats.falseAlarms} /> {falseAlarm}.
     </>
   )
 }

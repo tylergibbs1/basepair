@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 
 import { useAlerts } from "@/components/console/alerts-provider"
 import { useCommand } from "@/components/console/command-provider"
+import { REQUEST_DISMISS_EVENT } from "@/components/console/dismiss-menu"
 import {
   CHORD_WINDOW_MS,
   SHORTCUTS,
@@ -44,7 +45,7 @@ function isEditableTarget(el: EventTarget | null): boolean {
 export function GlobalKeys() {
   const router = useRouter()
   const pathname = usePathname()
-  const { filteredAlerts, approve, dismiss } = useAlerts()
+  const { filteredAlerts, approve } = useAlerts()
   const cmd = useCommand()
 
   const latest = React.useRef({
@@ -52,10 +53,9 @@ export function GlobalKeys() {
     pathname,
     filteredAlerts,
     approve,
-    dismiss,
     cmd,
   })
-  latest.current = { router, pathname, filteredAlerts, approve, dismiss, cmd }
+  latest.current = { router, pathname, filteredAlerts, approve, cmd }
 
   React.useEffect(() => {
     // Chord state lives with the listener, not React state — it's transient
@@ -74,8 +74,7 @@ export function GlobalKeys() {
         if (k !== "j" && k !== "k") return
       }
 
-      const { router, pathname, filteredAlerts, approve, dismiss, cmd } =
-        latest.current
+      const { router, pathname, filteredAlerts, approve, cmd } = latest.current
 
       // 1. The palette toggle is the one shortcut that works everywhere,
       //    including inside inputs and over an open palette (to close it).
@@ -201,8 +200,13 @@ export function GlobalKeys() {
           return
         }
         if (key === "x") {
-          event.preventDefault()
-          actOnCursor(dismiss)
+          // Dismiss now requires a reason, so `x` can't complete it from the
+          // queue. Open the alert, where the reason menu lives.
+          const target = filteredAlerts.find((a) => a.id === cmd.cursorId)
+          if (target) {
+            event.preventDefault()
+            router.push(`/alerts/${target.id}`)
+          }
           return
         }
       }
@@ -218,9 +222,10 @@ export function GlobalKeys() {
           return
         }
         if (key === "x") {
+          // Open the dismiss reason menu (the menu listens for this event) so
+          // the pharmacist picks a reason rather than dismissing blind.
           event.preventDefault()
-          dismiss(id)
-          router.push("/")
+          window.dispatchEvent(new CustomEvent(REQUEST_DISMISS_EVENT))
           return
         }
       }

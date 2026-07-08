@@ -13,6 +13,11 @@ import {
   SUBSTITUTE_ORDER_SYSTEM,
 } from "@/lib/medplum/fhir"
 import { parsePgxAlert, isCleared } from "@/lib/alerts/pgx"
+import {
+  DISMISS_REASON_SYSTEM,
+  dismissReasonByCode,
+  type DismissReasonInput,
+} from "@/lib/alerts/dismiss-reasons"
 import type { RecommendedAlternative } from "@/lib/cpic-catalog"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
 import type {
@@ -38,14 +43,53 @@ export async function approveAlert(taskId: string): Promise<void> {
   await setTaskStatus(taskId, "completed")
 }
 
-/** Dismiss an alert, the pharmacist declined it. */
-export async function dismissAlert(taskId: string): Promise<void> {
-  await setTaskStatus(taskId, "cancelled")
+/**
+ * Dismiss an alert, recording *why* on `Task.statusReason`. The reason is what
+ * gives the safety officer override-review evidence and what lets the metric
+ * tell a true override (alert was real) from a false alarm (alert was wrong).
+ *
+ * The label is looked up from the taxonomy by code server-side — never trusted
+ * from the client — so an audit record can't be mislabeled; an unknown code
+ * still persists (coding without a display) rather than being dropped.
+ */
+export async function dismissAlert(
+  taskId: string,
+  reason: DismissReasonInput,
+): Promise<void> {
+  const medplum = await createMedplumClient()
+  const task = await medplum.readResource("Task", taskId)
+  const known = dismissReasonByCode(reason.code)
+  const note = reason.note?.trim() || undefined
+
+  await medplum.updateResource({
+    ...task,
+    status: "cancelled",
+    statusReason: {
+      coding: [
+        {
+          system: DISMISS_REASON_SYSTEM,
+          code: reason.code,
+          display: known?.label,
+        },
+      ],
+      text: note,
+    },
+  })
+  revalidatePath("/")
 }
 
-/** Reopen an alert, reverses an approve/dismiss (Undo). */
+/**
+ * Reopen an alert, reverses an approve/dismiss (Undo). Also clears any
+ * `statusReason` so an undo→re-dismiss with a *different* reason starts clean
+ * (a stale reason on a reopened alert would be a lie waiting to happen).
+ */
 export async function reopenAlert(taskId: string): Promise<void> {
-  await setTaskStatus(taskId, "requested")
+  const medplum = await createMedplumClient()
+  const task = await medplum.readResource("Task", taskId)
+  const reopened = { ...task, status: "requested" as const }
+  delete reopened.statusReason
+  await medplum.updateResource(reopened)
+  revalidatePath("/")
 }
 
 /**

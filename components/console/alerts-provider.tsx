@@ -19,6 +19,10 @@ import {
   enactAlert,
   unenactAlert,
 } from "@/lib/alerts/actions"
+import {
+  dismissReasonByCode,
+  type DismissReasonInput,
+} from "@/lib/alerts/dismiss-reasons"
 
 /** Typing into the search box shouldn't spam browser history; throttle the URL
  *  write so a burst of keystrokes collapses to one history-friendly update. The
@@ -58,7 +62,9 @@ interface AlertsContextValue {
    *  alert we've seen so content survives a close animation after removal. */
   getAlert: (id: string) => Alert | null
   approve: (id: string) => void
-  dismiss: (id: string) => void
+  /** Dismiss an alert with a recorded reason (code + optional note). The reason
+   *  is required — it drives the override-review audit and the honest metric. */
+  dismiss: (id: string, reason: DismissReasonInput) => void
   /** Enact the CPIC recommendation (issue #2): write the prescriber
    *  Communication (+ substitute order for a switch) and mark the alert
    *  enacted. Optimistic, with a safe undo that reverses those writes. */
@@ -275,12 +281,23 @@ export function AlertsProvider({
           persist: () => approveAlert(id),
           undo: () => reopenAlert(id),
         }),
-      dismiss: (id) =>
+      dismiss: (id, reason) => {
+        // Name the reason in the undo toast (the free-text note wins when it's
+        // an "Other" dismissal, else the taxonomy label), so the pharmacist
+        // sees exactly what was recorded.
+        const label = dismissReasonByCode(reason.code)?.label ?? "Dismissed"
+        const alert = byId.get(id)
+        const detail = reason.note?.trim() || label
+        const description = alert
+          ? `${detail} · ${alert.patientName}`
+          : detail
         runWithUndo(id, {
           verb: "dismissed",
-          persist: () => dismissAlert(id),
+          description,
+          persist: () => dismissAlert(id, reason),
           undo: () => reopenAlert(id),
-        }),
+        })
+      },
       enact,
     }),
     [

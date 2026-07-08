@@ -1,8 +1,34 @@
-import type { DetectedIssue, Patient } from "@medplum/fhirtypes"
+import type { DetectedIssue, Patient, Task } from "@medplum/fhirtypes"
 
 import { createMedplumClient } from "@/lib/medplum/client"
 import type { Alert, SignalStats } from "@/lib/alerts/types"
 import { isCleared, isEnacted, parsePgxAlert, patientName } from "@/lib/alerts/pgx"
+import {
+  DISMISS_REASON_SYSTEM,
+  dismissReasonByCode,
+  type DismissReasonKind,
+} from "@/lib/alerts/dismiss-reasons"
+
+/** The dismiss reason recorded on a cancelled Task, resolved through the
+ *  taxonomy. `null` for a legacy/seed dismissal that carries no reason code. */
+function readDismissReason(
+  task: Task,
+): { code: string; label: string; kind: DismissReasonKind; note?: string } | null {
+  const code = task.statusReason?.coding?.find(
+    (c) => c.system === DISMISS_REASON_SYSTEM,
+  )?.code
+  if (!code) return null
+  const known = dismissReasonByCode(code)
+  return {
+    code,
+    // Prefer the taxonomy label; fall back to the persisted display or the raw
+    // code so an unknown/retired code still reads as something.
+    label: known?.label ?? task.statusReason?.coding?.[0]?.display ?? code,
+    // An unknown code is read conservatively as a false alarm (see getSignalStats).
+    kind: known?.kind ?? "false-alarm",
+    note: task.statusReason?.text?.trim() || undefined,
+  }
+}
 
 /**
  * One row in the Audit view. Unifies the three things Basepair records while
@@ -38,6 +64,14 @@ export type AuditEntry =
        *  Communication (+ substitute order) was written, not just a plain
        *  approve. Only meaningful for "approved". */
       enacted?: boolean
+      /** Why the alert was dismissed (label + kind + optional note), read from
+       *  Task.statusReason. Only meaningful for "dismissed"; absent for a
+       *  legacy dismissal with no recorded reason. */
+      dismissReason?: {
+        label: string
+        kind: DismissReasonKind
+        note?: string
+      }
       /** ISO 8601 timestamp of when the pharmacist triaged the alert. */
       at: string
     }
@@ -120,6 +154,9 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
     // else (a cleared focus would be a data anomaly).
     if (!pgx || isCleared(pgx)) continue
 
+    const dismissReason =
+      task.status === "cancelled" ? readDismissReason(task) : null
+
     entries.push({
       kind: task.status === "completed" ? "approved" : "dismissed",
       id: task.id,
@@ -129,6 +166,13 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
       phenotype: pgx.phenotype,
       severity: pgx.severity,
       enacted: task.status === "completed" ? isEnacted(task) : undefined,
+      dismissReason: dismissReason
+        ? {
+            label: dismissReason.label,
+            kind: dismissReason.kind,
+            note: dismissReason.note,
+          }
+        : undefined,
       at: task.lastModified ?? resourceTimestamp(task),
     })
   }
@@ -152,11 +196,14 @@ const STATS_LIMIT = 1000
  *
  * Counts (per issue #1): a considered-and-cleared DetectedIssue (`outcome:
  * "cleared"`, no Task) is a `cleared`; a flagged DetectedIssue (has a pharmacist
- * Task) is a `flagged`; a completed Task is an `approved` (reviewed and held
- * up); a cancelled Task is a `falseAlarm` (reviewed and judged not clinically
- * valid). Flagged minus (approved + falseAlarms) is still pending in the queue,
- * and the metric must never present those as reviewed — that's why approved is
- * counted here rather than inferred as flagged − falseAlarms.
+ * Task) is a `flagged`; a completed Task is `approved` (reviewed and held up). A
+ * cancelled Task is classified by its dismiss reason: an *override* reason (the
+ * alert was clinically real) counts as an `override` — a true positive, not a
+ * false alarm — while a *false-alarm* reason counts as a `falseAlarm`. A
+ * cancelled Task with no reason code (legacy/seed) is read conservatively as a
+ * `falseAlarm`, preserving the pre-taxonomy reading. Flagged minus
+ * (approved + overrides + falseAlarms) is still pending in the queue, and the
+ * metric never presents those as reviewed.
  *
  * Scope: all-time (bounded by STATS_LIMIT), so the counts summarise exactly the
  * records the Audit table shows. Server-only, never import into a client
@@ -183,10 +230,18 @@ export async function getSignalStats(): Promise<SignalStats> {
   }
 
   let approved = 0
+  let overrides = 0
   let falseAlarms = 0
   for (const task of triagedTasks) {
-    if (task.status === "completed") approved++
-    else if (task.status === "cancelled") falseAlarms++
+    if (task.status === "completed") {
+      approved++
+    } else if (task.status === "cancelled") {
+      // A recorded override reason is a true positive; anything else (a
+      // false-alarm reason, or no reason at all) reads as a false alarm.
+      const reason = readDismissReason(task)
+      if (reason?.kind === "override") overrides++
+      else falseAlarms++
+    }
   }
 
   return {
@@ -194,6 +249,7 @@ export async function getSignalStats(): Promise<SignalStats> {
     flagged,
     cleared,
     approved,
+    overrides,
     falseAlarms,
   }
 }

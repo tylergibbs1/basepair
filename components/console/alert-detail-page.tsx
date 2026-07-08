@@ -7,6 +7,7 @@ import { ArrowLeft, Check, SearchX, ShieldCheck, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { SeverityChip } from "@/components/ui/severity-chip"
+import { DismissMenu } from "@/components/console/dismiss-menu"
 import { useAlerts } from "@/components/console/alerts-provider"
 import { formatFiredAtAbsolute } from "@/lib/alerts/types"
 import { cn } from "@/lib/utils"
@@ -239,12 +240,15 @@ export function AlertDetailPage({ id }: { id: string }) {
               <Button variant="outline" onClick={() => act(approve)}>
                 Approve Alert
               </Button>
-              <Button
-                variant="destructive-outline"
-                onClick={() => act(dismiss)}
-              >
-                Dismiss Alert
-              </Button>
+              {/* Dismiss now demands a reason (override-review evidence + honest
+                  metric); the menu collects it, then dismisses and returns to
+                  the queue. */}
+              <DismissMenu
+                onDismiss={(reason) => {
+                  dismiss(id, reason)
+                  router.push("/")
+                }}
+              />
             </div>
           </header>
 

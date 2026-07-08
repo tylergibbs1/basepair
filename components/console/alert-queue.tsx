@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { SeverityChip } from "@/components/ui/severity-chip"
+import { VerificationChip } from "@/components/ui/verification-chip"
 import { spring } from "@/lib/springs"
 import { formatFiredAt, type Alert } from "@/lib/alerts/types"
 import type { SortColumn } from "@/lib/alerts/query-params"
@@ -196,7 +197,7 @@ function AlertRow({
       data-slot="table-row"
       tabIndex={0}
       role="button"
-      aria-label={`${SEVERITY_LABEL[alert.severity]} alert${alert.foundBy === "sweep" ? ", found by population sweep" : ""}: ${alert.drug} for ${alert.patientName}, ${alert.gene} ${alert.diplotype}${geneAffordance}. Open details.`}
+      aria-label={`${SEVERITY_LABEL[alert.severity]} alert${alert.foundBy === "sweep" ? ", found by population sweep" : ""}${alert.verification.verified ? "" : ", needs review: the AI verifier could not confirm it against the guideline"}: ${alert.drug} for ${alert.patientName}, ${alert.gene} ${alert.diplotype}${geneAffordance}. Open details.`}
       onClick={() => router.push(href)}
       onFocus={() => onFocusRow(alert.id)}
       onMouseEnter={() => router.prefetch(href)}
@@ -209,7 +210,15 @@ function AlertRow({
       className="cursor-pointer border-b transition-colors hover:bg-hover active:bg-active focus-visible:bg-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset outline-none [&:last-child]:border-0"
     >
       <TableCell>
-        <SeverityChip severity={alert.severity} />
+        {/* Severity is the loud act-on status; the needs-review flag sits under
+            it on its own (shield) axis so an unverified alert is unmistakable at
+            a scan, not something the pharmacist only discovers on the detail
+            page. Verified alerts show nothing extra — verification recedes when
+            it passed, keeping the queue quiet. */}
+        <div className="flex flex-col items-start gap-1">
+          <SeverityChip severity={alert.severity} />
+          {!alert.verification.verified && <VerificationChip verified={false} />}
+        </div>
       </TableCell>
       <TableCell>
         <div className="grid gap-0.5">

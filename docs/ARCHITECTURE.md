@@ -12,7 +12,7 @@ Companion to [PRD.md](./PRD.md). This describes the system design, the tech stac
 - **App database:** **Supabase** (managed Postgres) — app-only config (tenants, Pinecone/cache metadata, optional local alert read-cache). Supabase Auth for the pharmacist console login; RLS keyed on `tenant_id`. Clinical data lives in Medplum as FHIR, not here.
 - **ORM / migrations:** **Drizzle** (`drizzle-orm` + `drizzle-kit`) against Supabase, for the small app-config schema.
 - **Cache / rate limit:** **Upstash Redis** (serverless). Per-tenant rate limiting and caching of RxNorm terminology lookups. (Event dedupe is handled by Trigger.dev idempotency keys, below.)
-- **Vector search:** **Pinecone**. Semantic index over the CPIC/DPWG guideline corpus (and drug synonyms) so the rule lookup and the verifier retrieve the exact relevant guideline passage to check against.
+- **Vector search (guideline retrieval):** **Not built — decided against (issue #28).** The design once called for a **Pinecone** semantic index over the CPIC/DPWG guideline corpus so the verifier could retrieve the exact guideline passage. Unnecessary in practice: the CPIC catalog (`lib/cpic/catalog.json`) already carries the guideline text, citation, and URL *per rule*, scoped to the exact matched gene/phenotype/drug, and the verifier (`lib/ai/verify.ts`) grades against that bundled text and picks a verbatim sentence itself. There is no `pinecone` dependency, `lib/vector/`, or `guidelineSearch`. (A separate Pinecone drug-synonym index for `normalizeDrug` remains only an unbuilt idea, see §3 step 3.)
 - **UI:** **shadcn/ui** + Tailwind. The pharmacist console is a bespoke queue UI, not a chat window. (Deliberately **not** `@medplum/react`, which is Mantine-based and would clash with shadcn — use the headless Medplum SDK for data, render in shadcn.)
 - **Lint:** **oxlint** (fast, run in CI and pre-commit).
 - **AI SDK:** `ai@7` (`ai` core + `@ai-sdk/react`). Provides the agent loop (`ToolLoopAgent` / `generateText` with `stopWhen: stepCountIs(n)`), structured output (`Output.object`), tools (`tool({ inputSchema, execute })`), human-in-the-loop (`needsApproval`), and generative UI (`createUIMessageStream` / `useChat`). Bun on Node 22+ semantics.
@@ -56,8 +56,7 @@ Companion to [PRD.md](./PRD.md). This describes the system design, the tech stac
    │      │      └─ [Upstash: cache RxNorm/terminology]                   │
    │      ├─ parseGenotype  (Output.object → diplotype→phenotype)         │
    │      ├─ normalizeDrug  (Output.object → RxNorm / drug class)         │
-   │      ├─ cpicLookup     (encoded rules JSON)                          │
-   │      ├─ guidelineSearch (Pinecone → relevant guideline passage)      │
+   │      ├─ cpicLookup     (catalog rules + per-rule guideline text)     │
    │      ├─ verifier       (subagent-as-tool: grades alert vs passage)   │
    │      ├─ Output.object  (typed, cited Alert)                          │
    │      ├─ medplumWrite   → DetectedIssue + Task(requested) + token     │
@@ -84,9 +83,9 @@ One order event = one run of a durable **Trigger.dev task** (`evaluateOrder`) th
 2. **`parseGenotype`** — resolve `{ gene, diplotype, phenotype, phenotypeSource, confidence }` from the Observations (and any messy attachment) using the precedence in §5d: a coded phenotype (LOINC 53040-2 + LL3856-3) is used directly; else a diplotype (LOINC 84413-4) is mapped via the deterministic CPIC table; else the model extracts the diplotype from free-text/PDF/consumer-raw and then maps. `Output.object` with a Zod schema and per-field confidence. The model's real work is the messy-input path only; the phenotype→recommendation mapping is always the published table.
 3. **`normalizeDrug`** — resolve the ordered drug to an RxNorm code + drug class via the free **NLM RxNorm/RxClass API**: `GET https://rxnav.nlm.nih.gov/REST/rxcui.json?name={drug}&search=2` (exact-or-normalized) for the RxCUI, then `GET /REST/rxclass/class/byRxcui.json?rxcui={rxcui}&relaSource=ATC` for the class. `Output.object` wraps the result; a **Pinecone** drug-synonym index handles messy order strings. Cache RxCUIs in Upstash (stable).
 4. **`cpicLookup`** (tool) — deterministic lookup against the encoded CPIC/DPWG rules for `{ gene, phenotype, drugClass }`. Returns the applicable rule + recommendation + citation, or "no rule applies."
-5. **`guidelineSearch`** (tool) — semantic retrieval over the CPIC/DPWG guideline corpus in **Pinecone**: given the gene/phenotype/drug, return the most relevant guideline passage(s). This gives the verifier a precise, citable source span to grade against instead of the whole document.
-6. **`verifier`** (subagent-as-tool) — a second, isolated `ToolLoopAgent` that grades the drafted alert against the **retrieved literal guideline text** and returns pass/fail with the matched sentence. If it does not clearly match, the alert is **suppressed**. This is the anti-false-alarm spine and the demo's money shot.
-7. **Assemble `Alert`** — `Output.object` produces the typed alert record (schema in §5), carrying the Pinecone-retrieved `citedSourceSpan`.
+5. **`guidelineSearch`** — **not built (decided against — issue #28).** This step was to semantically retrieve a guideline passage from a **Pinecone** index. It's unnecessary: the CPIC catalog already stores the guideline text, citation, and URL *per rule* (`cpicLookup` in step 4 returns them), scoped to the exact matched gene/phenotype/drug. The verifier grades against that bundled text and selects the verbatim source span itself, so there is no separate retrieval step.
+6. **`verifier`** (subagent-as-tool) — a second, isolated `ToolLoopAgent` that grades the drafted alert against the **bundled per-rule guideline text** (from the catalog, step 4) and returns pass/fail with the matched sentence. If it does not clearly match, the alert is **suppressed**. This is the anti-false-alarm spine and the demo's money shot.
+7. **Assemble `Alert`** — `Output.object` produces the typed alert record (schema in §5), carrying the verifier-selected verbatim `citedSourceSpan`.
 8. **`medplumWrite`** (tool) — write the proposed alert to **Medplum** as a `DetectedIssue` plus a pharmacist `Task` with status `requested`. Create a Trigger.dev **wait token** (`wait.createToken({ timeout: '48h', idempotencyKey })`) and stash the token id on the `Task` so the console can complete it.
 9. **`wait.forToken`** — the task pauses durably on `await wait.forToken<{approved:boolean}>(token).unwrap()`. Nothing is communicated to the clinician while it waits. Trigger.dev holds the waitpoint (up to the 48h timeout); on timeout the task cancels the `Task` and logs it.
 10. **Resume** — when the pharmacist acts, the console completes the token. The task wakes: **approved** → write a `Communication` to the ordering clinician + an `AuditEvent`, complete the Medplum `Task`; **rejected** → cancel the `Task` + `AuditEvent`.
@@ -116,7 +115,7 @@ Why a wait token rather than a plain Task mutation: it keeps the entire lifecycl
 | Read/write the EHR (Medplum) with per-tenant credentials | **`tool({ inputSchema, execute })`** with `contextSchema` + `toolsContext` to inject a per-tenant Medplum client (`@medplum/core`) | Real multi-tenancy; each tenant's FHIR calls use their own Medplum credential. |
 | Parse messy genotype + free-text order into typed data | **`Output.object({ schema: z.object(...) })`** composed inside `generateText` | The genuine model cognition; answers "it's just a switch statement." |
 | Look up the clinical rule | plain `tool` over encoded rules JSON | Deterministic and gradeable — the correctness bar is a document, not a judgment. |
-| Retrieve the exact guideline passage to verify against | **`embed` / `embedMany`** (ai@7) to vectorize the gene/phenotype/drug query, nearest-neighbor search in **Pinecone** over the guideline corpus | Gives the verifier a precise citable source span, not a whole document; makes "grades against literal guideline text" concrete and cheap. |
+| Retrieve the exact guideline passage to verify against | **Not built — decided against (issue #28).** The CPIC catalog carries per-rule guideline text; `cpicLookup` returns the exact passage, so no `embed`/`embedMany`/Pinecone retrieval is used. | The rule match already yields the precise, citable span scoped to the phenotype + drug; semantic retrieval would only risk fetching the wrong passage. |
 | Independently verify each alert against source | **subagent-as-tool**: a `tool` whose `execute` runs a second agent in an isolated context, `stopWhen: stepCountIs(n)` | Verification-as-product. Suppresses false positives on stage. |
 | Gate a chart write-back on human sign-off (in-session variant) | **`needsApproval: true`** (or an async fn for dynamic gating) on the tool; client renders the `'approval-requested'` part and calls **`addToolApprovalResponse({ id: part.approval.id, approved })`** | The AI SDK human-in-the-loop primitive. The default gate here is Medplum `Task` state (§3a); `needsApproval` is the alternative for a single live agent session. |
 | Live pharmacist queue: new alerts appear and update in place | **Trigger.dev Realtime** (`useRealtimeRun` on the evaluate/sweep run) signals completion → one targeted `router.refresh()` re-reads the Medplum `Task` search → client **id-reconciliation** merges only genuinely new alerts (`AlertsProvider` `seenIds`), preserving optimistic approve/dismiss + undo — *not* an AI SDK API | Push-signaled reconciliation over the FHIR source of truth, with no bespoke socket code. `createUIMessageStream`/`useChat` was considered and rejected here: it is a per-response chat primitive, and keeping a persistent multi-producer queue stream alive requires `resumable-stream` + Redis + active-stream bookkeeping — exactly the plumbing this design avoids. If alerts from runs *this browser didn't start* (e.g. HL7 ingress) ever need to push, extend the existing Realtime usage: tag runs per tenant and subscribe with `useRealtimeRunsWithTag`. |
@@ -309,15 +308,15 @@ trigger.config.ts         → Trigger.dev project config (retries, dirs, build)
   /ai/tools/
       medplumRead.ts      → read genomic Observations + MedicationRequest from Medplum
       medplumWrite.ts     → write DetectedIssue + Task + Communication + AuditEvent
-      cpicLookup.ts
-      guidelineSearch.ts  → Pinecone semantic retrieval over guideline corpus
+      cpicLookup.ts       → catalog rules + per-rule guideline text (lib/cpic-catalog.ts)
+      (guidelineSearch.ts → NOT BUILT; decided against, issue #28 — catalog carries per-rule guideline text)
   /ai/parse/
       genotype.ts         → parseGenotype: coded-phenotype > diplotype-map > text (§5d)
       drug.ts             → Output.object RxNorm/class (Pinecone synonym match)
   /rules/diplotype-phenotype.json → CPIC diplotype→phenotype table (deterministic)
   /medplum/               → Medplum client factory (per-tenant), FHIR resource builders
   /cache/                 → Upstash Redis: dedupe, ratelimit, terminology cache
-  /vector/                → Pinecone client + guideline-corpus ingest script
+  (/vector/               → NOT BUILT; decided against, issue #28 — no Pinecone guideline retrieval)
   /rules/cpic.json        → encoded rules (versioned)
   /db/
       schema.ts           → Drizzle schema (app-config: tenants, alert_cache)
@@ -344,7 +343,7 @@ drizzle.config.ts         → drizzle-kit config (points at Supabase)
 
 **Day 1 — prove the hard bet (go/no-go).** Wire the full spine on a single hardcoded CYP2C19-clopidogrel case: Medplum trigger (CDS Hooks `order-sign` service **or** `Subscription` on `MedicationRequest` create) → `/api/cds/prescribe` (ratelimit) → `tasks.trigger(evaluateOrder, …, { idempotencyKey })` → the Trigger.dev task runs `medplumRead` → `cpicLookup` (one rule) → `Output.object` alert → `medplumWrite` (DetectedIssue + Task + wait token) → `wait.forToken` pause → console shows the Task → **approve calls `wait.completeToken`, the task resumes and writes Communication + AuditEvent**. **If that durable evaluate → pause → approve → resume → write-back works end to end against real Medplum by end of Day 1, the moat is de-risked.** Everything else is content on this spine.
 
-**Day 2 — verifier + retrieval + real ingest.** Ingest the CPIC/DPWG guideline corpus into **Pinecone** (chunk + `embedMany`); wire `guidelineSearch` so the verifier grades against a retrieved passage. Add the verifier subagent and make it suppress a crafted false positive (build the demo climax deliberately). Add `parseGenotype` and `normalizeDrug` over messy inputs; add **Upstash** dedupe/ratelimit on the hook route. **Minimum lovable demo complete — this is the floor.**
+**Day 2 — verifier + real catalog.** (Pinecone guideline ingest + `guidelineSearch` were **decided against — issue #28**: the CPIC catalog carries per-rule guideline text, so the verifier grades against that bundled text directly, no retrieval step.) Add the verifier subagent and make it suppress a crafted false positive (build the demo climax deliberately). Add `parseGenotype` and `normalizeDrug` over messy inputs; add **Upstash** dedupe/ratelimit on the hook route. **Minimum lovable demo complete — this is the floor.**
 
 **Day 3 — multi-tenancy + console.** Per-tenant Medplum client via `contextSchema`/`toolsContext`. Build the pharmacist console (shadcn, backed by a live Medplum `Task` search) with Trigger.dev Realtime–signaled refresh + id-reconciliation (§4): live queue, cards that appear/update in place, verifier badges, one-click approve → completes the `Task` and emits `Communication` + `AuditEvent`.
 

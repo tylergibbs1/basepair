@@ -19,7 +19,6 @@ import type { EvalEvent } from "@/lib/alerts/evaluate"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
 import { DRUGS, PRESCRIBERS } from "@/lib/orders"
 import { spring } from "@/lib/springs"
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -103,185 +102,75 @@ export type Phase =
   | "cleared"
   | "timeout"
 
-/** The live pipeline steps, in order. Mirrors the durable task's real stages. */
-const STEPS = [
-  { key: "placing", label: "Placing order", note: "writing the prescription" },
-  { key: "genetics", label: "Evaluating genetics", note: "matching CPIC guidance" },
-  {
-    key: "verifying",
-    label: "Verifying against the guideline",
-    note: "AI verifier",
-  },
-] as const
-
-type StepStatus = "pending" | "active" | "complete"
-
-/** Status of step `i` (0-based) given the current phase. On `timeout` the last
- * step stays active because the pipeline may genuinely still be running. */
-function stepStatus(i: number, phase: Phase): StepStatus {
-  if (phase === "timeout") return i < 2 ? "complete" : "active"
-  const reached =
-    phase === "placing"
-      ? 0
-      : phase === "genetics"
-        ? 1
-        : phase === "verifying"
-          ? 2
-          : 3 // flagged | cleared — the whole pipeline ran
-  if (i < reached) return "complete"
-  if (i === reached) return "active"
-  return "pending"
-}
-
 /**
- * Live progress version of the reasoning-trace `Step` rail in
- * alert-detail-page.tsx: a numbered/checked status dot plus a connector down to
- * the next step, so the pipeline reads as an ordered chain. Here the dot also
- * carries a live state — a spinner while a step runs, a greened check once it
- * lands. Motion is state-driven (a step entering `complete`), never decoration.
+ * Resolved outcome, shared by every evaluation surface (New Order + Genetics
+ * Intake). Framing is honest about what we can see from the poll: flagged is a
+ * notable result (neutral, not a claimed severity — we don't know it here);
+ * cleared greens; a lost-connection timeout points at the queue.
  */
-export function EvaluationStepper({ phase }: { phase: Phase }) {
+export function ResolvedOutcome({ phase }: { phase: Phase }) {
   const resolved =
     phase === "flagged" || phase === "cleared" || phase === "timeout"
 
   return (
-    <div className="grid gap-4 py-1">
-      <ol>
-        {STEPS.map((step, i) => {
-          const status = stepStatus(i, phase)
-          const last = i === STEPS.length - 1
-          return (
-            <li key={step.key} className="flex gap-3">
-              {/* Left rail: status dot + connector to the next step. */}
-              <div className="flex flex-col items-center">
-                <span
-                  className={cn(
-                    "relative flex size-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-medium tabular-nums transition-colors",
-                    status === "complete"
-                      ? "border-success-br bg-success-bg text-success-fg"
-                      : status === "active"
-                        ? "border-foreground text-foreground"
-                        : "text-muted-foreground",
-                  )}
-                >
-                  {/* Cross-fade the glyph on each status change (number →
-                      spinner → check) rather than hard-swapping visibility.
-                      initial={false} so the dots don't animate on the stepper's
-                      own entrance — only on subsequent state transitions. */}
-                  <AnimatePresence initial={false}>
-                    <motion.span
-                      key={status}
-                      initial={{ opacity: 0, scale: 0.25, filter: "blur(4px)" }}
-                      animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                      exit={{ opacity: 0, scale: 0.25, filter: "blur(4px)" }}
-                      transition={{ type: "spring", duration: 0.3, bounce: 0 }}
-                      className="absolute inset-0 flex items-center justify-center"
-                    >
-                      {status === "complete" ? (
-                        <Check aria-hidden className="size-3" />
-                      ) : status === "active" ? (
-                        <Loader2Icon
-                          aria-hidden
-                          className="size-3 animate-spin"
-                        />
-                      ) : (
-                        i + 1
-                      )}
-                    </motion.span>
-                  </AnimatePresence>
-                </span>
-                {!last && (
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "w-px flex-1",
-                      status === "complete" ? "bg-success-br" : "bg-border",
-                    )}
-                  />
-                )}
+    <AnimatePresence>
+      {resolved && (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, transition: spring.moderate.exit }}
+          transition={spring.moderate}
+          className="flex items-start gap-2.5 border-t pt-4"
+        >
+          {phase === "flagged" ? (
+            <>
+              <ShieldAlert
+                aria-hidden
+                className="mt-px size-4 shrink-0 text-foreground"
+              />
+              <div className="grid gap-0.5">
+                <p className="text-sm font-medium text-foreground">
+                  Alert flagged
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  It’s in the queue for review.
+                </p>
               </div>
-              {/* Step body, indented from the rail. */}
-              <div className={cn("grid gap-0.5", last ? "pb-0.5" : "pb-5")}>
-                <div
-                  className={cn(
-                    "text-sm font-medium",
-                    status === "pending"
-                      ? "text-muted-foreground"
-                      : "text-foreground",
-                  )}
-                >
-                  {step.label}
-                </div>
-                <div className="text-xs text-muted-foreground">{step.note}</div>
+            </>
+          ) : phase === "cleared" ? (
+            <>
+              <Check
+                aria-hidden
+                className="mt-px size-4 shrink-0 text-success-fg"
+              />
+              <div className="grid gap-0.5">
+                <p className="text-sm font-medium text-foreground">
+                  Cleared: no alert
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Evaluated with nothing to flag.
+                </p>
               </div>
-            </li>
-          )
-        })}
-      </ol>
-
-      {/* Resolved outcome. Framing is honest about what we can see from the
-          poll: flagged is a notable result (neutral, not a claimed severity —
-          we don't know it here); cleared greens; a lost-connection timeout
-          points at the queue. */}
-      <AnimatePresence>
-        {resolved && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, transition: spring.moderate.exit }}
-            transition={spring.moderate}
-            className="flex items-start gap-2.5 border-t pt-4"
-          >
-            {phase === "flagged" ? (
-              <>
-                <ShieldAlert
-                  aria-hidden
-                  className="mt-px size-4 shrink-0 text-foreground"
-                />
-                <div className="grid gap-0.5">
-                  <p className="text-sm font-medium text-foreground">
-                    Alert flagged
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    It’s in the queue for review.
-                  </p>
-                </div>
-              </>
-            ) : phase === "cleared" ? (
-              <>
-                <Check
-                  aria-hidden
-                  className="mt-px size-4 shrink-0 text-success-fg"
-                />
-                <div className="grid gap-0.5">
-                  <p className="text-sm font-medium text-foreground">
-                    Cleared — no alert
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Evaluated with nothing to flag.
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                <Clock
-                  aria-hidden
-                  className="mt-px size-4 shrink-0 text-sev-caution-fg"
-                />
-                <div className="grid gap-0.5">
-                  <p className="text-sm font-medium text-foreground">
-                    Still evaluating
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Check the queue shortly.
-                  </p>
-                </div>
-              </>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            </>
+          ) : (
+            <>
+              <Clock
+                aria-hidden
+                className="mt-px size-4 shrink-0 text-sev-caution-fg"
+              />
+              <div className="grid gap-0.5">
+                <p className="text-sm font-medium text-foreground">
+                  Still evaluating
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Check the queue shortly.
+                </p>
+              </div>
+            </>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }
 
@@ -317,101 +206,47 @@ export function EvaluationFeed({
       <Task defaultOpen>
         <TaskTrigger title="What Basepair found" />
         <TaskContent>
-          {events.length === 0 && !resolved && (
-            <TaskItem className="flex items-center gap-2 text-foreground">
-              <Loader2Icon aria-hidden className="size-3 shrink-0 animate-spin" />
-              <span className="text-sm">Reading the chart…</span>
-            </TaskItem>
-          )}
-          {events.map((e) => (
-            <TaskItem
-              key={e.kind}
-              className="flex items-start gap-2 text-foreground"
-            >
-              <Check
-                aria-hidden
-                className="mt-0.5 size-3.5 shrink-0 text-success-fg"
-              />
-              <span className="grid gap-0.5">
-                <span className="text-sm font-medium leading-snug text-foreground">
-                  {e.label}
+          {/* Live region: the evidence chain streams in as findings land, so a
+              screen-reader pharmacist hears each stage announced (genotype →
+              phenotype → CPIC → verified) instead of only the resolve toast.
+              aria-busy clears once the run resolves. */}
+          <div role="status" aria-live="polite" aria-busy={!resolved} className="grid gap-2">
+            {events.length === 0 && !resolved && (
+              <TaskItem className="flex items-center gap-2 text-foreground">
+                <Loader2Icon aria-hidden className="size-3 shrink-0 animate-spin" />
+                <span className="text-sm">Reading the chart…</span>
+              </TaskItem>
+            )}
+            {events.map((e) => (
+              <TaskItem
+                key={e.kind}
+                className="flex items-start gap-2 text-foreground"
+              >
+                <Check
+                  aria-hidden
+                  className="mt-0.5 size-3.5 shrink-0 text-success-fg"
+                />
+                <span className="grid gap-0.5">
+                  <span className="text-sm font-medium leading-snug text-foreground">
+                    {e.label}
+                  </span>
+                  <span className="line-clamp-2 text-xs text-muted-foreground">
+                    {e.detail}
+                  </span>
                 </span>
-                <span className="line-clamp-2 text-xs text-muted-foreground">
-                  {e.detail}
-                </span>
-              </span>
-            </TaskItem>
-          ))}
-          {!resolved && events.length > 0 && workingLabel && (
-            <TaskItem className="flex items-center gap-2 text-muted-foreground">
-              <Loader2Icon aria-hidden className="size-3 shrink-0 animate-spin" />
-              <span className="text-sm">{workingLabel}…</span>
-            </TaskItem>
-          )}
+              </TaskItem>
+            ))}
+            {!resolved && events.length > 0 && workingLabel && (
+              <TaskItem className="flex items-center gap-2 text-muted-foreground">
+                <Loader2Icon aria-hidden className="size-3 shrink-0 animate-spin" />
+                <span className="text-sm">{workingLabel}…</span>
+              </TaskItem>
+            )}
+          </div>
         </TaskContent>
       </Task>
 
-      {/* Resolved outcome — same honest framing as the phase stepper: flagged is
-          a notable result (neutral, not a claimed severity), cleared greens, a
-          lost-connection timeout points at the queue. */}
-      <AnimatePresence>
-        {resolved && (
-          <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, transition: spring.moderate.exit }}
-            transition={spring.moderate}
-            className="flex items-start gap-2.5 border-t pt-4"
-          >
-            {phase === "flagged" ? (
-              <>
-                <ShieldAlert
-                  aria-hidden
-                  className="mt-px size-4 shrink-0 text-foreground"
-                />
-                <div className="grid gap-0.5">
-                  <p className="text-sm font-medium text-foreground">
-                    Alert flagged
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    It’s in the queue for review.
-                  </p>
-                </div>
-              </>
-            ) : phase === "cleared" ? (
-              <>
-                <Check
-                  aria-hidden
-                  className="mt-px size-4 shrink-0 text-success-fg"
-                />
-                <div className="grid gap-0.5">
-                  <p className="text-sm font-medium text-foreground">
-                    Cleared — no alert
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Evaluated with nothing to flag.
-                  </p>
-                </div>
-              </>
-            ) : (
-              <>
-                <Clock
-                  aria-hidden
-                  className="mt-px size-4 shrink-0 text-sev-caution-fg"
-                />
-                <div className="grid gap-0.5">
-                  <p className="text-sm font-medium text-foreground">
-                    Still evaluating
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Check the queue shortly.
-                  </p>
-                </div>
-              </>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ResolvedOutcome phase={phase} />
     </div>
   )
 }
@@ -583,7 +418,7 @@ export function NewOrderDialog({
     } catch {
       setSubmitting(false)
       toast.error("Could not place the order", {
-        description: "Check the Medplum connection, then try again.",
+        description: "Something went wrong saving the order. Try again, or contact support if it keeps failing.",
       })
       return
     }

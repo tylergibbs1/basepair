@@ -44,18 +44,27 @@ function isEditableTarget(el: EventTarget | null): boolean {
 export function GlobalKeys() {
   const router = useRouter()
   const pathname = usePathname()
-  const { filteredAlerts, approve, dismiss } = useAlerts()
+  const { alerts, filteredAlerts, approve, dismiss } = useAlerts()
   const cmd = useCommand()
 
   const latest = React.useRef({
     router,
     pathname,
+    alerts,
     filteredAlerts,
     approve,
     dismiss,
     cmd,
   })
-  latest.current = { router, pathname, filteredAlerts, approve, dismiss, cmd }
+  latest.current = {
+    router,
+    pathname,
+    alerts,
+    filteredAlerts,
+    approve,
+    dismiss,
+    cmd,
+  }
 
   React.useEffect(() => {
     // Chord state lives with the listener, not React state — it's transient
@@ -74,7 +83,7 @@ export function GlobalKeys() {
         if (k !== "j" && k !== "k") return
       }
 
-      const { router, pathname, filteredAlerts, approve, dismiss, cmd } =
+      const { router, pathname, alerts, filteredAlerts, approve, dismiss, cmd } =
         latest.current
 
       // 1. The palette toggle is the one shortcut that works everywhere,
@@ -85,8 +94,16 @@ export function GlobalKeys() {
         return
       }
 
-      // 2. Behind any overlay, let that surface own the keyboard.
-      if (cmd.paletteOpen || cmd.cheatsheetOpen || cmd.newOrderOpen) return
+      // 2. Behind any overlay, let that surface own the keyboard. Every modal
+      //    must be listed — a missing one leaks single-key shortcuts (n, ?, a/x)
+      //    through to the queue hidden underneath it.
+      if (
+        cmd.paletteOpen ||
+        cmd.cheatsheetOpen ||
+        cmd.newOrderOpen ||
+        cmd.geneticsIntakeOpen
+      )
+        return
 
       // 3. Never hijack text entry; Escape still blurs the field.
       if (isEditableTarget(event.target)) {
@@ -211,6 +228,11 @@ export function GlobalKeys() {
       if (pathname.startsWith("/alerts/")) {
         const id = pathname.split("/")[2]
         if (!id) return
+        // Gate on queue membership, exactly like the detail page's action
+        // buttons (alert-detail-page.tsx `inQueue`). An already-triaged alert
+        // still resolves in the URL, but its keys must not re-fire the mutation
+        // (and a spurious toast) on a row that's already gone.
+        if (!alerts.some((a) => a.id === id)) return
         if (key === "a") {
           event.preventDefault()
           approve(id)

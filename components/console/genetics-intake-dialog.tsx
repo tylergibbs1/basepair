@@ -17,6 +17,7 @@ import {
   type ExtractionResult,
 } from "@/lib/genetics/actions"
 import type { ParseSource } from "@/lib/ai/parse-genetics"
+import type { EvalEvent } from "@/lib/alerts/evaluate"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
 import { DRUGS, PRESCRIBERS } from "@/lib/orders"
 import { spring } from "@/lib/springs"
@@ -41,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  EvaluationStepper,
+  EvaluationFeed,
   OrderEvaluation,
   type Phase,
 } from "@/components/console/new-order-dialog"
@@ -110,12 +111,13 @@ export function GeneticsIntakeDialog({
   const [included, setIncluded] = React.useState<Set<number>>(new Set())
   const [submitting, setSubmitting] = React.useState(false)
 
-  // Evaluating phase (reuses New Order's live stepper).
+  // Evaluating phase (reuses New Order's live findings feed).
   const [submission, setSubmission] = React.useState<{
     runId: string
     accessToken: string
   } | null>(null)
   const [runPhase, setRunPhase] = React.useState<Phase | null>(null)
+  const [events, setEvents] = React.useState<EvalEvent[]>([])
 
   const phase: Phase = submission ? (runPhase ?? "genetics") : "idle"
   const resolved =
@@ -145,6 +147,7 @@ export function GeneticsIntakeDialog({
     setSubmitting(false)
     setSubmission(null)
     setRunPhase(null)
+    setEvents([])
     onOpenChange(false)
   }, [onOpenChange])
 
@@ -238,7 +241,7 @@ export function GeneticsIntakeDialog({
       })
     } catch {
       toast.error("Could not write the genetics", {
-        description: "Check the Medplum connection, then try again.",
+        description: "Something went wrong saving the genetics. Try again, or contact support if it keeps failing.",
       })
     } finally {
       setSubmitting(false)
@@ -291,6 +294,7 @@ export function GeneticsIntakeDialog({
             accessToken={submission.accessToken}
             drug={drug ?? ""}
             onPhaseChange={setRunPhase}
+            onEventsChange={setEvents}
             onClose={reset}
           />
         )}
@@ -298,13 +302,13 @@ export function GeneticsIntakeDialog({
         <AnimatePresence mode="wait" initial={false}>
           {submission ? (
             <motion.div
-              key="stepper"
+              key="feed"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, transition: spring.moderate.exit }}
               transition={spring.moderate}
             >
-              <EvaluationStepper phase={phase} />
+              <EvaluationFeed events={events} phase={phase} />
             </motion.div>
           ) : step === "review" && extraction ? (
             <motion.div

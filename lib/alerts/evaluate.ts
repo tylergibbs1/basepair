@@ -351,7 +351,7 @@ export async function evaluateAndWrite(
 
   await emit({
     kind: "drug",
-    label: "Normalized drug",
+    label: "Matched the drug",
     detail: normalized.rxcui
       ? `${normalized.name} · RxCUI ${normalized.rxcui}`
       : normalized.name,
@@ -373,13 +373,13 @@ export async function evaluateAndWrite(
   });
   await emit({
     kind: "cross-check",
-    label: "Agent cross-check",
+    label: "Double-checked the match",
     detail:
       decision.path === "agent"
-        ? "Agent agreed with the engine"
+        ? "Confirmed by a second check"
         : decision.path === "agent-mismatch"
-          ? "Agent mismatch — engine authoritative"
-          : "Deterministic engine (agent fallback)",
+          ? "Second check disagreed; used the published CPIC rule"
+          : "Used the published CPIC rule",
   });
 
   const patient: Reference<Patient> = { reference: patientRef };

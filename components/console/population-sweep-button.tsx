@@ -137,7 +137,7 @@ export function PopulationSweepButton() {
       setSubmission(result)
     } catch {
       toast.error("Couldn't start the population scan", {
-        description: "Check the Medplum connection, then try again.",
+        description: "Something went wrong starting the scan. Try again, or contact support if it keeps failing.",
       })
     } finally {
       setStarting(false)

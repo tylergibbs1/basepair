@@ -208,14 +208,11 @@ export function AlertsProvider({
       // Optimistic: pull it from the queue immediately, persist in background.
       setPending((prev) => prev.filter((a) => a.id !== id))
 
-      opts.persist().catch(() => {
-        restore(alert)
-        toast.error("Couldn't save that", {
-          description: "The alert has been restored. Please try again.",
-        })
-      })
-
-      toast(`Alert ${opts.verb}`, {
+      // The success toast (with its live Undo) is shown optimistically. Capture
+      // its id so a failed write can retract it — otherwise the pharmacist sees
+      // "Alert approved" AND "Couldn't save that" at once, with an Undo pointed
+      // at a write that never landed.
+      const successId = toast(`Alert ${opts.verb}`, {
         description: opts.description ?? `${alert.drug} · ${alert.patientName}`,
         action: {
           label: "Undo",
@@ -228,6 +225,14 @@ export function AlertsProvider({
             })
           },
         },
+      })
+
+      opts.persist().catch(() => {
+        restore(alert)
+        toast.dismiss(successId)
+        toast.error("Couldn't save that", {
+          description: "The alert has been restored. Please try again.",
+        })
       })
     },
     [byId, restore]

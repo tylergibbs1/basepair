@@ -14,13 +14,15 @@ import { useSignalStats } from "@/components/console/signal-stats-provider"
  * filtering, so the line names it.
  */
 export function QueueFraming() {
-  const { evaluated, flagged, cleared } = useSignalStats()
+  const { evaluated, flagged, cleared, open } = useSignalStats()
 
   // Nothing evaluated yet: the queue's own empty state carries the message.
   if (evaluated === 0) return null
 
   const orders = evaluated === 1 ? "order" : "orders"
-  const verb = flagged === 1 ? "needs" : "need"
+  // "need you" reflects the OPEN queue (matches the sidebar badge), not the
+  // all-time `flagged` total — the two diverge once alerts are triaged.
+  const need = open === 1 ? "needs" : "need"
 
   return (
     <p className="border-b border-border px-4 py-2.5 text-sm text-pretty text-muted-foreground">
@@ -28,13 +30,22 @@ export function QueueFraming() {
       <span className="font-medium text-foreground tabular-nums">
         {evaluated}
       </span>{" "}
-      {orders} and surfaced the{" "}
-      <span className="font-medium text-foreground tabular-nums">{flagged}</span>{" "}
-      that {verb} you
+      {orders} and flagged{" "}
+      <span className="font-medium text-foreground tabular-nums">{flagged}</span>
+      {open > 0 ? (
+        <>
+          , of which{" "}
+          <span className="font-medium text-foreground tabular-nums">
+            {open}
+          </span>{" "}
+          still {need} your review
+        </>
+      ) : flagged > 0 ? (
+        <>, all now resolved</>
+      ) : null}
       {cleared > 0 ? (
         <>
-          {" "}
-          — it cleared{" "}
+          . It cleared{" "}
           <span className="font-medium text-foreground tabular-nums">
             {cleared}
           </span>{" "}

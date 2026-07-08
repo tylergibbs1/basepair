@@ -17,10 +17,11 @@ import { placeOrder } from "@/lib/alerts/actions"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
 import type { EvalEvent } from "@/lib/alerts/evaluate"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
-import { DRUGS, PRESCRIBERS } from "@/lib/orders"
+import { PRESCRIBERS } from "@/lib/orders"
 import { spring } from "@/lib/springs"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { DrugCombobox } from "@/components/console/drug-combobox"
 import {
   Dialog,
   DialogClose,
@@ -491,7 +492,8 @@ export function NewOrderDialog({
   }, [onOpenChange])
 
   async function submitOrder() {
-    if (!patientRef || !drug || busy) return
+    const orderedDrug = drug?.trim()
+    if (!patientRef || !orderedDrug || busy) return
 
     // Step 1 — write the order (with a min-visible floor so a fast write doesn't
     // flash past "Placing order"), then hand the run to the Realtime subscriber,
@@ -499,7 +501,7 @@ export function NewOrderDialog({
     setSubmitting(true)
     try {
       const [result] = await Promise.all([
-        placeOrder(patientRef, drug, prescriber),
+        placeOrder(patientRef, orderedDrug, prescriber),
         sleep(MIN_PLACING_MS),
       ])
       setRunPhase(null)
@@ -609,25 +611,12 @@ export function NewOrderDialog({
                 <label htmlFor="order-drug" className="text-sm">
                   Drug
                 </label>
-                <Select
-                  value={drug}
-                  onValueChange={(value) => setDrug(value as string)}
-                >
-                  <SelectTrigger
-                    id="order-drug"
-                    className="w-full"
-                    disabled={busy}
-                  >
-                    <SelectValue placeholder="Select a drug…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DRUGS.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <DrugCombobox
+                  id="order-drug"
+                  value={drug ?? ""}
+                  onChange={setDrug}
+                  disabled={busy}
+                />
               </div>
 
               <div className="grid gap-2">
@@ -662,7 +651,7 @@ export function NewOrderDialog({
           <DialogClose render={<Button variant="outline" disabled={inFlight} />}>
             Cancel
           </DialogClose>
-          <Button onClick={submitOrder} disabled={busy || !patientRef || !drug}>
+          <Button onClick={submitOrder} disabled={busy || !patientRef || !drug?.trim()}>
             {phase === "placing" ? (
               <>
                 <Loader2Icon aria-hidden className="animate-spin" />

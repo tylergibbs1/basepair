@@ -145,6 +145,13 @@ export interface SignalStats {
   flagged: number
   cleared: number
   falseAlarms: number
+  /** Flagged alerts a pharmacist approved (Task status "completed"), including
+   *  the ones they enacted. The denominator for the enactment rate. */
+  approved: number
+  /** Approved alerts where the pharmacist enacted the recommendation — wrote the
+   *  prescriber Communication (+ substitute order), not just a plain approve.
+   *  `enacted <= approved`; the buyer's "did the safety catch close the loop" metric. */
+  enacted: number
   /** Alerts still open in the pharmacist queue (Task status "requested"). This
    *  is the actionable count that matches the sidebar badge, distinct from the
    *  all-time `flagged` total (which includes already-resolved alerts). */

@@ -54,6 +54,22 @@ export default async function AuditPage() {
           Every order Basepair evaluated, including the ones it cleared.
         </p>
         <SignalMetric stats={signalStats} variant="block" />
+        {/* Enactment rate: of the alerts a pharmacist approved, how many closed
+            the loop (wrote back to the prescriber). The buyer's outcome metric,
+            stated as a plain "X of N" evidence sentence rather than a bare tile. */}
+        {signalStats.approved > 0 && (
+          <p className="text-sm text-muted-foreground text-pretty">
+            Pharmacists enacted{" "}
+            <span className="font-medium text-foreground tabular-nums">
+              {signalStats.enacted} of {signalStats.approved}
+            </span>{" "}
+            approved {signalStats.approved === 1 ? "alert" : "alerts"} (
+            <span className="tabular-nums">
+              {Math.round((signalStats.enacted / signalStats.approved) * 100)}%
+            </span>
+            ).
+          </p>
+        )}
       </div>
 
       {entries.length === 0 ? (

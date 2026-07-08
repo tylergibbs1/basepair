@@ -313,10 +313,18 @@ const STATS_LIMIT = 1000
 export async function getSignalStats(): Promise<SignalStats> {
   const medplum = await createMedplumClient()
 
-  const [issues, dismissedTasks, openTasks] = await Promise.all([
+  const [issues, dismissedTasks, approvedTasks, openTasks] = await Promise.all([
     medplum.searchResources("DetectedIssue", { _count: STATS_LIMIT }),
     medplum.searchResources("Task", {
       status: "cancelled",
+      _count: STATS_LIMIT,
+    }),
+    // Approved (completed) Tasks, resources not just a count: we tally how many
+    // also carry the enacted marker (isEnacted), so the enactment rate is
+    // enacted-of-approved. Consistent with falseAlarms counting cancelled Tasks
+    // directly — every triage Task is a pgx alert task.
+    medplum.searchResources("Task", {
+      status: "completed",
       _count: STATS_LIMIT,
     }),
     // Just the count of currently-open alerts (the actionable queue, matching
@@ -334,6 +342,8 @@ export async function getSignalStats(): Promise<SignalStats> {
   }
 
   const falseAlarms = dismissedTasks.length
+  const approved = approvedTasks.length
+  const enacted = approvedTasks.filter((t) => isEnacted(t)).length
   const open = openTasks.bundle.total ?? 0
 
   return {
@@ -341,6 +351,8 @@ export async function getSignalStats(): Promise<SignalStats> {
     flagged,
     cleared,
     falseAlarms,
+    approved,
+    enacted,
     open,
   }
 }

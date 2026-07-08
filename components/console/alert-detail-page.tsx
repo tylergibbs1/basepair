@@ -22,6 +22,7 @@ import {
   citationSourceLabel,
   citationSourceUrl,
 } from "@/lib/alerts/citation"
+import { formatCatalogSnapshot } from "@/lib/cpic-provenance"
 import {
   formatFiredAtAbsolute,
   orderedContributingGenes,
@@ -543,6 +544,12 @@ export function AlertDetailPage({ id }: { id: string }) {
                         </cite>
                       )
                     })()}
+                    {/* Which snapshot of the CPIC data this rule fired against —
+                        real ingest provenance (no per-rule version exists), the
+                        reproducible "which data" anchor beneath the citation. */}
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {formatCatalogSnapshot()}
+                    </p>
                   </Step>
                   <Step
                     n={5}

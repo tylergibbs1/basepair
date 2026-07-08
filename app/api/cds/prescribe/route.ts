@@ -32,10 +32,9 @@
  *
  * Entry guard: a per-tenant sliding-window rate limit runs BEFORE any trigger
  * call; over-limit requests get 429 + Retry-After (Medplum retries rest-hook
- * deliveries, so a throttled delivery is retried later, not lost).
- * TODO(#27): the limiter is the in-process bootstrap from
- * lib/cache/ratelimit-local.ts; swap the import for the Upstash Redis limiter
- * (lib/cache/ratelimit.ts) when #27 lands — the interface already matches.
+ * deliveries, so a throttled delivery is retried later, not lost). The limiter
+ * is the Upstash Redis limiter in lib/cache/ratelimit.ts (#27), which degrades
+ * to a no-op allow-all when Upstash env is unset.
  *
  * Auth: if `CDS_WEBHOOK_SECRET` is set, a request must carry either
  * (a) `X-Signature`: hex HMAC-SHA256 of the raw body — Medplum signs rest-hook
@@ -60,9 +59,9 @@ import { tasks } from "@trigger.dev/sdk"
 import { z } from "zod"
 
 import {
-  createSlidingWindowLimiter,
+  createTenantRateLimiter,
   type RateLimitResult,
-} from "@/lib/cache/ratelimit-local"
+} from "@/lib/cache/ratelimit"
 import type {
   evaluateOrder,
   EvaluateOrderPayload,
@@ -78,11 +77,12 @@ const RATE_LIMIT_PER_MINUTE = Number(
   process.env.CDS_RATE_LIMIT_PER_MINUTE ?? 30
 )
 
-// TODO(#27): swap for the Upstash Redis limiter in lib/cache/ratelimit.ts so
-// the quota is shared across server instances. Same interface, one-line swap.
-const limiter = createSlidingWindowLimiter({
-  limit: RATE_LIMIT_PER_MINUTE,
-  windowMs: 60_000,
+// Upstash Redis sliding-window limiter (#27): quota shared across server
+// instances, with a no-op allow-all fallback when Upstash env is unset.
+const limiter = createTenantRateLimiter({
+  requests: RATE_LIMIT_PER_MINUTE,
+  window: "60 s",
+  prefix: "basepair:rl:cds",
 })
 
 function rateLimited(verdict: RateLimitResult): Response {

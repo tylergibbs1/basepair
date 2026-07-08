@@ -24,6 +24,11 @@
 import { Output } from "ai";
 import { z } from "zod";
 import { resolveDrugAlias } from "@/lib/cpic-catalog";
+import { getRedis } from "@/lib/cache/redis";
+import {
+  terminologyKey,
+  DEFAULT_TERMINOLOGY_TTL_SECONDS,
+} from "@/lib/cache/terminology";
 
 const RXNAV_BASE = "https://rxnav.nlm.nih.gov/REST";
 
@@ -49,12 +54,15 @@ export type NormalizedDrug = z.infer<typeof NormalizedDrugSchema>;
 export const normalizedDrugOutput = Output.object({ schema: NormalizedDrugSchema });
 
 /* ------------------------------------------------------------------------- *
- * Cache — small interface + in-process default.
+ * Cache — small get/set interface, Redis-backed with an in-process fallback.
  *
- * TODO(#27): swap `defaultTerminologyCache` for the Upstash-backed cache in
- * lib/cache/terminology.ts once that ships (separate in-flight issue, not in
- * this worktree). RxCUIs are stable, so caching is safe indefinitely; the
- * in-process Map is a correct — if per-instance, non-shared — cache today.
+ * The default cache uses the shared Upstash Redis (#27) so terminology hits are
+ * shared across server/task instances; when Upstash env is unset, getRedis()
+ * returns null and it degrades to a per-instance Map. RxCUIs are stable, so
+ * caching is safe indefinitely. We keep an explicit get/set (rather than
+ * getOrSetTerminology) because normalizeDrug caches authoritative RxNav hits
+ * ONLY — a fallback result must never be written, or a transient outage would
+ * poison later lookups.
  * ------------------------------------------------------------------------- */
 
 export interface TerminologyCache {
@@ -72,8 +80,34 @@ class InProcessTerminologyCache implements TerminologyCache {
   }
 }
 
+/** Redis-backed default (#27); falls back to the in-process Map on miss/outage. */
+class RedisTerminologyCache implements TerminologyCache {
+  private readonly fallback = new InProcessTerminologyCache();
+  async get(key: string): Promise<NormalizedDrug | undefined> {
+    const redis = getRedis();
+    if (!redis) return this.fallback.get(key);
+    try {
+      const hit = await redis.get<NormalizedDrug>(terminologyKey("rxcui", key));
+      return hit ?? undefined;
+    } catch {
+      return this.fallback.get(key);
+    }
+  }
+  async set(key: string, value: NormalizedDrug): Promise<void> {
+    const redis = getRedis();
+    if (!redis) return this.fallback.set(key, value);
+    try {
+      await redis.set(terminologyKey("rxcui", key), value, {
+        ex: DEFAULT_TERMINOLOGY_TTL_SECONDS,
+      });
+    } catch {
+      await this.fallback.set(key, value);
+    }
+  }
+}
+
 export const defaultTerminologyCache: TerminologyCache =
-  new InProcessTerminologyCache();
+  new RedisTerminologyCache();
 
 export type NormalizeDrugOptions = {
   /** Cache to read/write. Defaults to the in-process Map. */

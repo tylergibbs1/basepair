@@ -43,3 +43,6 @@ next-env.d.ts
 # nested build artifacts
 **/.next/
 **/node_modules/
+
+# Agent worktrees / local scratch
+.claude/

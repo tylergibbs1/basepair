@@ -9,6 +9,7 @@ import {
   PillIcon,
   ScrollText,
   Search,
+  ShieldCheck,
 } from "lucide-react"
 
 import {
@@ -123,6 +124,15 @@ export function CommandMenu() {
                   <CommandShortcut>
                     <KbdGroup keys={getShortcut("goto-audit").keys} chord />
                   </CommandShortcut>
+                </CommandItem>
+                {/* No chord shortcut: Coverage is a static reference page, not
+                    a hot path like the queue and audit trail. */}
+                <CommandItem
+                  keywords={["cpic", "catalog", "genes", "drugs", "pairs"]}
+                  onSelect={() => run(() => router.push("/coverage"))}
+                >
+                  <ShieldCheck aria-hidden />
+                  Coverage
                 </CommandItem>
               </CommandGroup>
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { Command as CommandIcon, Search } from "lucide-react"
+import { Search } from "lucide-react"
 import { usePathname } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -10,27 +10,26 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useAlerts } from "@/components/console/alerts-provider"
 import { useCommand } from "@/components/console/command-provider"
 import { NewOrderDialog } from "@/components/console/new-order-dialog"
-import { SignalMetric } from "@/components/console/signal-metric"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
-import type { SignalStats } from "@/lib/alerts/types"
 import { getShortcut } from "@/lib/shortcuts"
 
 export function ConsoleTopbar({
   patients,
-  signalStats,
 }: {
   patients: OrderablePatient[]
-  /** Live signal-quality counts from Medplum; refreshed when the layout
-   *  re-renders (router.refresh after an order resolves). */
-  signalStats: SignalStats
 }) {
-  const { openCount, query, setQuery } = useAlerts()
+  const { query, setQuery } = useAlerts()
   const { searchInputRef, newOrderOpen, setNewOrderOpen, setPaletteOpen } =
     useCommand()
-  // The shell (this bar) is shared across routes via app/layout. The alert
-  // controls (open count, search, New Order) only make sense on the queue, so
-  // on the Audit route the bar shows just the title.
-  const onAudit = usePathname()?.startsWith("/audit") ?? false
+  // The shell (this bar) is shared across every route via app/layout, so the
+  // title and controls are derived from the path. The alert controls (search,
+  // New Order) only make sense on the queue — "/" and the `/alerts/[id]`
+  // details — so Audit and Coverage show just the title.
+  const pathname = usePathname() ?? "/"
+  const onAudit = pathname.startsWith("/audit")
+  const onCoverage = pathname.startsWith("/coverage")
+  const onQueue = !onAudit && !onCoverage
+  const title = onAudit ? "Audit" : onCoverage ? "Coverage" : "Alerts"
 
   // Tinted-glass chrome: sticky over the scrolling queue. Solid background-100
   // is the fallback; where backdrop-filter is supported the fill drops to 72%
@@ -42,26 +41,11 @@ export function ConsoleTopbar({
       <SidebarTrigger className="-ml-1 relative after:absolute after:-inset-1.5" />
       <div className="flex items-baseline gap-2">
         <h1 className="font-heading text-base font-semibold tracking-tight">
-          {onAudit ? "Audit" : "Alerts"}
+          {title}
         </h1>
-        {!onAudit && (
-          <span
-            aria-live="polite"
-            className="text-sm text-muted-foreground tabular-nums"
-          >
-            {openCount} open
-          </span>
-        )}
       </div>
-      {/* The trust metric: proof Basepair only fires when it must, made visible.
-          Quiet and secondary to the heading; folds away when the bar gets tight
-          so it never crowds the search/actions. */}
-      <SignalMetric
-        stats={signalStats}
-        className="ml-4 hidden xl:flex"
-      />
       <div className="ml-auto flex items-center gap-2">
-        {!onAudit && (
+        {onQueue && (
           <div className="relative w-full max-w-xs">
             <Search
               aria-hidden
@@ -86,16 +70,18 @@ export function ConsoleTopbar({
           </div>
         )}
         {/* Same jump-anywhere action reachable by click or ⌘K — the palette is a
-            mirror of the console, not a hidden feature. */}
+            mirror of the console, not a hidden feature. The ⌘K kbd is the whole
+            face of the button: it names the action and teaches the shortcut at
+            once (like the search field's `/`); a Command icon beside it would
+            just repeat the ⌘ glyph. */}
         <Button
           variant="outline"
           size="sm"
           onClick={() => setPaletteOpen(true)}
           aria-label="Open command palette"
           title="Command palette"
-          className="gap-1.5 text-muted-foreground"
+          className="text-muted-foreground"
         >
-          <CommandIcon aria-hidden className="size-4" />
           <KbdGroup keys={getShortcut("command-palette").keys} />
         </Button>
         {/* Kept mounted on every route so `n` / the palette can open it; the
@@ -104,7 +90,7 @@ export function ConsoleTopbar({
           patients={patients}
           open={newOrderOpen}
           onOpenChange={setNewOrderOpen}
-          showTrigger={!onAudit}
+          showTrigger={onQueue}
         />
       </div>
     </header>

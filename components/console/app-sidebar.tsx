@@ -1,6 +1,6 @@
 "use client"
 
-import { BellRing, ScrollText, Settings } from "lucide-react"
+import { BellRing, ScrollText, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -22,16 +22,14 @@ import {
 const NAV_ITEMS = [
   { title: "Alerts", icon: BellRing, href: "/" },
   { title: "Audit", icon: ScrollText, href: "/audit" },
-  // Settings has no destination yet; it stays an inert button.
-  { title: "Settings", icon: Settings, href: null },
+  { title: "Coverage", icon: ShieldCheck, href: "/coverage" },
 ] as const
 
 /** Which nav item the current path belongs to. The Alerts item owns the queue
  *  and every `/alerts/[id]` detail route; Audit owns `/audit`. */
-function isActive(href: string | null, pathname: string): boolean {
+function isActive(href: string, pathname: string): boolean {
   if (href === "/") return pathname === "/" || pathname.startsWith("/alerts")
-  if (href) return pathname === href || pathname.startsWith(`${href}/`)
-  return false
+  return pathname === href || pathname.startsWith(`${href}/`)
 }
 
 /**
@@ -72,15 +70,11 @@ export function AppSidebar() {
                         isActive={active}
                         tooltip={item.title}
                         render={
-                          item.href ? (
-                            <Link
-                              href={item.href}
-                              aria-label={item.title}
-                              aria-current={active ? "page" : undefined}
-                            />
-                          ) : (
-                            <button type="button" aria-label={item.title} />
-                          )
+                          <Link
+                            href={item.href}
+                            aria-label={item.title}
+                            aria-current={active ? "page" : undefined}
+                          />
                         }
                       >
                         <item.icon aria-hidden />

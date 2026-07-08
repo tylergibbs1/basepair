@@ -30,10 +30,9 @@ import type { DecisionPath } from "@/lib/alerts/types";
  * authoritative catalog, lib/cpic-catalog.ts), AI-verify a real hit, and write
  * the DetectedIssue (+ pharmacist Task on a flag) back to Medplum.
  *
- * This is deliberately the ONE place the clinical logic lives. Both entry
- * points call it and must not fork it:
- *   - trigger/evaluate-order.ts   — one just-prescribed order.
- *   - trigger/sweep-population.ts  — every active drug across the population.
+ * This is deliberately the ONE place the clinical logic lives; any new entry
+ * point (trigger/evaluate-order.ts is the current one) must call it, not fork
+ * it.
  *
  * Reads ALL of the patient's gene results (not just one) so multi-gene rules
  * (e.g. TPMT + NUDT15 for thiopurines) resolve correctly.
@@ -57,14 +56,12 @@ export const ORDER_ID_CLEARED_SYSTEM =
   "https://basepair.health/fhir/order-id-cleared";
 
 /**
- * How this evaluation was reached. `order` is the just-prescribed path;
- * `sweep` is the population scan of a drug the patient is already taking. The
- * distinction rides through onto the DetectedIssue payload as provenance, so a
- * swept finding is visibly "already at risk" rather than "just ordered".
+ * How this evaluation was reached. Only the just-prescribed `order` path
+ * remains (the population-sweep writer is gone); the console still READS the
+ * historical `sweep` provenance off stored DetectedIssues, which is why the
+ * foundBy/sweptAt fields survive in lib/medplum/fhir.ts.
  */
-export type EvalProvenance =
-  | { foundBy: "order"; orderedBy: string }
-  | { foundBy: "sweep"; orderedBy: string; sweptAt: string };
+export type EvalProvenance = { foundBy: "order"; orderedBy: string };
 
 /**
  * A single resolved finding streamed as the evaluation runs — the console
@@ -109,25 +106,13 @@ export type EvaluateAndWriteInput = {
   drug: string;
   /**
    * Stable id (the MedicationRequest.id) that keys the DetectedIssue + Task
-   * writes idempotently via createResourceIfNoneExist, so a task retry, a
-   * re-fired order, OR a re-run of the population sweep can never create a
-   * duplicate clinical alert for the same patient-drug. Optional: direct/test
-   * triggers may omit it, in which case the writes are plain creates.
+   * writes idempotently via createResourceIfNoneExist, so a task retry or a
+   * re-fired order can never create a duplicate clinical alert for the same
+   * patient-drug. Optional: direct/test triggers may omit it, in which case
+   * the writes are plain creates.
    */
   orderId?: string;
   provenance: EvalProvenance;
-  /**
-   * The patient's Observations, preloaded by the caller. The sweep loads them
-   * once per patient and passes them to every drug; the order path lets this
-   * default and the fn fetches them.
-   */
-  observations?: Observation[];
-  /**
-   * Write a considered-and-cleared DetectedIssue when no rule applies. The order
-   * path does (the Audit view's suppression proof); the sweep does NOT, to keep
-   * a population scan of many already-fine drugs from flooding the Audit trail.
-   */
-  writeClearedRecord?: boolean;
   /** Optional phase reporter, e.g. evaluate-order streams it as run metadata. */
   onPhase?: (phase: string) => Promise<void> | void;
   /**
@@ -290,21 +275,21 @@ function relevantReading(
 /**
  * Evaluate one patient-drug and write the outcome to Medplum. Idempotent on
  * `orderId`: every write is a createResourceIfNoneExist keyed on the order-id
- * identifier, so re-entry (task retry, re-fired order, or a re-run sweep) is a
- * no-op that returns the existing resource instead of duplicating the alert.
+ * identifier, so re-entry (task retry, re-fired order) is a no-op that returns
+ * the existing resource instead of duplicating the alert.
  */
 export async function evaluateAndWrite(
   input: EvaluateAndWriteInput,
 ): Promise<EvaluateResult> {
   const { medplum, patientRef, drug, orderId, provenance } = input;
-  const writeClearedRecord = input.writeClearedRecord ?? true;
   const emit = (event: EvalEvent) => input.onEvent?.(event);
 
   await input.onPhase?.("reading-genetics");
 
-  const observations =
-    input.observations ??
-    (await medplum.searchResources("Observation", `subject=${patientRef}`));
+  const observations = await medplum.searchResources(
+    "Observation",
+    `subject=${patientRef}`,
+  );
 
   const readings = readGenetics(observations);
   if (readings.length === 0) {
@@ -408,19 +393,9 @@ export async function evaluateAndWrite(
     : null;
 
   if (!rule.applies) {
-    // Considered-and-cleared. The order path records this as a lightweight,
-    // Task-less DetectedIssue so the safety work shows in Audit; the sweep skips
-    // it (writeClearedRecord=false) to avoid flooding Audit with already-fine
-    // drugs. Keyed idempotently on the order id exactly like the alert path.
-    if (!writeClearedRecord) {
-      return {
-        alert: false,
-        reason: rule.reason,
-        genePhenotypes,
-        drug,
-        decisionPath: decision.path,
-      };
-    }
+    // Considered-and-cleared: a lightweight, Task-less DetectedIssue so the
+    // safety work shows in Audit (the suppression proof). Keyed idempotently
+    // on the order id exactly like the alert path.
     const clearedResource: DetectedIssue = {
       ...buildConsideredIssue(patient, {
         drug,
@@ -506,9 +481,9 @@ export async function evaluateAndWrite(
   });
 
   // Write the alert as a DetectedIssue + a pharmacist Task. Both writes are
-  // idempotent on the order id (when present): a retry OR a re-run sweep that
-  // re-enters here returns the existing resource instead of creating a duplicate
-  // clinical alert (trigger-tasks Critical Rule #1).
+  // idempotent on the order id (when present): a retry that re-enters here
+  // returns the existing resource instead of creating a duplicate clinical
+  // alert (trigger-tasks Critical Rule #1).
   const issueResource: DetectedIssue = {
     ...buildDetectedIssue(patient, {
       gene: primary.gene,
@@ -523,7 +498,6 @@ export async function evaluateAndWrite(
       guidelineText: rule.guidelineText,
       orderedBy: provenance.orderedBy,
       foundBy: provenance.foundBy,
-      sweptAt: provenance.foundBy === "sweep" ? provenance.sweptAt : undefined,
       verified: verification?.verified ?? false,
       verifierRationale: verification?.rationale ?? "",
       verifierModel: verification?.model ?? "",
@@ -554,8 +528,8 @@ export async function evaluateAndWrite(
   // above), supersede it so the audit trail doesn't carry a "cleared" and a
   // "flagged" record both claiming one order. Marking it entered-in-error drops
   // it from getAuditEntries (which reads status:"mitigated"). Null-safe (no
-  // orderId → no clearedQuery → skipped) and idempotent (a re-run sweep finds
-  // the record already superseded and leaves it alone).
+  // orderId → no clearedQuery → skipped) and idempotent (a retry finds the
+  // record already superseded and leaves it alone).
   if (clearedQuery) {
     const staleCleared = await medplum.searchResources(
       "DetectedIssue",

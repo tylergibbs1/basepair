@@ -30,9 +30,9 @@ export type ApprovalOutcome = "approved" | "rejected" | "timed-out";
  * Task back to Medplum.
  *
  * The clinical logic lives in the shared `evaluateAndWrite` core
- * (lib/alerts/evaluate.ts), which the population sweep (trigger/sweep-population.ts)
- * also calls — so order-time and sweep evaluation can never diverge. This task
- * adapts the order payload to that core, streams the pipeline phase as run
+ * (lib/alerts/evaluate.ts) — any future entry point must call it too, so
+ * evaluation paths can never diverge. This task adapts the order payload to
+ * that core, streams the pipeline phase as run
  * metadata for the console's live stepper, and — on a flagged alert — pauses on
  * a durable Trigger.dev wait token until the pharmacist approves or dismisses,
  * then performs the write-back inside this same run (issue #21; the write-back
@@ -96,8 +96,6 @@ export const evaluateOrder = task({
       drug: payload.drug,
       orderId: payload.orderId,
       provenance: { foundBy: "order", orderedBy: payload.orderedBy ?? "" },
-      // Order-time evaluation records the considered-and-cleared proof in Audit.
-      writeClearedRecord: true,
       onPhase: setPhase,
       onEvent: addEvent,
     });

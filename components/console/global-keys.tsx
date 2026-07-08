@@ -100,8 +100,7 @@ export function GlobalKeys() {
       if (
         cmd.paletteOpen ||
         cmd.cheatsheetOpen ||
-        cmd.newOrderOpen ||
-        cmd.geneticsIntakeOpen
+        cmd.newOrderOpen
       )
         return
 

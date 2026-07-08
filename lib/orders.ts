@@ -1,7 +1,7 @@
 /**
- * Demo order constants shared by the New Order and Read Report (messy-input
- * intake) dialogs. Kept in a plain module — not a component file — so exporting
- * them alongside components doesn't break React Fast Refresh.
+ * Demo order constants for the New Order dialog. Kept in a plain module — not
+ * a component file — so exporting them alongside components doesn't break
+ * React Fast Refresh.
  */
 
 /** Drugs the demo can order, each maps to a CPIC rule (or deliberately none). */

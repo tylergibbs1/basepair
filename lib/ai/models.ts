@@ -2,8 +2,8 @@
  * Central model config — the single place model IDs and cost tiers live.
  *
  * Two tiers, chosen by what the model is actually doing:
- *   - "opus" — real cognition where quality is the whole point: the messy-input
- *              parse (parse-genetics) and the verifier (verify). Opus-tier.
+ *   - "opus" — real cognition where quality is the whole point: the verifier
+ *              (verify). Opus-tier.
  *   - "fast" — deterministic / formatting steps where the model only drives
  *              tools and reports a result it did not author (the CPIC agent
  *              loop, evaluate-agent). A cheaper model; the clinical decision is

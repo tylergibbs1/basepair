@@ -10,8 +10,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useAlerts } from "@/components/console/alerts-provider"
 import { useCommand } from "@/components/console/command-provider"
 import { NewOrderDialog } from "@/components/console/new-order-dialog"
-import { PopulationSweepButton } from "@/components/console/population-sweep-button"
-import { GeneticsIntakeDialog } from "@/components/console/genetics-intake-dialog"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
 import { getShortcut } from "@/lib/shortcuts"
 
@@ -25,14 +23,12 @@ export function ConsoleTopbar({
     searchInputRef,
     newOrderOpen,
     setNewOrderOpen,
-    geneticsIntakeOpen,
-    setGeneticsIntakeOpen,
     setPaletteOpen,
   } = useCommand()
   // The shell (this bar) is shared across every route via app/layout, so the
   // title and controls are derived from the path. The alert controls (search,
-  // New Order, sweep, intake) only make sense on the queue — "/" and the
-  // `/alerts/[id]` details — so Audit and Coverage show just the title.
+  // New Order) only make sense on the queue — "/" and the `/alerts/[id]`
+  // details — so Audit and Coverage show just the title.
   const pathname = usePathname() ?? "/"
   const onAudit = pathname.startsWith("/audit")
   const onCoverage = pathname.startsWith("/coverage")
@@ -92,18 +88,6 @@ export function ConsoleTopbar({
         >
           <KbdGroup keys={getShortcut("command-palette").keys} />
         </Button>
-        {/* One-click population scan: finds patients already on a genetically
-            mismatched drug (not just new orders). A queue action, so it hides on
-            the Audit and Coverage routes alongside the other alert controls. */}
-        {onQueue && <PopulationSweepButton />}
-        {/* Messy-input intake: parse a free-text/PDF genetics report into coded
-            genetics, then evaluate — the model reads what the EHR's CDS can't. */}
-        <GeneticsIntakeDialog
-          patients={patients}
-          open={geneticsIntakeOpen}
-          onOpenChange={setGeneticsIntakeOpen}
-          showTrigger={onQueue}
-        />
         {/* Kept mounted on every route so `n` / the palette can open it; the
             button itself only shows on the queue. */}
         <NewOrderDialog

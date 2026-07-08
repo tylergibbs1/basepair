@@ -7,7 +7,6 @@ import {
   BellRing,
   Keyboard,
   PillIcon,
-  ScanTextIcon,
   ScrollText,
   Search,
 } from "lucide-react"
@@ -42,7 +41,6 @@ export function CommandMenu() {
     paletteOpen,
     setPaletteOpen,
     setNewOrderOpen,
-    setGeneticsIntakeOpen,
     setCheatsheetOpen,
   } = useCommand()
 
@@ -96,21 +94,6 @@ export function CommandMenu() {
                   <CommandShortcut>
                     <KbdGroup keys={getShortcut("new-order").keys} />
                   </CommandShortcut>
-                </CommandItem>
-                <CommandItem
-                  keywords={[
-                    "read",
-                    "report",
-                    "parse",
-                    "genetics",
-                    "pdf",
-                    "intake",
-                    "diplotype",
-                  ]}
-                  onSelect={() => run(() => setGeneticsIntakeOpen(true))}
-                >
-                  <ScanTextIcon aria-hidden />
-                  Read genetics report
                 </CommandItem>
                 <CommandItem
                   keywords={["shortcuts", "keys", "help"]}

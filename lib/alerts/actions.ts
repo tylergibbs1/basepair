@@ -27,7 +27,6 @@ import {
 import type { AuditLifecycle } from "@/lib/medplum/fhir"
 import type { RecommendedAlternative } from "@/lib/cpic-catalog"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
-import type { sweepPopulation } from "@/trigger/sweep-population"
 import type { MedplumClient } from "@medplum/core"
 import type {
   Patient,
@@ -374,35 +373,3 @@ export async function placeOrder(
   }
 }
 
-/** Plain, client-safe result of kicking off a population sweep. */
-export type PopulationSweepResult = {
-  /** The sweep-population run id, for the console to subscribe to via Realtime. */
-  runId: string
-  /** Public access token scoped to read that run — safe to hand to the browser. */
-  accessToken: string
-}
-
-/**
- * Kick off the population sweep: a one-click batch that runs the SAME evaluation
- * engine over every active patient's current medications × stored genetics,
- * surfacing patients already on a genetically mismatched drug.
- *
- * Mirrors placeOrder's `tasks.trigger` usage. No idempotencyKey: each click is a
- * fresh run on purpose, and per-(patient, MedicationRequest) idempotency inside
- * the task guarantees a re-run never duplicates a DetectedIssue/Task — so
- * re-sweeping is always safe. The handle mints a run-scoped public token so
- * `useRealtimeRun` can stream progress without a server secret reaching the
- * client.
- */
-export async function runPopulationSweep(): Promise<PopulationSweepResult> {
-  const handle = await tasks.trigger<typeof sweepPopulation>(
-    "sweep-population",
-    // tenantId scopes the sweep to this deployment's tenant credential.
-    { tenantId: defaultTenantId() },
-  )
-
-  return {
-    runId: handle.id,
-    accessToken: handle.publicAccessToken,
-  }
-}

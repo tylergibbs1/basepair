@@ -24,8 +24,12 @@ export type CpicDecision = {
   /** The authoritative rule (always deterministic; see module doc). */
   rule: LookupResult;
   path: DecisionPath;
-  /** Tool-call trace, for the audit/observability surface. */
-  toolCalls: { name: string; input: unknown }[];
+  /**
+   * Tool-call trace, for the audit/observability surface and the live feed.
+   * Captured natively from the ai@7 generateText result (result.toolCalls +
+   * result.toolResults) — no manual bookkeeping in the tools themselves.
+   */
+  toolCalls: { name: string; input: unknown; output?: unknown }[];
 };
 
 /** Same-decision test: applies + which drug + severity + genes must all match. */
@@ -88,8 +92,17 @@ Determine the actionable CPIC rule for the ordered drug given this patient's gen
     return null;
   });
 
+  // Attach each tool's output to its call (matched by toolCallId), straight from
+  // the ai@7 result — the native record of what the agent actually did.
+  const outputByCallId = new Map(
+    (result?.toolResults ?? []).map((r) => [r.toolCallId, r.output as unknown]),
+  );
   const toolCalls =
-    result?.toolCalls?.map((c) => ({ name: c.toolName, input: c.input })) ?? [];
+    result?.toolCalls?.map((c) => ({
+      name: c.toolName,
+      input: c.input,
+      output: outputByCallId.get(c.toolCallId),
+    })) ?? [];
 
   // Pull the agent's lookup result (last cpicLookupRule call), if any.
   const agentLookup = (result?.toolResults ?? []).findLast(

@@ -6,6 +6,7 @@ import {
   PillIcon,
   Loader2Icon,
   Check,
+  ChevronRight,
   ShieldAlert,
   Clock,
 } from "lucide-react"
@@ -306,6 +307,10 @@ function FeedItem({
   last: boolean
   delay?: number
 }) {
+  const [open, setOpen] = React.useState(false)
+  const substeps = event.substeps ?? []
+  const hasSubsteps = substeps.length > 0
+
   return (
     <motion.li
       initial={{ opacity: 0, y: 4, scale: 0.98 }}
@@ -336,6 +341,58 @@ function FeedItem({
         <span className="line-clamp-2 text-xs text-muted-foreground">
           {event.detail}
         </span>
+
+        {/* Expandable "what it actually did" — the agent's tool calls or the
+            verifier's reasoning, in plain language (no raw JSON). Collapsed by
+            default so the feed stays calm; the deterministic result already
+            decided. */}
+        {hasSubsteps && (
+          <div className="mt-1">
+            <button
+              type="button"
+              aria-expanded={open}
+              onClick={() => setOpen((o) => !o)}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ChevronRight
+                aria-hidden
+                className={cn(
+                  "size-3 transition-transform",
+                  open && "rotate-90"
+                )}
+              />
+              {open
+                ? "Hide steps"
+                : `Show ${substeps.length} step${substeps.length > 1 ? "s" : ""}`}
+            </button>
+            <AnimatePresence initial={false}>
+              {open && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.16, ease: "easeOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-1.5 grid gap-1.5 border-l border-border pl-3">
+                    {substeps.map((s, i) => (
+                      <div key={`${event.kind}-${i}`} className="grid gap-0.5">
+                        <span className="text-xs leading-snug text-foreground">
+                          {s.label}
+                        </span>
+                        {s.detail && (
+                          <span className="text-xs leading-snug text-muted-foreground">
+                            {s.detail}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
     </motion.li>
   )

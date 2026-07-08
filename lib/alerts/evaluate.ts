@@ -89,7 +89,54 @@ export type EvalEvent = {
    * neutral — color is reserved for status (docs/DESIGN.md).
    */
   tone?: "positive" | "caution";
+  /**
+   * Optional expandable detail beneath the finding — the concrete work behind
+   * it, in plain language: the agent's tool calls + their results (from the
+   * ai@7 trace), or the verifier's rationale. Never raw JSON; this is the
+   * "what it actually did" transparency, kept human-readable (docs/DESIGN.md).
+   */
+  substeps?: { label: string; detail?: string }[];
 };
+
+/**
+ * Plain-language summary of one agent tool call for the live feed — reads the
+ * ai@7 tool output and phrases it for a pharmacist. Never dumps raw JSON; if the
+ * output shape is unexpected it degrades to just the friendly step label.
+ */
+function describeAgentToolCall(c: {
+  name: string;
+  input: unknown;
+  output?: unknown;
+}): { label: string; detail?: string } {
+  const out = (c.output ?? {}) as Record<string, unknown>;
+  if (c.name === "cpicResolvePhenotype") {
+    const gene = typeof out.gene === "string" ? out.gene : "";
+    const phenotype = typeof out.phenotype === "string" ? out.phenotype : null;
+    return {
+      label: "Confirmed the phenotype",
+      detail: phenotype
+        ? `${gene} → ${phenotype}`.trim()
+        : gene
+          ? `${gene}: diplotype not in the CPIC table`
+          : undefined,
+    };
+  }
+  if (c.name === "cpicLookupRule") {
+    if (out.applies === true) {
+      const drug = typeof out.drug === "string" ? out.drug : "";
+      const severity = typeof out.severity === "string" ? out.severity : "";
+      return {
+        label: "Looked up the published CPIC rule",
+        detail: [drug, severity].filter(Boolean).join(" · ") || undefined,
+      };
+    }
+    return {
+      label: "Looked up the published CPIC rule",
+      detail: "No applicable rule",
+    };
+  }
+  return { label: c.name };
+}
 
 export type EvaluateAndWriteInput = {
   /**
@@ -367,6 +414,15 @@ export async function evaluateAndWrite(
     detail: normalized.rxcui
       ? `${normalized.name} · RxCUI ${normalized.rxcui}`
       : normalized.name,
+    substeps: [
+      {
+        label:
+          normalized.source === "rxnav"
+            ? "Resolved via RxNorm (RxNav)"
+            : "Resolved offline (alias / synonym fallback)",
+        detail: normalized.drugClass ?? undefined,
+      },
+    ],
   });
 
   await input.onPhase?.("matching-cpic");
@@ -393,6 +449,12 @@ export async function evaluateAndWrite(
           ? "Second check disagreed; used the published CPIC rule"
           : "Used the published CPIC rule",
     ...(decision.path === "agent-mismatch" ? { tone: "caution" as const } : {}),
+    // The agent's actual tool calls (from the ai@7 trace), phrased plainly — the
+    // "what it did" transparency. The deterministic rule still decides; this is
+    // the cross-check showing its work.
+    ...(decision.toolCalls.length > 0
+      ? { substeps: decision.toolCalls.map(describeAgentToolCall) }
+      : {}),
   });
 
   const patient: Reference<Patient> = { reference: patientRef };
@@ -518,6 +580,20 @@ export async function evaluateAndWrite(
           : "Verifier flagged for review",
     detail: citedSentence,
     tone: verification?.verified ? "positive" : "caution",
+    // The verifier's plain-language reasoning — why the evidence does or doesn't
+    // support the recommendation (surface-with-flag; it never suppresses).
+    ...(verification
+      ? {
+          substeps: [
+            {
+              label: verification.verified
+                ? "Evidence supports the recommendation"
+                : "Evidence did not clearly support it — needs review",
+              detail: verification.rationale || undefined,
+            },
+          ],
+        }
+      : {}),
   });
 
   // Write the alert as a DetectedIssue + a pharmacist Task. Both writes are

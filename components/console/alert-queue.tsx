@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { SeverityChip } from "@/components/ui/severity-chip"
+import { SeverityChip, severityActionVerb } from "@/components/ui/severity-chip"
 import { VerificationChip } from "@/components/ui/verification-chip"
 import { spring } from "@/lib/springs"
 import { formatFiredAt, type Alert } from "@/lib/alerts/types"
@@ -216,7 +216,16 @@ function AlertRow({
             page. Verified alerts show nothing extra — verification recedes when
             it passed, keeping the queue quiet. */}
         <div className="flex flex-col items-start gap-1">
-          <SeverityChip severity={alert.severity} />
+          {/* Severity as an instruction: the chip carries the action verb
+              (avoid/modify/monitor) after the label. The row's aria-label still
+              announces the severity itself first (see SEVERITY_LABEL). */}
+          <SeverityChip
+            severity={alert.severity}
+            action={severityActionVerb(
+              alert.severity,
+              alert.recommendedAlternative,
+            )}
+          />
           {!alert.verification.verified && <VerificationChip verified={false} />}
         </div>
       </TableCell>

@@ -4,6 +4,7 @@
  */
 import type {
   Observation,
+  AllergyIntolerance,
   DetectedIssue,
   MedicationRequest,
   Communication,
@@ -27,7 +28,7 @@ import type {
 import type { RecommendedAlternative } from "@/lib/cpic-catalog";
 import type { DecisionPath } from "@/lib/alerts/types";
 
-const LOINC = "http://loinc.org";
+export const LOINC = "http://loinc.org";
 const HGNC = "http://www.genenames.org";
 const CATEGORY_SYS =
   "http://terminology.hl7.org/CodeSystem/observation-category";
@@ -168,6 +169,87 @@ export function buildMedicationRequest(
     medicationCodeableConcept: { text: drug },
     authoredOn: new Date().toISOString(),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Patient-context readers (issue #36): pure extractors that turn the FHIR
+// resources the console searches for — AllergyIntolerance, renal/body-weight
+// Observations — into the small display shapes `PatientContext` carries. Kept
+// pure (no I/O) like the builders above; the searches + try/catch live in
+// lib/alerts/from-medplum.ts so a missing resource degrades to `undefined`
+// there rather than dropping the alert.
+// ---------------------------------------------------------------------------
+
+/** LOINC codes for the renal-function Observation the console reads: eGFR
+ *  (CKD-EPI, with/without race) is preferred, serum creatinine is the fallback.
+ *  `label` names which one so the number is never ambiguous in the UI. */
+export const RENAL_LOINC = {
+  egfr: ["48642-3", "48643-1"] as const,
+  creatinine: "2160-0",
+} as const;
+
+/** LOINC for a body-weight Observation. */
+export const BODY_WEIGHT_LOINC = "29463-7";
+
+/** SNOMED CT 716186003 "No known allergy", the code carried on an explicit
+ *  "no known allergies" AllergyIntolerance record. Its presence is how we tell
+ *  an affirmed no-allergy chart from one that simply has no allergy data. */
+const NO_KNOWN_ALLERGY_SNOMED = "716186003";
+
+/** Is this AllergyIntolerance an explicit "no known allergies" marker record,
+ *  rather than a real allergy? */
+export function isNoKnownAllergy(allergy: AllergyIntolerance): boolean {
+  return (
+    allergy.code?.coding?.some((c) => c.code === NO_KNOWN_ALLERGY_SNOMED) ??
+    false
+  );
+}
+
+/** The human-readable substance for an AllergyIntolerance (coded display first,
+ *  then free text), or null when neither is present. */
+export function allergyDisplay(allergy: AllergyIntolerance): string | null {
+  const coded = allergy.code?.coding?.find((c) => c.display)?.display;
+  return coded ?? allergy.code?.text ?? null;
+}
+
+/** The numeric value + unit of a quantity Observation, or null when it carries
+ *  no numeric value (e.g. a coded-only or panel Observation). */
+function observationQuantity(
+  obs: Observation,
+): { value: number; unit: string } | null {
+  const q = obs.valueQuantity;
+  if (!q || typeof q.value !== "number") return null;
+  return { value: q.value, unit: q.unit ?? q.code ?? "" };
+}
+
+/** Read a renal-function Observation into the `{ value, unit, label }` shape the
+ *  context band renders, tagging eGFR vs creatinine by its LOINC code. Returns
+ *  null for an Observation that is neither, or that carries no numeric value. */
+export function readRenalFunction(
+  obs: Observation,
+): { value: number; unit: string; label: string } | null {
+  const code = obs.code?.coding?.find((c) => c.system === LOINC)?.code;
+  if (!code) return null;
+  const q = observationQuantity(obs);
+  if (!q) return null;
+  if (RENAL_LOINC.egfr.includes(code as (typeof RENAL_LOINC.egfr)[number])) {
+    return { value: q.value, unit: q.unit || "mL/min/1.73m²", label: "eGFR" };
+  }
+  if (code === RENAL_LOINC.creatinine) {
+    return { value: q.value, unit: q.unit || "mg/dL", label: "Creatinine" };
+  }
+  return null;
+}
+
+/** Read a body-weight Observation into kilograms, converting a pound-recorded
+ *  weight (UCUM `[lb_av]`, or unit text starting "lb"). Returns null when the
+ *  Observation carries no numeric value. Rounded to one decimal. */
+export function readBodyWeightKg(obs: Observation): number | null {
+  const q = observationQuantity(obs);
+  if (!q) return null;
+  const unit = q.unit.toLowerCase();
+  const kg = unit === "[lb_av]" || unit.startsWith("lb") ? q.value * 0.453592 : q.value;
+  return Math.round(kg * 10) / 10;
 }
 
 /**

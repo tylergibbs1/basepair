@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { formatDob } from "@/lib/alerts/types"
 
 /**
  * The wrong-patient guard: a patient-identity confirm shown before ENACT.
@@ -34,6 +35,7 @@ export function EnactConfirmDialog({
   kind,
   patientName,
   patientMrn,
+  patientDob,
   actionText,
   confirmLabel,
   onConfirm,
@@ -44,6 +46,9 @@ export function EnactConfirmDialog({
   kind: "switch" | "notify"
   patientName: string
   patientMrn: string
+  /** ISO 8601 date of birth, the second identifier for the wrong-patient check.
+   *  Omitted from the block when absent — never shown as "Invalid Date". */
+  patientDob?: string
   /** Plain-language sentence of what enact will do (built by the caller). */
   actionText: string
   /** The confirm button label, mirroring the enact button that opened this. */
@@ -52,6 +57,9 @@ export function EnactConfirmDialog({
 }) {
   const title =
     kind === "switch" ? "Confirm substitution" : "Confirm prescriber notification"
+  // A second identifier alongside the MRN: the wrong-patient guard is stronger
+  // when name + MRN + DOB agree. Degrades to nothing when no DOB is on file.
+  const dob = formatDob(patientDob)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,6 +77,11 @@ export function EnactConfirmDialog({
             <span className="font-mono text-xs tabular-nums text-muted-foreground">
               {patientMrn}
             </span>
+            {dob && (
+              <span className="text-xs tabular-nums text-muted-foreground">
+                DOB {dob}
+              </span>
+            )}
           </div>
         </div>
         <DialogFooter>

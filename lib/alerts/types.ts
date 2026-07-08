@@ -45,6 +45,20 @@ export interface Alert {
   id: string
   patientName: string
   patientMrn: string
+  /**
+   * ISO 8601 date of birth (`YYYY-MM-DD`), the second patient identifier on the
+   * enact confirm's wrong-patient guard. Sourced from `Patient.birthDate`;
+   * absent when the record carries none (the DOB line is then omitted, never
+   * rendered as "Invalid Date").
+   */
+  patientDob?: string
+  /**
+   * Compact clinical context for the pharmacist's pre-action read — allergies,
+   * renal function, body weight (the active-drug complexity signal stays on
+   * `pgxDrugCount`). Every field is independently optional and populated only
+   * from what Medplum returned, so a missing resource never drops the alert.
+   */
+  patientContext?: PatientContext
   gene: string
   /** Star-allele diplotype, e.g. "*2/*2". Render in font-mono. */
   diplotype: string
@@ -89,6 +103,30 @@ export interface Alert {
   /** ISO 8601 timestamp of when the alert fired. */
   firedAt: string
   status: "pending"
+}
+
+/**
+ * Compact clinical context read from the patient's chart at load time, the facts
+ * a pharmacist checks before acting on a PGx alert. Neutral chrome in the UI —
+ * clinical color stays reserved for severity. Every field is optional and
+ * degrades independently: a field is present only when Medplum returned it, so a
+ * missing resource shows nothing rather than a blank or a guess.
+ */
+export interface PatientContext {
+  /**
+   * Named allergies/intolerances on file. An EMPTY array is meaningful: it marks
+   * an explicit FHIR "no known allergies" record — distinct from `undefined`,
+   * which means no allergy data was recorded at all.
+   */
+  allergies?: string[]
+  /**
+   * Renal function: the most recent eGFR (preferred) or serum creatinine.
+   * `label` names which ("eGFR" / "Creatinine") so the number is never
+   * ambiguous; `value` is numeric and `unit` is the recorded UCUM unit.
+   */
+  renal?: { value: number; unit: string; label: string }
+  /** Most recent recorded body weight, kilograms. */
+  weightKg?: number
 }
 
 /**
@@ -181,5 +219,24 @@ export function formatFiredAtAbsolute(iso: string): string {
   return new Date(iso).toLocaleString("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
+  })
+}
+
+/**
+ * A FHIR `birthDate` (`YYYY-MM-DD`) as a compact, unambiguous date like
+ * "12 Mar 1961" — the second patient identifier on the enact confirm. Returns
+ * `null` for a missing or unparseable value so the caller omits the DOB line
+ * entirely rather than ever rendering "Invalid Date". Formatted in UTC so a
+ * date-only value never slips a day across the viewer's timezone.
+ */
+export function formatDob(iso: string | undefined): string | null {
+  if (!iso) return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
   })
 }

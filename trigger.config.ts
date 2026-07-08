@@ -8,6 +8,8 @@ export default defineConfig({
     // Push the Medplum creds + the Anthropic key (for the AI verify step) to the
     // Trigger environment at deploy time so the deployed task can reach the FHIR
     // store and the model. BASEPAIR_MODEL is optional (defaults in verify.ts).
+    // UPSTASH_* are optional too — the terminology cache (normalizeDrug, #26)
+    // falls back to an in-process map when they're unset.
     extensions: [
       syncEnvVars(async () =>
         [
@@ -16,6 +18,8 @@ export default defineConfig({
           "MEDPLUM_CLIENT_SECRET",
           "ANTHROPIC_API_KEY",
           "BASEPAIR_MODEL",
+          "UPSTASH_REDIS_REST_URL",
+          "UPSTASH_REDIS_REST_TOKEN",
         ]
           .filter((name) => process.env[name])
           .map((name) => ({ name, value: process.env[name]! })),

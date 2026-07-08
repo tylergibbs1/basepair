@@ -8,9 +8,21 @@ import type {
   MedicationRequest,
   Communication,
   CodeableConcept,
+  Coding,
   Task,
   Reference,
   Patient,
+  Practitioner,
+  PractitionerRole,
+  Organization,
+  Device,
+  AuditEvent,
+  AuditEventAgent,
+  AuditEventEntity,
+  Provenance,
+  ProvenanceAgent,
+  ProvenanceEntity,
+  Resource,
 } from "@medplum/fhirtypes";
 import type { RecommendedAlternative } from "@/lib/cpic-catalog";
 import type { DecisionPath } from "@/lib/alerts/types";
@@ -350,6 +362,17 @@ export const SUBSTITUTE_ORDER_SYSTEM =
   "https://basepair.health/fhir/enactment-substitute";
 
 /**
+ * Identifier system carrying the Trigger.dev wait-token id on a pharmacist
+ * Task (issue #21). trigger/evaluate-order.ts stamps it after creating the
+ * durable approval waitpoint; the console's approve/dismiss/enact server
+ * actions read it back to complete the token and resume the paused run.
+ * Absent on Tasks that predate the token path and on population-sweep alerts
+ * (a batch sweep cannot pause per alert), which fall back to the synchronous
+ * mutation path.
+ */
+export const WAIT_TOKEN_SYSTEM = "https://basepair.health/fhir/wait-token";
+
+/**
  * Business-status marker stamped on a Task when its recommendation is *enacted*
  * (issue #2), distinct from a plain approve. Rides on `Task.businessStatus`, so
  * it never touches `Task.status` — the existing metrics/audit reads
@@ -439,3 +462,318 @@ export function buildTask(
     ...(authoredOn ? { authoredOn } : {}),
   };
 }
+
+// ---------------------------------------------------------------------------
+// FHIR-native provenance (issue #22): AuditEvent + Provenance builders.
+//
+// Every lifecycle transition of an alert — the evaluation decision, an approve,
+// a dismiss, an enact/write-back — is recorded as BOTH a FHIR R4 `AuditEvent`
+// (the security/action log: who did what, when, to which resources) and a FHIR
+// R4 `Provenance` (the reproduce-the-decision record: which source Observation,
+// which phenotype derivation, which CPIC rule + citation, which verifier verdict
+// + cited sentence, which approver). These are the authoritative audit trail;
+// the DetectedIssue's `pgx-alert` extension stays a denormalized fast-read copy.
+//
+// The builders are PURE (no I/O). The thin write helper that persists them and
+// swallows failures is `writeAlertProvenance` in lib/alerts/provenance.ts.
+// ---------------------------------------------------------------------------
+
+const DCM = "http://dicom.nema.org/resources/ontology/DCM";
+const V3_DATA_OPERATION =
+  "http://terminology.hl7.org/CodeSystem/v3-DataOperation";
+const V3_PARTICIPATION_TYPE =
+  "http://terminology.hl7.org/CodeSystem/v3-ParticipationType";
+const PROVENANCE_PARTICIPANT_TYPE =
+  "http://terminology.hl7.org/CodeSystem/provenance-participant-type";
+const AUDIT_ENTITY_TYPE =
+  "http://terminology.hl7.org/CodeSystem/audit-entity-type";
+const AUDIT_ENTITY_ROLE =
+  "http://terminology.hl7.org/CodeSystem/object-role";
+const AUDIT_SOURCE_TYPE =
+  "http://terminology.hl7.org/CodeSystem/security-source-type";
+
+/** Basepair lifecycle code stamped on AuditEvent.subtype, Provenance.activity
+ *  text, and the Provenance reproduce-record so every transition is queryable
+ *  and cross-referenceable. */
+export const PGX_AUDIT_LIFECYCLE_SYSTEM =
+  "https://basepair.health/fhir/pgx-audit-lifecycle";
+
+/** The lifecycle transitions we record provenance for. */
+export type AuditLifecycle =
+  | "evaluation-flagged"
+  | "evaluation-cleared"
+  | "approve"
+  | "dismiss"
+  | "reopen"
+  | "enact"
+  | "unenact";
+
+const LIFECYCLE_DISPLAY: Record<AuditLifecycle, string> = {
+  "evaluation-flagged": "PGx evaluation — alert raised",
+  "evaluation-cleared": "PGx evaluation — considered and cleared",
+  approve: "Alert approved by pharmacist",
+  dismiss: "Alert dismissed by pharmacist",
+  reopen: "Alert reopened by pharmacist",
+  enact: "Recommendation enacted (written back)",
+  unenact: "Enactment reversed (undo)",
+};
+
+/** AuditEvent.action per transition (C reate / R ead / U pdate / D elete / E xecute). */
+const AUDIT_ACTION: Record<AuditLifecycle, "C" | "R" | "U" | "D" | "E"> = {
+  "evaluation-flagged": "C",
+  "evaluation-cleared": "C",
+  approve: "U",
+  dismiss: "U",
+  reopen: "U",
+  enact: "C",
+  unenact: "D",
+};
+
+/** Provenance.activity (v3-DataOperation) per transition. */
+const PROVENANCE_ACTIVITY: Record<
+  AuditLifecycle,
+  { code: string; display: string }
+> = {
+  "evaluation-flagged": { code: "CREATE", display: "create" },
+  "evaluation-cleared": { code: "CREATE", display: "create" },
+  approve: { code: "UPDATE", display: "revise" },
+  dismiss: { code: "UPDATE", display: "revise" },
+  reopen: { code: "UPDATE", display: "revise" },
+  enact: { code: "CREATE", display: "create" },
+  unenact: { code: "DELETE", display: "delete" },
+};
+
+/** Provenance.agent.type (provenance-participant-type) per transition: the
+ *  evaluation engine authors the recommendation; the pharmacist verifies it
+ *  (approve/dismiss) or performs its write-back (enact). */
+const PROVENANCE_AGENT_TYPE: Record<
+  AuditLifecycle,
+  { code: string; display: string }
+> = {
+  "evaluation-flagged": { code: "author", display: "Author" },
+  "evaluation-cleared": { code: "author", display: "Author" },
+  approve: { code: "verifier", display: "Verifier" },
+  dismiss: { code: "verifier", display: "Verifier" },
+  reopen: { code: "verifier", display: "Verifier" },
+  enact: { code: "performer", display: "Performer" },
+  unenact: { code: "performer", display: "Performer" },
+};
+
+/** Structured, reproduce-the-decision payload URL carried on the Provenance so
+ *  the full trail survives even for a reader that can't resolve every reference:
+ *  rule + citation, verifier verdict + cited sentence, phenotype derivation path,
+ *  decision path, timestamp. Mirrors the DetectedIssue's pgx-alert extension. */
+export const PGX_PROVENANCE_EXTENSION_URL =
+  "https://basepair.health/fhir/StructureDefinition/pgx-provenance";
+
+/** Who performed a transition. `system` = the Basepair evaluation engine;
+ *  `pharmacist` = the reviewing pharmacist at the console. `who` is an optional
+ *  FHIR reference to the real actor (a Practitioner); the demo identifies the
+ *  actor by name and the #21 agent can thread a real reference through later. */
+export type AuditAgentInput = {
+  kind: "system" | "pharmacist";
+  /** Human-meaningful name for the actor. */
+  name: string;
+  /** Optional reference to the actor resource; display-only refs are allowed. */
+  who?: Reference<Practitioner | PractitionerRole | Organization | Device>;
+};
+
+/** One `AuditEvent.entity` — an object touched by the event (a source
+ *  Observation, the produced DetectedIssue/Task, or a tagged key/value bag for
+ *  the rule citation / verifier verdict / cited sentence). */
+export type AuditEntityInput = {
+  what?: Reference<Resource>;
+  type?: Coding;
+  role?: Coding;
+  name?: string;
+  description?: string;
+  detail?: { type: string; valueString: string }[];
+};
+
+/** One `Provenance.entity` — a resource used to produce the recommendation, with
+ *  the PROV role that describes how it was used (a genotype Observation is a
+ *  `source`; a phenotype Observation `derivation` from it). */
+export type ProvenanceEntityInput = {
+  role: ProvenanceEntity["role"];
+  what: Reference<Resource>;
+};
+
+function buildAuditAgent(agent: AuditAgentInput): AuditEventAgent {
+  const type: CodeableConcept =
+    agent.kind === "pharmacist"
+      ? {
+          coding: [
+            {
+              system: V3_PARTICIPATION_TYPE,
+              code: "AUT",
+              display: "author (originator)",
+            },
+          ],
+        }
+      : { coding: [{ system: DCM, code: "110150", display: "Application" }] };
+  return {
+    type,
+    ...(agent.who ? { who: agent.who } : {}),
+    name: agent.name,
+    // The pharmacist is the requestor of an approve/dismiss/enact; the engine
+    // runs unattended, so it is not the requestor of its own evaluation.
+    requestor: agent.kind === "pharmacist",
+  };
+}
+
+function buildProvenanceAgent(
+  lifecycle: AuditLifecycle,
+  agent: AuditAgentInput,
+): ProvenanceAgent {
+  const t = PROVENANCE_AGENT_TYPE[lifecycle];
+  return {
+    type: {
+      coding: [
+        { system: PROVENANCE_PARTICIPANT_TYPE, code: t.code, display: t.display },
+      ],
+    },
+    // Provenance.agent.who is required; fall back to a display-only reference
+    // when we don't (yet) have a Practitioner resource for the actor.
+    who: agent.who ?? { display: agent.name },
+  };
+}
+
+function toAuditEntity(e: AuditEntityInput): AuditEventEntity {
+  return {
+    ...(e.what ? { what: e.what } : {}),
+    ...(e.type ? { type: e.type } : {}),
+    ...(e.role ? { role: e.role } : {}),
+    ...(e.name ? { name: e.name } : {}),
+    ...(e.description ? { description: e.description } : {}),
+    ...(e.detail?.length ? { detail: e.detail } : {}),
+  };
+}
+
+/**
+ * A FHIR R4 `AuditEvent` for one alert lifecycle transition. `type` is the
+ * DICOM "Application Activity" standard; `subtype` carries the Basepair
+ * lifecycle code; `agent` is the pharmacist or the evaluation engine; `entity`
+ * lists the resources touched (patient, source Observations, produced
+ * DetectedIssue/Task/Communication) plus tagged detail for the rule + verdict.
+ */
+export function buildAuditEvent(input: {
+  lifecycle: AuditLifecycle;
+  agent: AuditAgentInput;
+  patient?: Reference<Patient>;
+  entities?: AuditEntityInput[];
+  recorded?: string;
+  outcomeDesc?: string;
+}): AuditEvent {
+  const recorded = input.recorded ?? new Date().toISOString();
+  const entities: AuditEventEntity[] = [];
+  if (input.patient) {
+    entities.push({
+      what: input.patient,
+      type: { system: AUDIT_ENTITY_TYPE, code: "1", display: "Person" },
+      role: { system: AUDIT_ENTITY_ROLE, code: "1", display: "Patient" },
+    });
+  }
+  for (const e of input.entities ?? []) entities.push(toAuditEntity(e));
+  return {
+    resourceType: "AuditEvent",
+    type: { system: DCM, code: "110100", display: "Application Activity" },
+    subtype: [
+      {
+        system: PGX_AUDIT_LIFECYCLE_SYSTEM,
+        code: input.lifecycle,
+        display: LIFECYCLE_DISPLAY[input.lifecycle],
+      },
+    ],
+    action: AUDIT_ACTION[input.lifecycle],
+    recorded,
+    // "0" = Success in the AuditEvent outcome value set.
+    outcome: "0",
+    ...(input.outcomeDesc ? { outcomeDesc: input.outcomeDesc } : {}),
+    agent: [buildAuditAgent(input.agent)],
+    source: {
+      site: "Basepair",
+      observer: { display: "Basepair Pharmacogenomics CDS" },
+      type: [
+        { system: AUDIT_SOURCE_TYPE, code: "4", display: "Application Server" },
+      ],
+    },
+    ...(entities.length ? { entity: entities } : {}),
+  };
+}
+
+/**
+ * A FHIR R4 `Provenance` for one alert lifecycle transition. `target` is the
+ * recommendation resource(s) this activity produced/updated (DetectedIssue,
+ * Task, Communication, substitute MedicationRequest); `entity` links the source
+ * genotype Observation (`source`) and the phenotype Observation derived from it
+ * (`derivation`); `agent` is the approver/engine; and the `pgx-provenance`
+ * extension carries the full reproduce-the-decision record (rule + citation,
+ * verifier verdict + cited sentence, decision path).
+ */
+export function buildProvenance(input: {
+  lifecycle: AuditLifecycle;
+  targets: Reference<Resource>[];
+  agent: AuditAgentInput;
+  entities?: ProvenanceEntityInput[];
+  record?: Record<string, unknown>;
+  recorded?: string;
+}): Provenance {
+  const recorded = input.recorded ?? new Date().toISOString();
+  const activity = PROVENANCE_ACTIVITY[input.lifecycle];
+  return {
+    resourceType: "Provenance",
+    target: input.targets,
+    recorded,
+    occurredDateTime: recorded,
+    activity: {
+      coding: [
+        { system: V3_DATA_OPERATION, code: activity.code, display: activity.display },
+      ],
+      text: LIFECYCLE_DISPLAY[input.lifecycle],
+    },
+    agent: [buildProvenanceAgent(input.lifecycle, input.agent)],
+    ...(input.entities?.length
+      ? { entity: input.entities.map((e) => ({ role: e.role, what: e.what })) }
+      : {}),
+    ...(input.record
+      ? {
+          extension: [
+            {
+              url: PGX_PROVENANCE_EXTENSION_URL,
+              valueString: JSON.stringify(input.record),
+            },
+          ],
+        }
+      : {}),
+  };
+}
+
+/** Read the lifecycle stamped on a Provenance's reproduce-record extension.
+ *  Returns undefined for a Provenance not written by Basepair (or unparseable). */
+export function provenanceLifecycle(
+  provenance: Provenance,
+): AuditLifecycle | undefined {
+  const raw = provenance.extension?.find(
+    (ext) => ext.url === PGX_PROVENANCE_EXTENSION_URL,
+  )?.valueString;
+  if (!raw) return undefined;
+  try {
+    const record = JSON.parse(raw) as { lifecycle?: AuditLifecycle };
+    return record.lifecycle;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Coding for an AuditEvent.entity that is a FHIR domain resource (a produced
+ *  DetectedIssue/Task/Communication, or a source Observation). */
+export const AUDIT_ENTITY_RESOURCE_TYPE: Coding = {
+  system: AUDIT_ENTITY_TYPE,
+  code: "2",
+  display: "System Object",
+};
+export const AUDIT_ENTITY_RESOURCE_ROLE: Coding = {
+  system: AUDIT_ENTITY_ROLE,
+  code: "4",
+  display: "Domain Resource",
+};

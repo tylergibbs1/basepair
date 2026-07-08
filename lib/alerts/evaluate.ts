@@ -17,8 +17,10 @@ import {
   buildConsideredIssue,
   buildTask,
 } from "@/lib/medplum/fhir";
+import { writeAlertProvenance, ENGINE_AGENT } from "@/lib/alerts/provenance";
 import { citeAndVerify } from "@/lib/ai/verify";
 import { decideWithAgent } from "@/lib/ai/evaluate-agent";
+import { normalizeDrug } from "@/lib/ai/parse/drug";
 import type { DecisionPath } from "@/lib/alerts/types";
 
 /**
@@ -63,8 +65,37 @@ export type EvalProvenance =
   | { foundBy: "order"; orderedBy: string }
   | { foundBy: "sweep"; orderedBy: string; sweptAt: string };
 
+/**
+ * A single resolved finding streamed as the evaluation runs — the console
+ * renders these as a live feed of what Basepair actually found (genotype read,
+ * phenotype derived, drug normalized, CPIC rule matched, agent cross-check,
+ * guideline verified), rather than a fixed set of phase labels. Each is a
+ * completed fact; `kind` is a stable key, `label` is the short heading, `detail`
+ * is the one-line evidence.
+ */
+export type EvalEvent = {
+  kind:
+    | "genetics"
+    | "phenotype"
+    | "drug"
+    | "cpic"
+    | "cross-check"
+    | "verify";
+  label: string;
+  detail: string;
+};
+
 export type EvaluateAndWriteInput = {
-  /** An authenticated Medplum client (the caller owns login/memoization). */
+  /**
+   * An authenticated Medplum client (the caller owns login/memoization). The
+   * trigger tasks resolve this PER TENANT from the payload's tenantId via
+   * createMedplumClient(tenantId). It stays an explicit param — not ai@7
+   * contextSchema/toolsContext injection — because no agent tool performs
+   * Medplum I/O: all FHIR reads/writes happen in this deterministic shell, and
+   * the agent loop (decideWithAgent) only sees the CPIC catalog tools. If a
+   * tool ever needs FHIR access, give it a contextSchema and pass the client
+   * via toolsContext at the generateText call instead of widening this shell.
+   */
   medplum: MedplumClient;
   /** FHIR reference, e.g. "Patient/<id>". */
   patientRef: string;
@@ -92,6 +123,12 @@ export type EvaluateAndWriteInput = {
   writeClearedRecord?: boolean;
   /** Optional phase reporter, e.g. evaluate-order streams it as run metadata. */
   onPhase?: (phase: string) => Promise<void> | void;
+  /**
+   * Optional per-finding reporter. evaluate-order appends each to the run
+   * metadata so the console can stream a live "what Basepair found" feed. Emits
+   * a completed fact at each stage; never affects the clinical result.
+   */
+  onEvent?: (event: EvalEvent) => Promise<void> | void;
 };
 
 /** Discriminated result: a flag (with its written resource ids) or a no-alert. */
@@ -132,6 +169,41 @@ const geneOf = (o: Observation): string | undefined =>
   o.component
     ?.find((c) => c.code?.coding?.some((x) => x.code === "48018-6"))
     ?.valueCodeableConcept?.coding?.[0]?.display;
+
+/**
+ * The genotype + phenotype Observation references for a gene, for FHIR-native
+ * provenance (issue #22): the genotype is the recommendation's source, the coded
+ * phenotype (when present) is its derivation. `phenotypeSource` records whether
+ * the phenotype was read from a coded Observation or derived from the diplotype.
+ */
+function sourceObservations(
+  obs: Observation[],
+  gene: string,
+): {
+  genotype?: Reference<Observation>;
+  phenotype?: Reference<Observation>;
+  phenotypeSource: "coded" | "derived-from-diplotype";
+} {
+  let genotype: Reference<Observation> | undefined;
+  let phenotype: Reference<Observation> | undefined;
+  for (const o of obs) {
+    if (!o.id) continue;
+    const codes = o.code?.coding?.map((c) => c.code) ?? [];
+    if (
+      codes.includes("84413-4") &&
+      (o.valueCodeableConcept?.text ?? "").startsWith(`${gene} `)
+    ) {
+      genotype = { reference: `Observation/${o.id}` };
+    } else if (codes.includes("53040-2") && geneOf(o) === gene) {
+      phenotype = { reference: `Observation/${o.id}` };
+    }
+  }
+  return {
+    genotype,
+    phenotype,
+    phenotypeSource: phenotype ? "coded" : "derived-from-diplotype",
+  };
+}
 
 /**
  * Read every gene result on the chart into { gene → {diplotype, phenotype} }.
@@ -201,6 +273,7 @@ export async function evaluateAndWrite(
 ): Promise<EvaluateResult> {
   const { medplum, patientRef, drug, orderId, provenance } = input;
   const writeClearedRecord = input.writeClearedRecord ?? true;
+  const emit = (event: EvalEvent) => input.onEvent?.(event);
 
   await input.onPhase?.("reading-genetics");
 
@@ -216,14 +289,58 @@ export async function evaluateAndWrite(
   const genePhenotypes: Record<string, string> = {};
   for (const r of readings) genePhenotypes[r.gene] = r.phenotype;
 
+  // Surface the notable reading (the abnormal gene drives the alert; a co-tested
+  // normal gene is context) as the first two feed findings.
+  const notable =
+    readings.find((r) => !/normal|indeterminate/i.test(r.phenotype)) ??
+    readings[0];
+  await emit({
+    kind: "genetics",
+    label: "Read genetics",
+    detail: `${notable.gene} ${notable.diplotype}`.trim(),
+  });
+  await emit({ kind: "phenotype", label: "Phenotype", detail: notable.phenotype });
+
+  await input.onPhase?.("normalizing-drug");
+  // Resolve the raw order string to a canonical RxNorm identifier + ATC class
+  // via the NLM RxNorm/RxClass API, so the CPIC lookup keys on a normalized
+  // name (brand → ingredient, e.g. "Plavix" → "clopidogrel") rather than the
+  // messy order text. normalizeDrug never throws: on any RxNav outage it degrades
+  // to the offline static alias map + raw string, so the evaluation continues.
+  const normalized = await normalizeDrug(drug);
+  const lookupDrug = normalized.name;
+  await emit({
+    kind: "drug",
+    label: "Normalized drug",
+    detail: normalized.rxcui
+      ? `${normalized.name} · RxCUI ${normalized.rxcui}`
+      : normalized.name,
+  });
+
   await input.onPhase?.("matching-cpic");
   // The CPIC decision runs as an agent loop over cpicTools: the model drives
   // resolve→lookup through the tools, but decideWithAgent cross-checks the
   // agent's result against the deterministic engine and returns the authoritative
   // (deterministic) rule — the model can never move the published-rule decision.
-  // `path` records whether the agent agreed, surfaced in the Audit view.
-  const decision = await decideWithAgent(drug, readings, genePhenotypes);
+  // `path` records whether the agent agreed, surfaced in the Audit view. Keyed on
+  // the RxNorm-normalized name; lookupRule still applies the alias map internally.
+  const decision = await decideWithAgent(lookupDrug, readings, genePhenotypes);
   const rule = decision.rule;
+  await emit({
+    kind: "cpic",
+    label: rule.applies ? "Matched CPIC guidance" : "CPIC guidance",
+    detail: rule.applies ? rule.recommendation : "No applicable rule",
+  });
+  await emit({
+    kind: "cross-check",
+    label: "Agent cross-check",
+    detail:
+      decision.path === "agent"
+        ? "Agent agreed with the engine"
+        : decision.path === "agent-mismatch"
+          ? "Agent mismatch — engine authoritative"
+          : "Deterministic engine (agent fallback)",
+  });
 
   const patient: Reference<Patient> = { reference: patientRef };
   const orderTag = orderId
@@ -270,6 +387,18 @@ export async function evaluateAndWrite(
       ? await medplum.createResourceIfNoneExist(clearedResource, clearedQuery)
       : await medplum.createResource(clearedResource);
 
+    // FHIR-native provenance for the considered-and-cleared decision (#22).
+    // Best-effort: never blocks the clinical result.
+    await writeAlertProvenance(medplum, {
+      lifecycle: "evaluation-cleared",
+      targets: [{ reference: `DetectedIssue/${clearedIssue.id}` }],
+      agent: ENGINE_AGENT,
+      patient,
+      decisionPath: decision.path,
+      extra: { drug, reason: rule.reason, genePhenotypes },
+      idempotent: true,
+    });
+
     return {
       alert: false,
       reason: rule.reason,
@@ -310,6 +439,16 @@ export async function evaluateAndWrite(
     verification?.citedSentence?.trim() ||
     rule.guidelineText.match(/^[^.]*\./)?.[0]?.trim() ||
     rule.guidelineText;
+  await emit({
+    kind: "verify",
+    label:
+      verification == null
+        ? "Verifier unavailable"
+        : verification.verified
+          ? "Verified against guideline"
+          : "Verifier flagged for review",
+    detail: citedSentence,
+  });
 
   // Write the alert as a DetectedIssue + a pharmacist Task. Both writes are
   // idempotent on the order id (when present): a retry OR a re-run sweep that
@@ -375,6 +514,43 @@ export async function evaluateAndWrite(
         ),
     );
   }
+
+  // FHIR-native provenance for the flag (#22): links the recommendation
+  // (DetectedIssue + Task) to (a) the source genotype Observation, (b) the
+  // phenotype derivation, (c) the matched CPIC rule + citation, (d) the verifier
+  // verdict + cited sentence. Best-effort: never blocks the clinical write.
+  const src = sourceObservations(observations, primary.gene);
+  await writeAlertProvenance(medplum, {
+    lifecycle: "evaluation-flagged",
+    targets: [
+      { reference: `DetectedIssue/${detectedIssue.id}` },
+      { reference: `Task/${pharmacistTask.id}` },
+    ],
+    agent: ENGINE_AGENT,
+    patient,
+    genotypeObservation: src.genotype,
+    phenotypeObservation: src.phenotype,
+    phenotypeSource: src.phenotypeSource,
+    citation: rule.citation,
+    citedSentence,
+    verifierVerdict: verification
+      ? verification.verified
+        ? "pass"
+        : "fail"
+      : "unverified",
+    verifierModel: verification?.model,
+    verifierRationale: verification?.rationale,
+    decisionPath: decision.path,
+    extra: {
+      drug: rule.drug,
+      gene: primary.gene,
+      diplotype: primary.diplotype,
+      phenotype: primary.phenotype,
+      severity: rule.severity,
+      foundBy: provenance.foundBy,
+    },
+    idempotent: true,
+  });
 
   return {
     alert: true,

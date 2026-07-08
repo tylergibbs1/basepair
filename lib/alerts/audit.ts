@@ -1,6 +1,16 @@
-import type { DetectedIssue, Patient } from "@medplum/fhirtypes"
+import type {
+  DetectedIssue,
+  Patient,
+  Provenance,
+} from "@medplum/fhirtypes"
+import type { MedplumClient } from "@medplum/core"
 
 import { createMedplumClient } from "@/lib/medplum/client"
+import {
+  provenanceLifecycle,
+  PGX_AUDIT_LIFECYCLE_SYSTEM,
+  type AuditLifecycle,
+} from "@/lib/medplum/fhir"
 import type { Alert, DecisionPath, SignalStats } from "@/lib/alerts/types"
 import { isCleared, isEnacted, parsePgxAlert, patientName } from "@/lib/alerts/pgx"
 
@@ -14,8 +24,22 @@ import { isCleared, isEnacted, parsePgxAlert, patientName } from "@/lib/alerts/p
  * - "approved": a flagged alert a pharmacist accepted (Task status "completed").
  * - "dismissed": a flagged alert a pharmacist dismissed (Task status "cancelled").
  */
+/**
+ * FHIR-native provenance references (issue #22), attached by cross-checking the
+ * authoritative `AuditEvent` + `Provenance` written at each transition. Present
+ * when the FHIR trail for this entry was found; absent on records written before
+ * provenance emission existed (the DetectedIssue/Task extension still renders the
+ * row, so the console degrades gracefully).
+ */
+export type FhirProvenance = {
+  /** The Provenance resource id recording this transition. */
+  provenanceId?: string
+  /** The AuditEvent resource id recording this transition. */
+  auditEventId?: string
+}
+
 export type AuditEntry =
-  | {
+  | ({
       kind: "cleared"
       id: string
       patientName: string
@@ -27,8 +51,8 @@ export type AuditEntry =
       decisionPath?: DecisionPath
       /** ISO 8601 timestamp of when the record was written. */
       at: string
-    }
-  | {
+    } & FhirProvenance)
+  | ({
       kind: "approved" | "dismissed"
       id: string
       patientName: string
@@ -44,7 +68,7 @@ export type AuditEntry =
       enacted?: boolean
       /** ISO 8601 timestamp of when the pharmacist triaged the alert. */
       at: string
-    }
+    } & FhirProvenance)
 
 const MAX_ENTRIES = 100
 
@@ -56,6 +80,99 @@ function resourceTimestamp(resource: {
 }
 
 /**
+ * The FHIR-native audit trail (issue #22): the authoritative `AuditEvent` +
+ * `Provenance` resources, indexed so a row from a DetectedIssue/Task can be
+ * cross-checked against them. Key is `${targetReference}|${lifecycle}` (a
+ * resource passes through several transitions — evaluation, approve, enact — so
+ * the lifecycle disambiguates which one this row is).
+ *
+ * The DetectedIssue extension remains the fast console read; this makes the FHIR
+ * resources the authoritative trail — a matched entry takes its timestamp from
+ * the Provenance and carries the provenance/audit ids for a drill-down.
+ */
+type FhirAuditIndex = {
+  provenanceByKey: Map<string, { id?: string; recorded: string }>
+  auditEventByKey: Map<string, string>
+}
+
+/** Read the lifecycle code off an AuditEvent's Basepair subtype. */
+function auditEventLifecycle(subtype?: { system?: string; code?: string }[]):
+  | AuditLifecycle
+  | undefined {
+  return subtype?.find((s) => s.system === PGX_AUDIT_LIFECYCLE_SYSTEM)?.code as
+    | AuditLifecycle
+    | undefined
+}
+
+/**
+ * Load and index the FHIR audit resources. Best-effort: if the search fails (or
+ * a project has none yet), returns empty indexes so the audit view still renders
+ * off the DetectedIssue/Task extension. Never throws.
+ */
+async function loadFhirAuditIndex(
+  medplum: MedplumClient,
+): Promise<FhirAuditIndex> {
+  const provenanceByKey = new Map<string, { id?: string; recorded: string }>()
+  const auditEventByKey = new Map<string, string>()
+  try {
+    const [provenances, auditEvents] = await Promise.all([
+      medplum.searchResources("Provenance", {
+        _count: STATS_LIMIT,
+        _sort: "-_lastUpdated",
+      }),
+      medplum.searchResources("AuditEvent", {
+        _count: STATS_LIMIT,
+        _sort: "-_lastUpdated",
+      }),
+    ])
+
+    for (const p of provenances as Provenance[]) {
+      const lifecycle = provenanceLifecycle(p)
+      if (!lifecycle) continue
+      const recorded = p.recorded ?? resourceTimestamp(p)
+      for (const t of p.target ?? []) {
+        if (!t.reference) continue
+        const key = `${t.reference}|${lifecycle}`
+        // Newest-first sort means the first write per key is the latest.
+        if (!provenanceByKey.has(key)) provenanceByKey.set(key, { id: p.id, recorded })
+      }
+    }
+
+    for (const a of auditEvents) {
+      const lifecycle = auditEventLifecycle(a.subtype)
+      if (!lifecycle || !a.id) continue
+      for (const e of a.entity ?? []) {
+        const ref = e.what?.reference
+        if (!ref) continue
+        const key = `${ref}|${lifecycle}`
+        if (!auditEventByKey.has(key)) auditEventByKey.set(key, a.id)
+      }
+    }
+  } catch (err) {
+    console.error("loadFhirAuditIndex failed (non-fatal)", err)
+  }
+  return { provenanceByKey, auditEventByKey }
+}
+
+/** Look up the FHIR provenance for one transition and produce the fields to
+ *  merge onto an audit row: the resource ids plus the authoritative recorded
+ *  timestamp (falling back to the caller's when the FHIR trail is absent). */
+function fhirRefsFor(
+  index: FhirAuditIndex,
+  targetRef: string,
+  lifecycle: AuditLifecycle,
+  fallbackAt: string,
+): FhirProvenance & { at: string } {
+  const key = `${targetRef}|${lifecycle}`
+  const prov = index.provenanceByKey.get(key)
+  return {
+    provenanceId: prov?.id,
+    auditEventId: index.auditEventByKey.get(key),
+    at: prov?.recorded ?? fallbackAt,
+  }
+}
+
+/**
  * Load the audit trail from Medplum: considered-and-cleared DetectedIssues plus
  * the approve/dismiss history from triaged Tasks, unified and sorted
  * most-recent-first. Server-only, never import into a client component.
@@ -63,9 +180,11 @@ function resourceTimestamp(resource: {
 export async function getAuditEntries(): Promise<AuditEntry[]> {
   const medplum = await createMedplumClient()
 
-  // Cleared records (DetectedIssues with status "mitigated", no Task) and
-  // triaged Tasks (completed = approved, cancelled = dismissed) in parallel.
-  const [clearedIssues, triagedTasks] = await Promise.all([
+  // Cleared records (DetectedIssues with status "mitigated", no Task), triaged
+  // Tasks (completed = approved, cancelled = dismissed), and the FHIR-native
+  // audit trail (AuditEvent + Provenance) to cross-check against — all in
+  // parallel. The FHIR trail is authoritative; the extension is the fast read.
+  const [clearedIssues, triagedTasks, fhirIndex] = await Promise.all([
     medplum.searchResources("DetectedIssue", {
       status: "mitigated",
       _count: MAX_ENTRIES,
@@ -74,6 +193,7 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
       status: "completed,cancelled",
       _count: MAX_ENTRIES,
     }),
+    loadFhirAuditIndex(medplum),
   ])
 
   const entries: AuditEntry[] = []
@@ -94,6 +214,14 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
     // first as a representative in the Gene/Phenotype column.
     const [gene, phenotype] = Object.entries(pgx.genePhenotypes)[0] ?? []
 
+    // Cross-check against the FHIR trail: authoritative timestamp + ids.
+    const fhir = fhirRefsFor(
+      fhirIndex,
+      `DetectedIssue/${issue.id}`,
+      "evaluation-cleared",
+      resourceTimestamp(issue),
+    )
+
     entries.push({
       kind: "cleared",
       id: issue.id,
@@ -103,7 +231,9 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
       phenotype,
       reason: pgx.reason,
       decisionPath: pgx.decisionPath,
-      at: resourceTimestamp(issue),
+      at: fhir.at,
+      provenanceId: fhir.provenanceId,
+      auditEventId: fhir.auditEventId,
     })
   }
 
@@ -125,6 +255,18 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
     // else (a cleared focus would be a data anomaly).
     if (!pgx || isCleared(pgx)) continue
 
+    const enacted = task.status === "completed" ? isEnacted(task) : undefined
+    // The transition this row records: an enacted approve wrote back via "enact",
+    // a plain approve via "approve", a decline via "dismiss".
+    const lifecycle: AuditLifecycle =
+      task.status === "cancelled" ? "dismiss" : enacted ? "enact" : "approve"
+    const fhir = fhirRefsFor(
+      fhirIndex,
+      `Task/${task.id}`,
+      lifecycle,
+      task.lastModified ?? resourceTimestamp(task),
+    )
+
     entries.push({
       kind: task.status === "completed" ? "approved" : "dismissed",
       id: task.id,
@@ -134,8 +276,10 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
       phenotype: pgx.phenotype,
       severity: pgx.severity,
       decisionPath: pgx.decisionPath,
-      enacted: task.status === "completed" ? isEnacted(task) : undefined,
-      at: task.lastModified ?? resourceTimestamp(task),
+      enacted,
+      at: fhir.at,
+      provenanceId: fhir.provenanceId,
+      auditEventId: fhir.auditEventId,
     })
   }
 

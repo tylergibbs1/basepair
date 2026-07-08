@@ -20,10 +20,9 @@
  * against a guideline it did not write.
  */
 import { Output, generateText } from "ai";
-import { anthropic } from "@ai-sdk/anthropic";
 import { z } from "zod";
 
-export const DEFAULT_MODEL = "claude-opus-4-8";
+import { resolveModel, modelLabel } from "@/lib/ai/models";
 
 export const VerificationSchema = z.object({
   citedSentence: z
@@ -63,10 +62,9 @@ export type VerifyInput = {
 export async function citeAndVerify(
   input: VerifyInput,
 ): Promise<VerifiedResult> {
-  const model = process.env.BASEPAIR_MODEL ?? DEFAULT_MODEL;
-
+  // Verifier: Opus-tier — the trust gate, quality is the whole point.
   const { output } = await generateText({
-    model: anthropic(model),
+    model: resolveModel("opus"),
     output: Output.object({ schema: VerificationSchema }),
     // Context ordering: the source of truth first, the task last.
     prompt: `<guideline_text>
@@ -97,5 +95,5 @@ recommendation: "Avoid clopidogrel; use prasugrel or ticagrelor."
 </example>`,
   });
 
-  return { ...output, model };
+  return { ...output, model: modelLabel("opus") };
 }

@@ -96,6 +96,17 @@ const DRUG_ALIASES: Record<string, string> = {
 
 const norm = (s: string) => s.trim().toLowerCase();
 const normDrug = (d: string) => DRUG_ALIASES[norm(d)] ?? norm(d);
+
+/**
+ * The offline, hand-maintained order-string normalizer: lowercase/trim + the
+ * static {@link DRUG_ALIASES} map. This is the deterministic fallback used when
+ * the live RxNorm/RxClass resolution (lib/ai/parse/drug.ts) is unavailable, and
+ * the same normalization lookupRule applies internally. Exported so
+ * `normalizeDrug` can degrade gracefully to it without duplicating the map.
+ */
+export function resolveDrugAlias(drug: string): string {
+  return normDrug(drug);
+}
 const normDip = (d: string) =>
   d.split("/").map((a) => a.trim()).sort().join("/");
 

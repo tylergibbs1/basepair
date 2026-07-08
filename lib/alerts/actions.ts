@@ -1,9 +1,9 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { tasks } from "@trigger.dev/sdk"
+import { tasks, wait } from "@trigger.dev/sdk"
 
-import { createMedplumClient } from "@/lib/medplum/client"
+import { createMedplumClient, defaultTenantId } from "@/lib/medplum/client"
 import {
   buildMedicationRequest,
   buildCommunication,
@@ -13,12 +13,26 @@ import {
   SUBSTITUTE_ORDER_SYSTEM,
 } from "@/lib/medplum/fhir"
 import { parsePgxAlert, isCleared } from "@/lib/alerts/pgx"
+import {
+  writeAlertProvenance,
+  PHARMACIST_AGENT,
+  type AlertProvenanceContext,
+} from "@/lib/alerts/provenance"
+import {
+  findWaitTokenId,
+  orderKeyOf,
+  type ApprovalDecision,
+} from "@/lib/alerts/write-back"
+import type { AuditLifecycle } from "@/lib/medplum/fhir"
 import type { RecommendedAlternative } from "@/lib/cpic-catalog"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
 import type { sweepPopulation } from "@/trigger/sweep-population"
+import type { MedplumClient } from "@medplum/core"
 import type {
   Patient,
   Reference,
+  Resource,
+  Task,
   DetectedIssue,
   Communication,
   MedicationRequest,
@@ -26,38 +40,112 @@ import type {
 
 type TaskStatus = "completed" | "cancelled" | "requested"
 
-/** Read the Task and persist a new lifecycle status. */
-async function setTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
+/**
+ * The pharmacist-triage provenance for a Task (issue #22). Reads the Task's
+ * DetectedIssue for the rule/verifier facts and records the approver +
+ * timestamp against the recommendation resources. Best-effort: a read/write
+ * failure here is logged, never surfaced to the caller — the triage itself has
+ * already been persisted by the time this runs.
+ */
+async function recordTriageProvenance(
+  medplum: MedplumClient,
+  task: Task,
+  lifecycle: AuditLifecycle,
+  extraTargets: Reference<Resource>[] = [],
+  extra?: Record<string, unknown>,
+): Promise<void> {
+  try {
+    const ctx: AlertProvenanceContext = {
+      lifecycle,
+      agent: PHARMACIST_AGENT,
+      targets: [
+        { reference: `Task/${task.id}` },
+        ...(task.focus?.reference ? [{ reference: task.focus.reference }] : []),
+        ...extraTargets,
+      ],
+    }
+    const issueRef = task.focus as Reference<DetectedIssue> | undefined
+    if (issueRef?.reference) {
+      const issue = (await medplum.readReference(issueRef)) as DetectedIssue
+      ctx.patient = issue.patient
+      const pgx = parsePgxAlert(issue)
+      if (pgx && !isCleared(pgx)) {
+        ctx.citation = pgx.citation
+        ctx.citedSentence = pgx.citedSentence
+        ctx.verifierVerdict = pgx.verified ? "pass" : "fail"
+        ctx.verifierModel = pgx.verifierModel
+        ctx.verifierRationale = pgx.verifierRationale
+        ctx.decisionPath = pgx.decisionPath
+        ctx.extra = {
+          drug: pgx.drug,
+          gene: pgx.gene,
+          phenotype: pgx.phenotype,
+          severity: pgx.severity,
+          ...extra,
+        }
+      }
+    }
+    await writeAlertProvenance(medplum, ctx)
+  } catch (err) {
+    console.error("recordTriageProvenance failed (non-fatal)", err)
+  }
+}
+
+/**
+ * Best-effort completion of the alert's durable approval waitpoint (issue #21).
+ * When the Task carries a wait-token id, completing it resumes the paused
+ * evaluate-order run, which performs the durable write-back
+ * (lib/alerts/write-back.ts). Failures are swallowed deliberately: the
+ * synchronous mutation that follows stays authoritative until the token path
+ * is verified end to end, and a token that already completed or timed out
+ * must never fail the pharmacist's click. Tasks without a token (pre-token
+ * alerts, population-sweep alerts) are a silent no-op.
+ */
+async function completeApprovalToken(task: Task, approved: boolean): Promise<void> {
+  const tokenId = findWaitTokenId(task)
+  if (!tokenId) return
+  try {
+    await wait.completeToken<ApprovalDecision>(tokenId, { approved })
+  } catch (err) {
+    console.error(`completeToken failed for Task/${task.id}`, err)
+  }
+}
+
+/**
+ * Read the Task, persist a new lifecycle status, and record FHIR provenance
+ * (#22). An approve/dismiss also completes the durable waitpoint first (#21), so
+ * the paused evaluate-order run resumes and writes the same outcome inside the
+ * durable run; both writers are idempotent, so they converge (see write-back.ts).
+ * Reopen (Undo) completes no token — a waitpoint is one-shot.
+ */
+async function setTaskStatus(
+  taskId: string,
+  status: TaskStatus,
+  lifecycle: AuditLifecycle,
+): Promise<void> {
   const medplum = await createMedplumClient()
   const task = await medplum.readResource("Task", taskId)
+  if (status !== "requested") {
+    await completeApprovalToken(task, status === "completed")
+  }
   await medplum.updateResource({ ...task, status })
+  await recordTriageProvenance(medplum, task, lifecycle)
   revalidatePath("/")
 }
 
 /** Approve an alert, the pharmacist accepted the recommendation. */
 export async function approveAlert(taskId: string): Promise<void> {
-  await setTaskStatus(taskId, "completed")
+  await setTaskStatus(taskId, "completed", "approve")
 }
 
 /** Dismiss an alert, the pharmacist declined it. */
 export async function dismissAlert(taskId: string): Promise<void> {
-  await setTaskStatus(taskId, "cancelled")
+  await setTaskStatus(taskId, "cancelled", "dismiss")
 }
 
 /** Reopen an alert, reverses an approve/dismiss (Undo). */
 export async function reopenAlert(taskId: string): Promise<void> {
-  await setTaskStatus(taskId, "requested")
-}
-
-/**
- * The order id an alert's Task is keyed on (the source MedicationRequest id).
- * Every enact write reuses this as its idempotency key, so retries and
- * undo→redo can never double-write. Falls back to the Task id for direct/test
- * triggers that carried no order id, which is still stable per alert.
- */
-function orderKeyOf(task: { id?: string; identifier?: { system?: string; value?: string }[] }): string {
-  const orderId = task.identifier?.find((i) => i.system === ORDER_ID_SYSTEM)?.value
-  return orderId ?? task.id ?? ""
+  await setTaskStatus(taskId, "requested", "reopen")
 }
 
 /**
@@ -147,6 +235,31 @@ export async function enactAlert(
     status: "completed",
     businessStatus: enactedBusinessStatus(),
   })
+
+  // FHIR-native provenance for the write-back (#22): the Provenance targets the
+  // resources actually written (Communication + substitute order) alongside the
+  // Task/DetectedIssue, attributing the enacting pharmacist + timestamp.
+  const enactTargets: Reference<Resource>[] = [
+    { reference: `Communication/${savedComm.id}` },
+  ]
+  if (choice.kind === "switch") {
+    const sub = await medplum.searchResources(
+      "MedicationRequest",
+      `identifier=${SUBSTITUTE_ORDER_SYSTEM}|${key}`,
+    )
+    for (const s of sub) if (s.id) enactTargets.push({ reference: `MedicationRequest/${s.id}` })
+  }
+  await recordTriageProvenance(medplum, task, "enact", enactTargets, {
+    action,
+    ...(choice.kind === "switch" ? { altDrug: choice.altDrug } : {}),
+  })
+
+  // Enact counts as an approval: resume the paused evaluate-order run (if any)
+  // so its durable lifecycle resolves instead of dangling to the 48h timeout,
+  // which would try to cancel this just-enacted Task. Done AFTER the writes
+  // above so the resume-side conditional-creates find and reuse them (same
+  // order-keyed identifiers) rather than racing them.
+  await completeApprovalToken(task, true)
   revalidatePath("/")
 }
 
@@ -184,6 +297,14 @@ export async function unenactAlert(taskId: string): Promise<void> {
   const reopened = { ...task, status: "requested" as const }
   delete reopened.businessStatus
   await medplum.updateResource(reopened)
+
+  // FHIR-native provenance for the reversal (#22): targets the reversed
+  // Communication + substitute order so the undo is itself auditable.
+  const undoTargets: Reference<Resource>[] = [
+    ...comms.filter((c) => c.id).map((c) => ({ reference: `Communication/${c.id}` })),
+    ...subs.filter((s) => s.id).map((s) => ({ reference: `MedicationRequest/${s.id}` })),
+  ]
+  await recordTriageProvenance(medplum, task, "unenact", undoTargets)
   revalidatePath("/")
 }
 
@@ -206,12 +327,14 @@ export type PlaceOrderResult = {
  * Place a real prescription order: write a FHIR MedicationRequest to Medplum,
  * then evaluate it against the patient's genetics.
  *
- * Production trigger path (see bots/order-trigger.ts + scripts/setup-order-trigger.ts):
- * a create-only Medplum Subscription fires a Bot that triggers the task. That
- * path is fully built but requires the Medplum project to have **Bots enabled**
- * (a project-admin setting). Until then we trigger the same evaluate-order task
- * directly here, the order (MedicationRequest) and the whole evaluation are
- * still real; only the trigger source is the app instead of the Subscription.
+ * Production trigger paths (both additive to this action, all idempotent on
+ * the order id): the standards-shaped HTTP ingress `app/api/cds/prescribe`
+ * (CDS Hooks order-sign + Medplum Subscription rest-hook, issue #23), and a
+ * create-only Medplum Subscription firing a Bot (bots/order-trigger.ts +
+ * scripts/setup-order-trigger.ts; requires Medplum "Bots enabled"). This
+ * action triggers the same evaluate-order task directly, so the order
+ * (MedicationRequest) and the whole evaluation are identical regardless of
+ * which path fired.
  */
 export async function placeOrder(
   patientRef: string,
@@ -229,10 +352,12 @@ export async function placeOrder(
   // Interim: trigger the durable task directly (Bot path pending Bots-enabled).
   // idempotencyKey dedupes re-triggers of the same order; orderId in the payload
   // lets the task dedupe its own Medplum writes on retry; orderedBy attributes
-  // the prescriber on the resulting alert.
+  // the prescriber on the resulting alert. tenantId names whose Medplum
+  // credential the task must use (today the deployment's pinned tenant; with
+  // console auth it becomes the session's tenant claim).
   const handle = await tasks.trigger<typeof evaluateOrder>(
     "evaluate-order",
-    { patientRef, drug, orderId: order.id, orderedBy },
+    { patientRef, drug, orderId: order.id, orderedBy, tenantId: defaultTenantId() },
     { idempotencyKey: order.id },
   )
 
@@ -267,25 +392,12 @@ export type PopulationSweepResult = {
 export async function runPopulationSweep(): Promise<PopulationSweepResult> {
   const handle = await tasks.trigger<typeof sweepPopulation>(
     "sweep-population",
-    undefined,
+    // tenantId scopes the sweep to this deployment's tenant credential.
+    { tenantId: defaultTenantId() },
   )
 
   return {
     runId: handle.id,
     accessToken: handle.publicAccessToken,
   }
-}
-
-/**
- * Count the open pharmacist worklist items (Tasks with status "requested").
- * The console polls this after placing an order to detect when the async
- * evaluation has flagged a new alert.
- */
-export async function getOpenAlertCount(): Promise<number> {
-  const medplum = await createMedplumClient()
-  const openTasks = await medplum.searchResources("Task", {
-    status: "requested",
-    _count: 100,
-  })
-  return openTasks.length
 }

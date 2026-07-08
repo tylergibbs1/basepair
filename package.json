@@ -19,6 +19,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:cpic:load": "bun scripts/load-cpic-supabase.ts",
+    "db:seed:tenant": "bun scripts/seed-tenant.ts",
     "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
@@ -28,6 +29,8 @@
     "@medplum/fhirtypes": "^5.1.24",
     "@trigger.dev/react-hooks": "^4.5.1",
     "@trigger.dev/sdk": "^4.5.1",
+    "@upstash/ratelimit": "2.0.8",
+    "@upstash/redis": "1.38.0",
     "ai": "7.0.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

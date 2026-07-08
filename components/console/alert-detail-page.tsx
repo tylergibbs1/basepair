@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { Popover } from "@base-ui/react/popover"
 import {
   ArrowLeft,
   Check,
@@ -174,18 +175,24 @@ function modelLabel(model: string): string {
  * quote. The span is verbatim, so a plain substring match is exact; we fall
  * back to the cited sentence, then to no highlight. The mark color tracks the
  * verdict (green when verified, amber when it needs review).
+ *
+ * A provenance chip sits at the end of the span: clicking it opens a popover
+ * with the verifier's account of THIS span (verdict, model, rationale), so the
+ * evidence answers "who marked this and why" in place instead of making the
+ * eye jump to the AI-verification step below. The chip, not the mark, is the
+ * trigger: a clickable mark advertises nothing and would take an interactive
+ * role that hides the sentence from screen readers reading the quote.
  */
 function HighlightedGuideline({
   text,
-  highlight,
+  verification,
   fallback,
-  verified,
 }: {
   text: string
-  highlight: string
+  verification: Alert["verification"]
   fallback: string
-  verified: boolean
 }) {
+  const { highlight, verified } = verification
   const span = [highlight, fallback].find((s) => s && text.includes(s)) ?? ""
   if (!span) return <>{text}</>
 
@@ -205,6 +212,38 @@ function HighlightedGuideline({
       >
         {span}
       </mark>
+      <Popover.Root>
+        <Popover.Trigger className="ml-1.5 inline-flex h-5 items-center gap-1 rounded-full bg-secondary px-2 align-[2px] text-xs text-muted-foreground transition-colors hover:bg-hover hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Sparkles aria-hidden className="size-3" />
+          Why this sentence
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Positioner
+            side="top"
+            sideOffset={6}
+            className="isolate z-50"
+          >
+            <Popover.Popup className="w-80 origin-(--transform-origin) rounded-md border bg-popover p-3 text-popover-foreground shadow-lg ring-1 ring-foreground/5 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95">
+              <div className="grid gap-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Why this sentence is marked
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <VerificationChip verified={verified} />
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Sparkles aria-hidden className="size-3.5" />
+                    {modelLabel(verification.model)}
+                  </span>
+                </div>
+                <p className="text-pretty text-sm leading-relaxed text-foreground">
+                  {verification.rationale ||
+                    "No verifier rationale was recorded for this alert."}
+                </p>
+              </div>
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
       {text.slice(i + span.length)}
     </>
   )
@@ -517,9 +556,8 @@ export function AlertDetailPage({ id }: { id: string }) {
                     <blockquote className="max-w-prose text-pretty border-l-2 border-border pl-3 leading-relaxed text-foreground">
                       <HighlightedGuideline
                         text={alert.guidelineText}
-                        highlight={alert.verification.highlight}
+                        verification={alert.verification}
                         fallback={alert.citedSentence}
-                        verified={alert.verification.verified}
                       />
                     </blockquote>
                     {(() => {

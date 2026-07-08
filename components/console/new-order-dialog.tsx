@@ -177,6 +177,19 @@ const PHASE_WORKING_LABEL: Partial<Record<Phase, string>> = {
 }
 
 /**
+ * Position of each live phase in the evaluation pipeline, for the "Step X of N"
+ * prefix on the working row (the house idiom for a number with its
+ * denominator). Only the two evaluation stages count: the order write
+ * ("placing") is not evaluation, and the Genetics Intake dialog never passes
+ * through it, so numbering it would make the two surfaces disagree.
+ */
+const PHASE_STEP: Partial<Record<Phase, number>> = {
+  genetics: 1,
+  verifying: 2,
+}
+const EVAL_STEPS = 2
+
+/**
  * Live feed of what Basepair found, streamed over Trigger.dev Realtime as the
  * evaluation runs — each finding is appended to run.metadata.events by the task
  * (genotype read, phenotype derived, drug normalized, CPIC rule matched, agent
@@ -196,8 +209,21 @@ export function EvaluationFeed({
 }) {
   const resolved =
     phase === "flagged" || phase === "cleared" || phase === "timeout"
+  // The stage the spinner row names: the order write states it plainly; during
+  // evaluation an empty feed means we're still reading the chart (finer-grained
+  // than the phase label), after which the phase label takes over. Evaluation
+  // stages carry the "Step X of N" prefix so overall progress is legible.
+  const stageLabel =
+    phase === "placing"
+      ? PHASE_WORKING_LABEL.placing
+      : events.length === 0
+        ? "Reading the chart"
+        : PHASE_WORKING_LABEL[phase]
+  const step = PHASE_STEP[phase]
   const workingLabel =
-    events.length === 0 ? "Reading the chart" : PHASE_WORKING_LABEL[phase]
+    step && stageLabel
+      ? `Step ${step} of ${EVAL_STEPS} · ${stageLabel}`
+      : stageLabel
 
   // Findings usually land one at a time, but a snapshot can deliver several at
   // once (first paint after reconnect, a fast pipeline). Stagger only the items

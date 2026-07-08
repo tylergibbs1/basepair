@@ -1,9 +1,10 @@
 import { task, metadata } from "@trigger.dev/sdk";
 import type { Observation, Patient, DetectedIssue, Task, Reference } from "@medplum/fhirtypes";
-import { resolvePhenotype, lookupRule, recommendedAlternative } from "@/lib/cpic-catalog";
+import { resolvePhenotype, recommendedAlternative } from "@/lib/cpic-catalog";
 import { createMedplumClient } from "@/lib/medplum/client";
 import { buildDetectedIssue, buildConsideredIssue, buildTask, ORDER_ID_SYSTEM } from "@/lib/medplum/fhir";
 import { citeAndVerify } from "@/lib/ai/verify";
+import { decideWithAgent } from "@/lib/ai/evaluate-agent";
 
 /**
  * The Day-1 loop: given a patient + a prescribed drug, read the patient's
@@ -119,7 +120,14 @@ export const evaluateOrder = task({
     for (const r of readings) genePhenotypes[r.gene] = r.phenotype;
 
     await setPhase("matching-cpic");
-    const rule = lookupRule({ drug: payload.drug, genePhenotypes });
+    // The CPIC decision runs as an agent loop over cpicTools: the model drives
+    // resolve→lookup through the tools, but decideWithAgent cross-checks the
+    // agent's result against the deterministic engine and returns the
+    // authoritative (deterministic) rule — the model can never move the
+    // published-rule decision. `path` records whether the agent agreed.
+    const decision = await decideWithAgent(payload.drug, readings, genePhenotypes);
+    const rule = decision.rule;
+    metadata.set("cpicDecisionPath", decision.path);
     if (!rule.applies) {
       // Considered-and-cleared: Basepair evaluated the order and found nothing
       // to flag (reason "no-rule" or "missing-genes"). Record it as a
@@ -132,6 +140,7 @@ export const evaluateOrder = task({
           drug: payload.drug,
           genePhenotypes,
           reason: rule.reason,
+          decisionPath: decision.path,
         }),
         ...(payload.orderId
           ? { identifier: [{ system: ORDER_ID_SYSTEM, value: payload.orderId }] }
@@ -207,6 +216,7 @@ export const evaluateOrder = task({
         verifierModel: verification?.model ?? "",
         verifierHighlight: verification?.highlight ?? "",
         recommendedAlternative: recommendedAlternative(rule.drug) ?? undefined,
+        decisionPath: decision.path,
       }),
       ...(orderTag ? { identifier: orderTag } : {}),
     };

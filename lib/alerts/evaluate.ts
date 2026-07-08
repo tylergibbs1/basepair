@@ -461,7 +461,13 @@ export async function evaluateAndWrite(
 
   await input.onPhase?.("verifying");
   // AI trust gate: the deterministic engine already made the call; the model
-  // picks the verbatim supporting sentence, grades it, and explains the verdict.
+  // picks the verbatim supporting sentence (from the full guidelineText) and
+  // grades the verdict against the EVIDENCE ONLY. We pass rule.implications as
+  // that evidence: the catalog builds guidelineText as
+  // `implications + " " + recommendation`, so grading against guidelineText
+  // would be circular (it ends with the recommendation verbatim). Handing the
+  // verifier the implications alone forces a real judgment of whether the
+  // mechanism justifies the action, not a self-match. See lib/ai/verify.ts.
   // On any model error we still emit the alert, just unverified, never drop a flag.
   const verification = await citeAndVerify({
     gene: primary.gene,
@@ -470,6 +476,7 @@ export async function evaluateAndWrite(
     drug: rule.drug,
     recommendation: rule.recommendation,
     guidelineText: rule.guidelineText,
+    evidenceText: rule.implications,
   }).catch((err) => {
     console.error("citeAndVerify failed; emitting unverified alert", err);
     return null;

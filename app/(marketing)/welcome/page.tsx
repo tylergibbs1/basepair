@@ -7,23 +7,14 @@ export const metadata: Metadata = {
     "Basepair reviews every medication order for drug and pharmacogenomic risk, shows its work, and logs the decision. Pharmacists see the signal, not the noise.",
 }
 
-// Integrated Biosciences LAYOUT language on our warm light palette: full-bleed
-// bands split by hairlines, mono 01/02 section counters, architectural serif
-// display with tight tracking, generous negative space, editorial two-column
-// blocks. Navy is the only accent; color stays reserved for status; the clay
-// dot is the single decorative "signal" mark (see docs/DESIGN.md).
+// Warm, product-led landing (docs/DESIGN.md marketing shell). Depth comes from
+// filled rounded cards on the ivory canvas, not flat bands. Source Serif carries
+// the editorial statements; Geist carries every label, title and body. Navy is
+// the only accent; the clay dot is the single decorative mark. Color stays
+// reserved for status (the product screenshots carry the live severity palette).
 
-// Section counter — a mono pill + uppercase label, the table-of-contents voice.
-function Counter({ n, label }: { n: string; label: string }) {
-  return (
-    <div className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground">
-      <span className="inline-flex items-center rounded-full border border-border px-2.5 py-1 tabular-nums">
-        {n}
-      </span>
-      <span>{label}</span>
-    </div>
-  )
-}
+const SOFT_SHADOW =
+  "shadow-[0_30px_80px_-32px_rgba(23,60,99,0.35)]"
 
 const STEPS = [
   {
@@ -46,56 +37,55 @@ const STEPS = [
 export default function WelcomePage() {
   return (
     <main id="main-content">
-      {/* 01 — Hero: asymmetric, headline upper, copy + action lower, big air */}
-      <section className="border-b border-border">
-        <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 sm:py-28 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-8 lg:py-32">
-          <div>
-            <Counter n="01" label="Pharmacist console" />
-            <h1 className="mt-10 max-w-3xl font-serif text-5xl leading-[1.02] tracking-[-0.03em] text-balance text-foreground sm:text-6xl lg:text-7xl">
-              Catch the interaction before it reaches the patient.
-            </h1>
-            <div className="mt-12 max-w-md lg:mt-16">
-              <p className="text-lg leading-relaxed text-muted-foreground text-pretty">
-                Basepair reviews every medication order for drug and
-                pharmacogenomic risk, shows its work, and logs the decision.
-                Pharmacists see the signal, not the noise.
-              </p>
-              <div className="mt-8 flex flex-wrap items-center gap-5">
-                <Link
-                  href="/"
-                  className="group inline-flex h-11 items-center gap-2 rounded-sm bg-navy px-5 font-mono text-xs uppercase tracking-[0.12em] text-white transition-colors hover:bg-navy-press"
-                >
-                  Open the console
-                  <span className="transition-transform group-hover:translate-x-0.5">
-                    &rarr;
-                  </span>
-                </Link>
-                <Link
-                  href="#how"
-                  className="font-mono text-xs uppercase tracking-[0.12em] text-navy transition-colors hover:text-navy-press"
-                >
-                  See how it works
-                </Link>
-              </div>
-            </div>
+      {/* Hero — editorial statement, then the real product */}
+      <section className="mx-auto max-w-6xl px-6 pt-20 pb-16 sm:pt-28">
+        <div className="max-w-3xl">
+          <h1 className="font-serif text-5xl leading-[1.04] tracking-[-0.02em] text-balance text-foreground sm:text-6xl">
+            Catch the interaction before it reaches the patient.
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground text-pretty">
+            Basepair reviews every medication order for drug and pharmacogenomic
+            risk, shows its work, and logs the decision, so pharmacists see the
+            signal, not the noise.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-5">
+            <Link
+              href="/"
+              className="group inline-flex h-11 items-center gap-2 rounded-md bg-navy px-5 text-sm font-medium text-white transition-colors hover:bg-navy-press"
+            >
+              Open the console
+              <span className="transition-transform group-hover:translate-x-0.5">
+                &rarr;
+              </span>
+            </Link>
+            <Link
+              href="#how"
+              className="text-sm font-medium text-navy transition-colors hover:text-navy-press"
+            >
+              See how it works &rarr;
+            </Link>
           </div>
-          <div className="order-first lg:order-none">
-            <img
-              src="/art/hero.png"
-              alt=""
-              aria-hidden="true"
-              className="mx-auto w-full max-w-sm lg:max-w-none"
-            />
-          </div>
+        </div>
+
+        {/* Product shot — the credibility anchor */}
+        <div
+          className={`mt-14 overflow-hidden rounded-2xl border border-border bg-white sm:mt-16 ${SOFT_SHADOW}`}
+        >
+          <img
+            src="/art/console-queue.webp"
+            alt="The Basepair pharmacist console showing a triaged queue of medication-order alerts, each with severity, patient, drug, genotype and phenotype."
+            className="w-full"
+            width={2000}
+            height={1250}
+          />
         </div>
       </section>
 
-      {/* 02 — The problem: editorial two-column, architectural pull-quote */}
-      <section id="evidence" className="border-b border-border bg-muted">
-        <div className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
-          <Counter n="02" label="The problem" />
-          <div className="mt-12 grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
-            <p className="font-serif text-4xl leading-[1.12] tracking-[-0.02em] text-balance text-foreground sm:text-5xl">
+      {/* Evidence — a single filled statement card */}
+      <section id="evidence" className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+        <div className="rounded-2xl bg-muted p-10 sm:p-14">
+          <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+            <p className="font-serif text-3xl leading-[1.15] tracking-[-0.01em] text-balance text-foreground sm:text-[40px]">
               Roughly 3 of every 4 pharmacogenomic flags a pharmacist reviews
               are not clinically relevant.
             </p>
@@ -106,48 +96,50 @@ export default function WelcomePage() {
                 Basepair automates that triage, so the orders that reach the
                 queue are the ones that need a person.
               </p>
-              <p className="mt-6 font-mono text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                Source — Bright et al., 2020 (PMC7735940)
+              <p className="mt-6 border-t border-border/70 pt-4 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                Source — Bright et al., 2020
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 03 — How it works: counter + three hairline cards */}
-      <section id="how" className="border-b border-border">
-        <div className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
-          <Counter n="03" label="How it works" />
-          <h2 className="mt-12 max-w-2xl font-serif text-4xl leading-[1.12] tracking-[-0.02em] text-balance text-foreground sm:text-5xl">
+      {/* How it works — three filled cards */}
+      <section id="how" className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+        <div className="max-w-2xl">
+          <h2 className="font-serif text-4xl leading-[1.12] tracking-[-0.02em] text-balance text-foreground sm:text-5xl">
             It shows its work, the way a pharmacist would.
           </h2>
-          <div className="mt-16 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3">
-            {STEPS.map((step) => (
-              <div key={step.n} className="flex flex-col bg-background p-10">
-                <span className="font-mono text-sm tabular-nums text-navy">
-                  {step.n}
-                </span>
-                <h3 className="mt-8 font-serif text-2xl leading-snug tracking-[-0.01em] text-foreground">
-                  {step.title}
-                </h3>
-                <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground text-pretty">
-                  {step.body}
-                </p>
-              </div>
-            ))}
-          </div>
+        </div>
+        <div className="mt-12 grid gap-5 md:grid-cols-3">
+          {STEPS.map((step) => (
+            <div
+              key={step.n}
+              className="flex flex-col rounded-xl border border-border bg-white p-8"
+            >
+              <span className="font-serif text-2xl text-navy">{step.n}</span>
+              <h3 className="mt-6 text-lg font-semibold tracking-[-0.01em] text-foreground">
+                {step.title}
+              </h3>
+              <p className="mt-3 flex-1 text-[15px] leading-relaxed text-muted-foreground text-pretty">
+                {step.body}
+              </p>
+              <p className="mt-8 border-t border-border/70 pt-4 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                Step {step.n}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* 04 — Auditable: editorial two-column */}
-      <section className="border-b border-border bg-muted">
-        <div className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
-          <Counter n="04" label="Auditable by design" />
-          <div className="mt-12 grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+      {/* Auditable — text + the real audit screen */}
+      <section className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+          <div className="max-w-md">
             <h2 className="font-serif text-4xl leading-[1.12] tracking-[-0.02em] text-balance text-foreground sm:text-5xl">
               Every decision leaves a trail.
             </h2>
-            <div className="flex flex-col gap-6 text-lg leading-relaxed text-muted-foreground text-pretty">
+            <div className="mt-6 flex flex-col gap-5 text-lg leading-relaxed text-muted-foreground text-pretty">
               <p>
                 Each alert records the guidance it matched and a snapshot of the
                 catalog it read, so a decision made today can be reconstructed
@@ -155,32 +147,50 @@ export default function WelcomePage() {
               </p>
               <p>
                 The audit trail tracks what was flagged, what was enacted, and
-                how often the queue's recommendations become real orders, so the
-                pharmacy can see the review working over time.
+                how often recommendations become real orders.
               </p>
             </div>
+          </div>
+          <div
+            className={`overflow-hidden rounded-2xl border border-border bg-white ${SOFT_SHADOW}`}
+          >
+            <img
+              src="/art/console-audit.webp"
+              alt="The Basepair audit view, showing the trail of evaluated orders and enactment over time."
+              className="w-full"
+              width={2000}
+              height={1250}
+            />
           </div>
         </div>
       </section>
 
-      {/* Close — navy band anchor */}
-      <section className="bg-navy">
-        <div className="mx-auto flex max-w-6xl flex-col items-start gap-10 px-6 py-24 sm:py-32">
-          <span className="font-mono text-xs uppercase tracking-[0.16em] text-white/60">
-            Basepair
-          </span>
-          <h2 className="max-w-2xl font-serif text-5xl leading-[1.05] tracking-[-0.03em] text-balance text-white sm:text-6xl">
-            Bring the signal to your pharmacy.
-          </h2>
-          <Link
-            href="/"
-            className="group inline-flex h-11 items-center gap-2 rounded-sm bg-white px-6 font-mono text-xs uppercase tracking-[0.12em] text-navy transition-opacity hover:opacity-90"
-          >
-            Open the console
-            <span className="transition-transform group-hover:translate-x-0.5">
-              &rarr;
-            </span>
-          </Link>
+      {/* Close — navy CTA card with the bloom as a quiet accent */}
+      <section className="mx-auto max-w-6xl px-6 pb-24 pt-4">
+        <div className="relative overflow-hidden rounded-3xl bg-navy px-8 py-20 sm:px-16">
+          <div className="relative z-10 max-w-xl">
+            <h2 className="font-serif text-4xl leading-[1.08] tracking-[-0.02em] text-balance text-white sm:text-5xl">
+              Bring the signal to your pharmacy.
+            </h2>
+            <p className="mt-5 max-w-md text-lg leading-relaxed text-white/70 text-pretty">
+              See the queue triaged, every alert sourced, every decision logged.
+            </p>
+            <Link
+              href="/"
+              className="group mt-8 inline-flex h-11 items-center gap-2 rounded-md bg-white px-6 text-sm font-medium text-navy transition-opacity hover:opacity-90"
+            >
+              Open the console
+              <span className="transition-transform group-hover:translate-x-0.5">
+                &rarr;
+              </span>
+            </Link>
+          </div>
+          <img
+            src="/art/hero.png"
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-16 -bottom-24 hidden w-[460px] opacity-90 lg:block"
+          />
         </div>
       </section>
     </main>

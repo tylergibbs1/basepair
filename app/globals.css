@@ -212,11 +212,13 @@
    warmth and the panel-layering, never the "one hue for everything" rule.
    Scoped to .marketing-shell so the console never inherits any of it. */
 .marketing-shell {
-  --background: #fcfaf6; /* warm cream canvas (was pure white) */
-  --card: #fcfaf6;
-  --popover: #fcfaf6;
-  --muted: #f4f1e9; /* sand — the recessed tinted panel one step down */
-  --border: #e9e3d7; /* warm hairline (was cool gray-alpha) */
+  --background: #f4f1ea; /* warm ivory canvas (Anthropic-ish) */
+  --card: #ffffff;
+  --popover: #ffffff;
+  --muted: #eae3d4; /* tan — filled feature/CTA cards */
+  --border: #e0d8c7; /* warm hairline, visible on ivory */
+  --foreground: #211f1a; /* warm near-black ink */
+  --muted-foreground: #6b6459; /* warm secondary text */
 }
 
 /* Light theme only — no .dark block by design (docs/DESIGN.md). */

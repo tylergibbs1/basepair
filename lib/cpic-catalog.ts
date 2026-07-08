@@ -162,3 +162,125 @@ export function lookupRule(input: LookupInput): LookupResult {
   matched.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
   return { applies: true, ...matched[0] };
 }
+
+/* ------------------------------------------------------------------------- *
+ * Coverage view (the /coverage trust surface)
+ *
+ * The engine above enforces every one of the 2,115 catalog rules, but the UI
+ * shows no evidence of it. `coverageEntries` projects the *curated* gene-drug
+ * pairs — the ones with a structured on-approve action (ALTERNATIVE_BY_DRUG) —
+ * into a small, human-readable table so a viewer can answer "would Basepair
+ * catch X?" at a glance. It's the full-grown form of the old "N pairs · M
+ * genes" indicator, sourced entirely from the authoritative catalog.
+ * ------------------------------------------------------------------------- */
+
+/** Catalog-wide totals for the coverage header line, straight from the catalog
+ *  meta so the numbers are the real enforced scope, never hand-maintained. */
+export const CATALOG_TOTALS = {
+  rules: catalog.meta.counts.rules,
+  genes: catalog.meta.genes.length,
+} as const;
+
+/**
+ * Plain-language phenotype summary. CPIC labels each firing phenotype by
+ * function class ("Poor Metabolizer", "Decreased Function"); we collapse the
+ * distinct classes a pair's actionable rules cover into one readable phrase
+ * ("Intermediate and poor metabolizers") rather than list every enumerated
+ * variant. Normal/increased/indeterminate phenotypes never fire, so they're
+ * absent by construction.
+ */
+const PHENOTYPE_CLASSES: { suffix: string; words: [RegExp, string][] }[] = [
+  {
+    suffix: "metabolizers",
+    words: [
+      [/ultrarapid/i, "ultrarapid"],
+      [/rapid metabolizer/i, "rapid"],
+      [/intermediate metabolizer/i, "intermediate"],
+      [/poor metabolizer/i, "poor"],
+    ],
+  },
+  {
+    suffix: "function",
+    words: [
+      [/decreased function/i, "decreased"],
+      [/poor function/i, "poor"],
+    ],
+  },
+];
+
+function joinWords(words: string[]): string {
+  if (words.length <= 1) return words.join("");
+  if (words.length === 2) return words.join(" and ");
+  return `${words.slice(0, -1).join(", ")}, and ${words.at(-1)}`;
+}
+
+function phenotypeSummary(rules: CatalogRule[]): string {
+  const groups: string[] = [];
+  for (const { suffix, words } of PHENOTYPE_CLASSES) {
+    const hit = words
+      .filter(([re]) =>
+        rules.some((r) => Object.values(r.key).some((p) => re.test(p))),
+      )
+      .map(([, word]) => word);
+    if (hit.length) groups.push(`${joinWords(hit)} ${suffix}`);
+  }
+  const sentence = groups.join(", ");
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
+/** Present a lowercase CPIC drug/gene name with a leading capital for the UI. */
+const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+export type CoverageEntry = {
+  /** Every gene the pair's rules read, e.g. ["TPMT", "NUDT15"]. */
+  genes: string[];
+  /** Display drug name (capitalized). */
+  drug: string;
+  /** Human phenotype summary of what fires an alert. */
+  phenotypes: string;
+  /** Worst-case severity across the pair's actionable rules. */
+  severity: Severity;
+  /** The structured on-approve action (switch/dose/avoid). */
+  action: RecommendedAlternative;
+  /** CPIC citation string and its canonical guideline URL. */
+  citation: string;
+  url: string;
+};
+
+/**
+ * The curated gene-drug pairs for /coverage, one row per drug in
+ * ALTERNATIVE_BY_DRUG, joined against the catalog for genes, phenotypes,
+ * worst-case severity, and the CPIC citation. Server-only (imports the 3.6MB
+ * catalog); the page is a server component so this never crosses a client
+ * boundary. Skips a drug only if the catalog has no actionable rule for it (a
+ * data anomaly, not an expected state).
+ */
+export function coverageEntries(): CoverageEntry[] {
+  const entries: CoverageEntry[] = [];
+
+  for (const [drug, action] of Object.entries(ALTERNATIVE_BY_DRUG)) {
+    const rules = catalog.rules.filter(
+      (r) => normDrug(r.drug) === drug && r.severity !== "info",
+    );
+    if (rules.length === 0) continue;
+
+    const genes = [...new Set(rules.flatMap((r) => r.genes))];
+    const severity = rules
+      .map((r) => r.severity)
+      .sort((a, b) => SEVERITY_RANK[a] - SEVERITY_RANK[b])[0];
+    // Every rule for a pair cites the same guideline; the first is representative.
+    const { citation, url } = rules[0];
+
+    entries.push({
+      genes,
+      drug: titleCase(drug),
+      phenotypes: phenotypeSummary(rules),
+      severity,
+      action,
+      citation,
+      url,
+    });
+  }
+
+  return entries;
+}

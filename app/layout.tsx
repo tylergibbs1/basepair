@@ -73,10 +73,7 @@ export default async function RootLayout({
                         tabIndex={-1}
                         className="flex-1 overflow-y-auto outline-none"
                       >
-                        <ConsoleTopbar
-                          patients={patients}
-                          signalStats={signalStats}
-                        />
+                        <ConsoleTopbar patients={patients} />
                         {children}
                       </div>
                     </SidebarInset>

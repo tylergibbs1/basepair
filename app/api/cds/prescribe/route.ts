@@ -43,10 +43,14 @@
  *     extension set to the same secret; or
  * (b) `Authorization: Bearer <CDS_WEBHOOK_SECRET>` — shared-secret fallback
  *     for CDS Hooks sandboxes and manual testing.
+ * The route FAILS CLOSED in production: when `NODE_ENV === "production"` and
+ * `CDS_WEBHOOK_SECRET` is unset, every request is rejected with 401 — the
+ * endpoint is not configured for auth, so it will not trigger evaluations on
+ * unauthenticated POSTs. Unauthenticated acceptance survives only outside
+ * production, where it is a local-dev convenience gated behind a loud warning.
  * TODO(security): verify a real CDS Hooks JWT (ES384-signed `Authorization`
  * bearer token with `iss`/`jku` checked against a per-tenant allowlist, per
- * CDS Hooks spec §Security) instead of the shared-secret fallback, and make
- * the secret mandatory in production.
+ * CDS Hooks spec §Security) instead of the shared-secret fallback.
  *
  * Out of scope here (follow-ups): the CDS Hooks discovery document
  * (`GET /cds-services`) an EHR uses to find this service, and per-tenant
@@ -113,8 +117,21 @@ type AuthVerdict = { ok: true } | { ok: false; reason: string }
 function verifyCaller(headers: Headers, rawBody: string): AuthVerdict {
   const secret = process.env.CDS_WEBHOOK_SECRET
   if (!secret) {
-    // TODO(security): require CDS_WEBHOOK_SECRET in production deployments;
-    // unauthenticated acceptance is a local-dev convenience only.
+    // Fail closed in production: an unconfigured secret means we cannot
+    // authenticate anyone, so we must NOT trigger evaluations on unauthenticated
+    // POSTs. Reject rather than proceed.
+    if (process.env.NODE_ENV === "production") {
+      console.error(
+        "[cds/prescribe] CDS_WEBHOOK_SECRET is not set in production; rejecting the request."
+      )
+      return {
+        ok: false,
+        reason:
+          "This endpoint is not configured for authentication (CDS_WEBHOOK_SECRET is unset) and rejects all requests in production.",
+      }
+    }
+    // Non-production only: accept unauthenticated as a local-dev convenience,
+    // behind a loud warning.
     console.warn(
       "[cds/prescribe] CDS_WEBHOOK_SECRET is not set; accepting the webhook unauthenticated (dev only)."
     )
@@ -255,6 +272,9 @@ async function triggerEvaluation(
  * Route                                                                     *
  * ------------------------------------------------------------------------ */
 
+// Next.js 16 App Router route handler (verified against next@16.2.9 docs:
+// `request.text()`, `request.headers.get()`, and `Response.json(body, { status })`
+// are the supported Web-standard APIs for a POST handler).
 export async function POST(request: Request): Promise<Response> {
   // Read the raw body first: the HMAC in X-Signature is over the exact bytes.
   const rawBody = await request.text()

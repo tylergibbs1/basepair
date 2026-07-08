@@ -129,6 +129,23 @@ export function isPgxRelevantDrug(drug: string): boolean {
   return PGX_DRUGS.has(normDrug(drug));
 }
 
+/**
+ * The pharmacogene(s) this drug's CPIC rules key on (aliases resolved). Lets a
+ * caller show the gene RELEVANT to the ordered drug (e.g. CYP2C19 for
+ * clopidogrel) rather than the patient's most-abnormal gene, which may be
+ * unrelated. Empty when the drug has no CPIC guidance.
+ */
+export function genesForDrug(drug: string): string[] {
+  const d = normDrug(drug);
+  return [
+    ...new Set(
+      catalog.rules
+        .filter((r) => normDrug(r.drug) === d)
+        .flatMap((r) => r.genes),
+    ),
+  ];
+}
+
 export type LookupInput = {
   drug: string;
   /** Every gene the patient has a phenotype for, e.g. { CYP2C19: "Poor Metabolizer" }. */

@@ -10,6 +10,7 @@ import type { MedplumClient } from "@medplum/core";
 import {
   resolvePhenotype,
   recommendedAlternative,
+  genesForDrug,
   type RecommendedAlternative,
 } from "@/lib/cpic-catalog";
 import {
@@ -263,6 +264,24 @@ export function primaryGene(
 }
 
 /**
+ * The reading for the gene the ORDERED DRUG keys on (for the live findings feed).
+ * Prefers an abnormal reading among the drug's genes (the driver); falls back to
+ * the first present one. Returns undefined when none of the drug's genes are on
+ * the patient's chart, so the feed can say "not on file" instead of showing an
+ * unrelated abnormal gene (issue #003).
+ */
+function relevantReading(
+  readings: GeneReading[],
+  relevantGenes: string[],
+): GeneReading | undefined {
+  const present = readings.filter((r) => relevantGenes.includes(r.gene));
+  if (present.length === 0) return undefined;
+  return (
+    present.find((r) => !/normal|indeterminate/i.test(r.phenotype)) ?? present[0]
+  );
+}
+
+/**
  * Evaluate one patient-drug and write the outcome to Medplum. Idempotent on
  * `orderId`: every write is a createResourceIfNoneExist keyed on the order-id
  * identifier, so re-entry (task retry, re-fired order, or a re-run sweep) is a
@@ -289,18 +308,6 @@ export async function evaluateAndWrite(
   const genePhenotypes: Record<string, string> = {};
   for (const r of readings) genePhenotypes[r.gene] = r.phenotype;
 
-  // Surface the notable reading (the abnormal gene drives the alert; a co-tested
-  // normal gene is context) as the first two feed findings.
-  const notable =
-    readings.find((r) => !/normal|indeterminate/i.test(r.phenotype)) ??
-    readings[0];
-  await emit({
-    kind: "genetics",
-    label: "Read genetics",
-    detail: `${notable.gene} ${notable.diplotype}`.trim(),
-  });
-  await emit({ kind: "phenotype", label: "Phenotype", detail: notable.phenotype });
-
   await input.onPhase?.("normalizing-drug");
   // Resolve the raw order string to a canonical RxNorm identifier + ATC class
   // via the NLM RxNorm/RxClass API, so the CPIC lookup keys on a normalized
@@ -309,6 +316,39 @@ export async function evaluateAndWrite(
   // to the offline static alias map + raw string, so the evaluation continues.
   const normalized = await normalizeDrug(drug);
   const lookupDrug = normalized.name;
+
+  // Feed findings must be about the gene THIS drug keys on, not the patient's
+  // most-abnormal gene, which may be unrelated (e.g. SLCO1B1 for a clopidogrel
+  // order — issue #003). Resolve the drug's pharmacogene(s) and show that gene's
+  // reading; when the drug's gene isn't on the chart, say so instead of
+  // surfacing an unrelated abnormal gene. Done after normalize so we know the
+  // canonical drug the catalog keys on.
+  const drugGenes = genesForDrug(lookupDrug);
+  const forDrug = relevantReading(readings, drugGenes);
+  if (forDrug) {
+    await emit({
+      kind: "genetics",
+      label: "Read genetics",
+      detail: `${forDrug.gene} ${forDrug.diplotype}`.trim(),
+    });
+    await emit({
+      kind: "phenotype",
+      label: "Phenotype",
+      detail: forDrug.phenotype,
+    });
+  } else if (drugGenes.length > 0) {
+    await emit({
+      kind: "genetics",
+      label: "Read genetics",
+      detail: `${drugGenes.join(", ")} not on file`,
+    });
+    await emit({
+      kind: "phenotype",
+      label: "Phenotype",
+      detail: "The gene this drug depends on was not tested",
+    });
+  }
+
   await emit({
     kind: "drug",
     label: "Normalized drug",

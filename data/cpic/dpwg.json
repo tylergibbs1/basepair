@@ -1,0 +1,1257 @@
+[
+  {
+    "id": "PA166184612",
+    "name": "Annotation of DPWG Guideline for thioguanine and NUDT15",
+    "source": "DPWG",
+    "genes": [
+      "NUDT15"
+    ],
+    "drugs": [
+      "thioguanine"
+    ],
+    "version": 13,
+    "summary": "Select an alternative drug or reduce the initial dose of thioguanine for patients that are NUDT15 poor metabolizers and reduce initial dose for patients that are NUDT15 intermediate metabolizers.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between TPMT/NUDT15 and thiopurines.",
+        "pmid": "41318725",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41318725"
+      }
+    ],
+    "lastUpdated": "2025-12-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166184612"
+  },
+  {
+    "id": "PA166104986",
+    "name": "Annotation of DPWG Guideline for tolbutamide and CYP2C9",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C9"
+    ],
+    "drugs": [
+      "tolbutamide"
+    ],
+    "version": 28,
+    "summary": "There are currently no dosing recommendations for tolbutamide based on CYP2C9 genotype.",
+    "recommendation": false,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between SLCO1B1 and statins and CYP2C9 and sulfonylureas.",
+        "pmid": "39676086",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/39676086"
+      },
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2025-01-21",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104986"
+  },
+  {
+    "id": "PA166182841",
+    "name": "Annotation of DPWG Guideline for warfarin and VKORC1",
+    "source": "DPWG",
+    "genes": [
+      "VKORC1"
+    ],
+    "drugs": [
+      "warfarin"
+    ],
+    "version": 14,
+    "summary": "Patients with the VKORC1 rs9923231 TT genotype (-1639 AA genotype) should be given 60% of the standard initial dose of warfarin. The genotype-specific initial dose and maintenance dose can be calculated using an algorithm. There are no recommendation for patients with the VKORC1 rs9923231 CT genotype (-1639 AG genotype).",
+    "recommendation": true,
+    "citations": [],
+    "lastUpdated": "2024-03-20",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166182841"
+  },
+  {
+    "id": "PA166104990",
+    "name": "Annotation of DPWG Guideline for voriconazole and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "voriconazole"
+    ],
+    "version": 31,
+    "summary": "Patients who are CYP2C19 poor metabolizers should receive 50% of the standard dose, and CYP2C19 ultrarapid metabolizers should receive a 1.5 times higher initial dose. Monitor voriconazole plasma concentrations for CYP2C19 poor, intermediate and ultrarapid metabolizers.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104990"
+  },
+  {
+    "id": "PA166363221",
+    "name": "Annotation of DPWG Guideline for rosuvastatin and SLCO1B1",
+    "source": "DPWG",
+    "genes": [
+      "SLCO1B1"
+    ],
+    "drugs": [
+      "rosuvastatin"
+    ],
+    "version": 2,
+    "summary": "Keep the rosuvastatin dose as low as possible (e.g. by adding ezetimibe) for patients with the SLCO1B1 521 CC or TC (rs4149056) genotype and with ADDITIONAL SIGNIFICANT RISK FACTORS for statin-induced myopathy. For patients without additional significant risk factors for statin-induced myopathy, advise the patients to contact their doctor in the event of muscle symptoms.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between SLCO1B1 and statins and CYP2C9 and sulfonylureas.",
+        "pmid": "39676086",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/39676086"
+      }
+    ],
+    "lastUpdated": "2025-01-21",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166363221"
+  },
+  {
+    "id": "PA166104953",
+    "name": "Annotation of DPWG Guideline for glyburide and CYP2C9",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C9"
+    ],
+    "drugs": [
+      "glyburide"
+    ],
+    "version": 29,
+    "summary": "There are currently no dosing recommendations for glibenclamide based on CYP2C9 genotype.",
+    "recommendation": false,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between SLCO1B1 and statins and CYP2C9 and sulfonylureas.",
+        "pmid": "39676086",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/39676086"
+      },
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2025-01-21",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104953"
+  },
+  {
+    "id": "PA166363201",
+    "name": "Annotation of DPWG Guideline for pravastatin and SLCO1B1",
+    "source": "DPWG",
+    "genes": [
+      "SLCO1B1"
+    ],
+    "drugs": [
+      "pravastatin"
+    ],
+    "version": 1,
+    "summary": "There are currently no recommendations for pravastatin dosing based on SLCO1B1 genotypes.",
+    "recommendation": false,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between SLCO1B1 and statins and CYP2C9 and sulfonylureas.",
+        "pmid": "39676086",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/39676086"
+      }
+    ],
+    "lastUpdated": "2025-01-16",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166363201"
+  },
+  {
+    "id": "PA166264961",
+    "name": "Annotation of DPWG Guideline for allopurinol and ABCG2",
+    "source": "DPWG",
+    "genes": [
+      "ABCG2"
+    ],
+    "drugs": [
+      "allopurinol"
+    ],
+    "version": 17,
+    "summary": "Patients with the GT or TT genotypes at rs2231142 should be given an increased dose of allopurinol.",
+    "recommendation": true,
+    "citations": [],
+    "lastUpdated": "2024-03-15",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166264961"
+  },
+  {
+    "id": "PA166182821",
+    "name": "Annotation of DPWG Guideline for sertraline and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "sertraline"
+    ],
+    "version": 11,
+    "summary": "There are currently no dosing recommendations for sertraline based on CYP2D6 genotypes.",
+    "recommendation": false,
+    "citations": [],
+    "lastUpdated": "2024-03-29",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166182821"
+  },
+  {
+    "id": "PA166104972",
+    "name": "Annotation of DPWG Guideline for imipramine and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "imipramine"
+    ],
+    "version": 38,
+    "summary": "CYP2D6 poor metabolizers should receive 30% of the standard dose of imipramine, CYP2D6 intermediate metabolizers should receive 70% of the standard dose, and CYP2D6 ultra-rapid metabolizers should receive 1.7 times the standard dose. Patients should be monitored for the effect and side effects or the plasma concentrations of imipramine and desipramine in order to set the maintenance dose.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between CYP2D6 and CYP2C19 and tricyclic antidepressants.",
+        "pmid": "41526670",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41526670"
+      },
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2026-01-20",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104972"
+  },
+  {
+    "id": "PA166104964",
+    "name": "Annotation of DPWG Guideline for clomipramine and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "clomipramine"
+    ],
+    "version": 38,
+    "summary": "The Dutch Pharmacogenetics Working Group Guideline for clomipramine recommends dose changes and to monitor the effect and side effects and the plasma concentrations to set the maintenance dose for CYP2D6 poor (PM), intermediate (IM) metabolizer, and ultrarapid (UM) metabolizer or to avoid clomipramine in PM and UM.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between CYP2D6 and CYP2C19 and tricyclic antidepressants.",
+        "pmid": "41526670",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41526670"
+      },
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2026-01-20",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104964"
+  },
+  {
+    "id": "PA166104952",
+    "name": "Annotation of DPWG Guideline for mercaptopurine and TPMT",
+    "source": "DPWG",
+    "genes": [
+      "TPMT"
+    ],
+    "drugs": [
+      "mercaptopurine"
+    ],
+    "version": 37,
+    "summary": "Select an alternative drug or reduce the initial dose of mercaptopurine for patients that are TPMT poor metabolizers and reduce initial dose for patients that are TPMT intermediate metabolizers.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between TPMT/NUDT15 and thiopurines.",
+        "pmid": "41318725",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41318725"
+      },
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2025-12-19",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104952"
+  },
+  {
+    "id": "PA166104991",
+    "name": "Annotation of DPWG Guideline for abacavir and HLA-B",
+    "source": "DPWG",
+    "genes": [
+      "HLA-B"
+    ],
+    "drugs": [
+      "abacavir"
+    ],
+    "version": 41,
+    "summary": "Avoid abacavir for patients who have the HLA-B*57:01 allele (patients who are &quot;HLA-B*57:01-positive&quot;).",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-27",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104991"
+  },
+  {
+    "id": "PA166104987",
+    "name": "Annotation of DPWG Guideline for lansoprazole and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "lansoprazole"
+    ],
+    "version": 34,
+    "summary": "For CYP2C19 ultrarapid metabolizers who are undergoing H. pylori eradication therapy, use a 4-fold higher dose. For CYP2C19 ultrarapid metabolizers with other indications, be alert to reduced effectiveness and, if necessary, use a 4-fold higher dose.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2026-02-09",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104987"
+  },
+  {
+    "id": "PA166104968",
+    "name": "Annotation of DPWG Guideline for venlafaxine and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "venlafaxine"
+    ],
+    "version": 36,
+    "summary": "For CYP2D6 poor (PM) and intermediate metabolizers (IM), select an alternative to venlafaxine or reduce the dose and monitor patient's plasma metabolite level. For CYP2D6 ultrarapid metabolizers (UM), therapy adjustment is not required or beneficial for this phenotype-drug combination.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between CYP2D6, CYP2C19 and non-SSRI/non-TCA antidepressants.",
+        "pmid": "38956296",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/38956296"
+      },
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-07-10",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104968"
+  },
+  {
+    "id": "PA166182817",
+    "name": "Annotation of DPWG Guideline for citalopram, escitalopram and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "citalopram",
+      "escitalopram"
+    ],
+    "version": 11,
+    "summary": "There are currently no dosing recommendations for citalopram/escitalopram based on CYP2D6 genotype.",
+    "recommendation": false,
+    "citations": [],
+    "lastUpdated": "2024-03-29",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166182817"
+  },
+  {
+    "id": "PA166184613",
+    "name": "Annotation of DPWG Guideline for mercaptopurine and NUDT15",
+    "source": "DPWG",
+    "genes": [
+      "NUDT15"
+    ],
+    "drugs": [
+      "mercaptopurine"
+    ],
+    "version": 16,
+    "summary": "Select an alternative drug or reduce the initial dose of mercaptopurine for patients that are NUDT15 poor metabolizers and reduce initial dose for patients that are NUDT15 intermediate metabolizers.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between TPMT/NUDT15 and thiopurines.",
+        "pmid": "41318725",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41318725"
+      }
+    ],
+    "lastUpdated": "2025-12-19",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166184613"
+  },
+  {
+    "id": "PA166104934",
+    "name": "Annotation of DPWG Guideline for azathioprine and TPMT",
+    "source": "DPWG",
+    "genes": [
+      "TPMT"
+    ],
+    "drugs": [
+      "azathioprine"
+    ],
+    "version": 38,
+    "summary": "Select an alternative drug or reduce the initial dose of azathioprine for patients that are TPMT poor metabolizers and reduce initial dose for patients that are TPMT intermediate metabolizers.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between TPMT/NUDT15 and thiopurines.",
+        "pmid": "41318725",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41318725"
+      },
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2025-12-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104934"
+  },
+  {
+    "id": "PA166104963",
+    "name": "Annotation of DPWG Guideline for capecitabine and DPYD",
+    "source": "DPWG",
+    "genes": [
+      "DPYD"
+    ],
+    "drugs": [
+      "capecitabine"
+    ],
+    "version": 34,
+    "summary": "An alternative drug to capecitabine is recommended for patients with a DPYD activity score of 0; if an alternative drug is not possible, the DPD activity should be determined and the initial dose adjusted accordingly. For patients with a DPYD activity score of 1 or 1.5, start with 50% of the standard dose or choose an alternative drug; adjustment of subsequent doses should be guided by toxicity and effectiveness. Patients with two partially functional alleles or one non-functional and one partially functional allele or two gene variants leading to partially functional alleles or a gene variant leading to a non-functional allele and a gene variant leading to a partially functional allele should have their DPD activity determined or should avoid fluorouracil/capecitabine. Tegafur is not an alternative for capecitabine, as it is also metabolized by DPD. The DPWG evaluated DPYD genotyping as &quot;essential&quot; and recommend DPYD testing prior to initiating fluoropyrimidines.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104963"
+  },
+  {
+    "id": "PA166104975",
+    "name": "Annotation of DPWG Guideline for escitalopram and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "escitalopram"
+    ],
+    "version": 36,
+    "summary": "The Dutch Pharmacogenetics Working Group Guideline for escitalopram recommends for intermediate and poor metabolizers of CYP2C19 to not exceed the in the DPWG document specified doses and for CYP2C19 ultrarapid metabolizer to avoid escitalopram.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104975"
+  },
+  {
+    "id": "PA166104959",
+    "name": "Annotation of DPWG Guideline for tramadol and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "tramadol"
+    ],
+    "version": 38,
+    "summary": "Be alert to a reduced efficacy of tramadol in CYP2D6 intermediate or poor metabolizers. If tramadol is not effective in these patients, try a dose increase or select an alternative to tramadol (not codeine) and be alert for symptoms of insufficient pain relief. For CYP2D6 ultrarapid metabolizers, use an alternative to tramadol (not codeine) or use 40% of the standard dose and be alert to side effects.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-14",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104959"
+  },
+  {
+    "id": "PA166184614",
+    "name": "Annotation of DPWG Guideline for azathioprine and NUDT15",
+    "source": "DPWG",
+    "genes": [
+      "NUDT15"
+    ],
+    "drugs": [
+      "azathioprine"
+    ],
+    "version": 15,
+    "summary": "Select an alternative drug or reduce the initial dose of azathioprine for patients that are NUDT15 poor metabolizers and reduce initial dose for patients that are NUDT15 intermediate metabolizers.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between TPMT/NUDT15 and thiopurines.",
+        "pmid": "41318725",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41318725"
+      }
+    ],
+    "lastUpdated": "2025-12-19",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166184614"
+  },
+  {
+    "id": "PA166104980",
+    "name": "Annotation of DPWG Guideline for sertraline and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "sertraline"
+    ],
+    "version": 35,
+    "summary": "Do not give doses exceeding 75 mg/day in patients with CYP2C19 poor metabolizer genotypes, and guide the dose by response and side effects and/or sertraline plasma concentration.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104980"
+  },
+  {
+    "id": "PA166264881",
+    "name": "Annotation of DPWG Guideline for phenytoin and HLA-B",
+    "source": "DPWG",
+    "genes": [
+      "HLA-B"
+    ],
+    "drugs": [
+      "phenytoin"
+    ],
+    "version": 13,
+    "summary": "Phenytoin should be avoided if possible in patients with the HLA-B*15:02 allele.",
+    "recommendation": true,
+    "citations": [],
+    "lastUpdated": "2025-04-25",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166264881"
+  },
+  {
+    "id": "PA166104954",
+    "name": "Annotation of DPWG Guideline for imipramine and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "imipramine"
+    ],
+    "version": 35,
+    "summary": "CYP2C19 poor metabolizers should receive 70% of the standard dose of imipramine, or imipramine should be avoided in these patients. Patients should be monitored for the effect and side effects or the plasma concentrations of imipramine and desipramine in order to set the maintenance dose.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104954"
+  },
+  {
+    "id": "PA166265141",
+    "name": "Annotation of DPWG Guideline for allopurinol and HLA-B",
+    "source": "DPWG",
+    "genes": [
+      "HLA-B"
+    ],
+    "drugs": [
+      "allopurinol"
+    ],
+    "version": 9,
+    "summary": "Individuals with the HLA-B*58:01 allele should be given an alternative drug or undergo induction of allopurinol tolerance.",
+    "recommendation": true,
+    "citations": [],
+    "lastUpdated": "2024-03-19",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166265141"
+  },
+  {
+    "id": "PA166182846",
+    "name": "Annotation of DPWG Guideline for efavirenz and CYP2B6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2B6"
+    ],
+    "drugs": [
+      "efavirenz"
+    ],
+    "version": 19,
+    "summary": "Adjust the initial efavirenz dose for patients with the CYP2B6 PM phenotype along with the consideration of age, weight and BMI and titrate the dose to plasma concentration if needed. For patients with the CYP2B6 IM phenotype, determine the efavirenz plasma concentration if side effects occur and reduce the dose if needed.",
+    "recommendation": true,
+    "citations": [],
+    "lastUpdated": "2024-03-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166182846"
+  },
+  {
+    "id": "PA166104939",
+    "name": "Annotation of DPWG Guideline for fluorouracil and DPYD",
+    "source": "DPWG",
+    "genes": [
+      "DPYD"
+    ],
+    "drugs": [
+      "fluorouracil"
+    ],
+    "version": 36,
+    "summary": "An alternative drug to fluorouracil is recommended for patients with a DPYD activity score of 0; if an alternative drug is not possible, the DPD activity should be determined and the initial dose adjusted accordingly. For patients with a DPYD activity score of 1 or 1.5, start with 50% of the standard dose or choose an alternative drug; adjustment of subsequent doses should be guided by toxicity and effectiveness. Patients with two partially functional alleles or one non-functional and one partially functional allele or two gene variants leading to partially functional alleles or a gene variant leading to a non-functional allele and a gene variant leading to a partially functional allele should have their DPD activity determined or should avoid fluorouracil/capecitabine. Tegafur is not an alternative for fluorouracil, as it is also metabolized by DPD. The DPWG evaluated DPYD genotyping as &quot;essential&quot; and recommend DPYD testing prior to initiating fluoropyrimidines.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104939"
+  },
+  {
+    "id": "PA166104958",
+    "name": "Annotation of DPWG Guideline for pantoprazole and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "pantoprazole"
+    ],
+    "version": 37,
+    "summary": "For CYP2C19 ultrarapid metabolizers who are undergoing H. pylori eradication therapy, use a 5-fold higher dose. For CYP2C19 ultrarapid metabolizers with other indications, be alert to reduced effectiveness and, if necessary, use a 5-fold higher dose.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2026-02-09",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104958"
+  },
+  {
+    "id": "PA166184526",
+    "name": "Annotation of DPWG Guideline for amitriptyline and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "amitriptyline"
+    ],
+    "version": 8,
+    "summary": "There are currently no dosing recommendations for amitriptyline based on CYP2C19 genotype.",
+    "recommendation": false,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between CYP2D6 and CYP2C19 and tricyclic antidepressants.",
+        "pmid": "41526670",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41526670"
+      }
+    ],
+    "lastUpdated": "2026-01-20",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166184526"
+  },
+  {
+    "id": "PA166265161",
+    "name": "Annotation of DPWG Guideline for carbamazepine and HLA-A",
+    "source": "DPWG",
+    "genes": [
+      "HLA-A"
+    ],
+    "drugs": [
+      "carbamazepine"
+    ],
+    "version": 15,
+    "summary": "Consider an alternative drug to carbamazepine in patients with the HLA-A*3101 allele.",
+    "recommendation": true,
+    "citations": [],
+    "lastUpdated": "2025-04-25",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166265161"
+  },
+  {
+    "id": "PA166411701",
+    "name": "Annotation of DPWG Guideline for atazanavir and UGT1A1",
+    "source": "DPWG",
+    "genes": [
+      "UGT1A1"
+    ],
+    "drugs": [
+      "atazanavir"
+    ],
+    "version": 3,
+    "summary": "For patients who are UGT1A1 *28/*28, avoidance of atazanavir is recommended if there is a suitable alternative.",
+    "recommendation": true,
+    "citations": [],
+    "lastUpdated": "2025-06-27",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166411701"
+  },
+  {
+    "id": "PA166265162",
+    "name": "Annotation of DPWG Guideline for carbamazepine and HLA-B",
+    "source": "DPWG",
+    "genes": [
+      "HLA-B"
+    ],
+    "drugs": [
+      "carbamazepine"
+    ],
+    "version": 12,
+    "summary": "Consider an alternative drug to carbamazepine in patients with the HLA-B*15:02 or HLA-B*15:11 alleles.",
+    "recommendation": true,
+    "citations": [],
+    "lastUpdated": "2025-04-25",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166265162"
+  },
+  {
+    "id": "PA166104977",
+    "name": "Annotation of DPWG Guideline for citalopram and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "citalopram"
+    ],
+    "version": 38,
+    "summary": "The Dutch Pharmacogenetics Working Group Guideline for citalopram recommends for intermediate and poor metabolizers of CYP2C19 to not exceed the in the DPWG document specified daily doses.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104977"
+  },
+  {
+    "id": "PA166104961",
+    "name": "Annotation of DPWG Guideline for nortriptyline and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "nortriptyline"
+    ],
+    "version": 38,
+    "summary": "The Dutch Pharmacogenetics Working Group Guideline for nortriptyline recommends a dose reduction for CYP2D6 poor or intermediate metabolizer patients. For CYP2D6 ultrarapid metabolizers, select an alternative drug or use 1.7 times the standard dose. Monitoring of nortriptyline and 10-hydroxynortriptyline plasma concentrations is recommended.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2025-11-11",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104961"
+  },
+  {
+    "id": "PA166104957",
+    "name": "Annotation of DPWG Guideline for omeprazole and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "omeprazole"
+    ],
+    "version": 37,
+    "summary": "For CYP2C19 ultrarapid metabolizers who are undergoing H. pylori eradication therapy, use a 3-fold higher dose. For CYP2C19 ultrarapid metabolizers with other indications, be alert to reduced effectiveness and, if necessary, use a 3-fold higher dose.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2026-02-09",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104957"
+  },
+  {
+    "id": "PA166184529",
+    "name": "Annotation of DPWG Guideline for doxepin and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "doxepin"
+    ],
+    "version": 8,
+    "summary": "There are currently no dosing recommendations for doxepin based on CYP2C19 genotype.",
+    "recommendation": false,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between CYP2D6 and CYP2C19 and tricyclic antidepressants.",
+        "pmid": "41526670",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41526670"
+      }
+    ],
+    "lastUpdated": "2026-01-20",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166184529"
+  },
+  {
+    "id": "PA166104994",
+    "name": "Annotation of DPWG Guideline for doxepin and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "doxepin"
+    ],
+    "version": 35,
+    "summary": "The Dutch Pharmacogenetics Working Group Guideline for doxepin recommends dose changes and to monitor the effect and side effects or the plasma concentrations to set the maintenance dose for CYP2D6 poor (PM), intermediate (IM), and ultrarapid (UM) metabolizer or to avoid doxepin in UM.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between CYP2D6 and CYP2C19 and tricyclic antidepressants.",
+        "pmid": "41526670",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41526670"
+      },
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2026-01-20",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104994"
+  },
+  {
+    "id": "PA166182845",
+    "name": "Annotation of DPWG Guideline for fluvastatin and SLCO1B1",
+    "source": "DPWG",
+    "genes": [
+      "SLCO1B1"
+    ],
+    "drugs": [
+      "fluvastatin"
+    ],
+    "version": 12,
+    "summary": "There are currently no recommendations for fluvastatin dosing based on SLCO1B1 genotypes.",
+    "recommendation": false,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between SLCO1B1 and statins and CYP2C9 and sulfonylureas.",
+        "pmid": "39676086",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/39676086"
+      }
+    ],
+    "lastUpdated": "2025-01-16",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166182845"
+  },
+  {
+    "id": "PA166104982",
+    "name": "Annotation of DPWG Guideline for amitriptyline and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "amitriptyline"
+    ],
+    "version": 37,
+    "summary": "The Dutch Pharmacogenetics Working Group Guideline for amitriptyline recommends decreasing the dose for CYP2D6 intermediate and CYP2D6 poor metabolizers and increasing the dose or using an alternative drug for CYP2D6 ultra-rapid metabolizers.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between CYP2D6 and CYP2C19 and tricyclic antidepressants.",
+        "pmid": "41526670",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41526670"
+      },
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2026-01-20",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104982"
+  },
+  {
+    "id": "PA166182813",
+    "name": "Annotation of DPWG Guideline for fluvoxamine and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "fluvoxamine"
+    ],
+    "version": 9,
+    "summary": "There are currently no dosing recommendations for fluvoxamine based on CYP2D6 genotype.",
+    "recommendation": false,
+    "citations": [],
+    "lastUpdated": "2024-03-29",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166182813"
+  },
+  {
+    "id": "PA166182844",
+    "name": "Annotation of DPWG Guideline for simvastatin and SLCO1B1",
+    "source": "DPWG",
+    "genes": [
+      "SLCO1B1"
+    ],
+    "drugs": [
+      "simvastatin"
+    ],
+    "version": 17,
+    "summary": "Choose an alternative for patients with the SLCO1B1 521 CC or TC (rs4149056) genotype and consider any additional risk factors for statin-induced myopathy. If an alternative is not an option for patients with the 521 TC genotype, avoid simvastatin doses exceeding 40 mg/day and advise the patient to contact their doctor in the event of muscle symptoms.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between SLCO1B1 and statins and CYP2C9 and sulfonylureas.",
+        "pmid": "39676086",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/39676086"
+      }
+    ],
+    "lastUpdated": "2025-01-21",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166182844"
+  },
+  {
+    "id": "PA166104983",
+    "name": "Annotation of DPWG Guideline for tacrolimus and CYP3A5",
+    "source": "DPWG",
+    "genes": [
+      "CYP3A5"
+    ],
+    "drugs": [
+      "tacrolimus"
+    ],
+    "version": 36,
+    "summary": "Increased doses of tacrolimus are recommended for CYP3A5 heterozygous and homozygous expressors and adjusted as needed. Instructions for liver transplantation patients include genotypes of both patient and donor.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104983"
+  },
+  {
+    "id": "PA166104995",
+    "name": "Annotation of DPWG Guideline for metoprolol and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "metoprolol"
+    ],
+    "version": 37,
+    "summary": "For CYP2D6 poor and intermediate metabolizer patients, if a GRADUAL REDUCTION in HEART RATE is desired, or in the event of SYMPTOMATIC BRADYCARDIA, use smaller steps in dose titration and/or prescribe no more than 25% or 50% of the standard dose, respectively. For CYP2D6 ultra metabolizers, use the maximum dose for the relevant indication as a target dose, and if the effectiveness is still insufficient: increase the dose based on effectiveness and side effects to 2.5 times the standard dose or select an alternative drug.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104995"
+  },
+  {
+    "id": "PA166184528",
+    "name": "Annotation of DPWG Guideline for clomipramine and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "clomipramine"
+    ],
+    "version": 15,
+    "summary": "The Royal Dutch Pharmacists Association - Pharmacogenetics Working Group (DPWG) recommends to avoid clomipramine in CYP2C19 ultrarapid metabolizer (UM) for Indication OBSESSIVE COMPULSIVE DISORDER or ANXIETY DISORDERS.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between CYP2D6 and CYP2C19 and tricyclic antidepressants.",
+        "pmid": "41526670",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41526670"
+      }
+    ],
+    "lastUpdated": "2026-01-20",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166184528"
+  },
+  {
+    "id": "PA166104956",
+    "name": "Annotation of DPWG Guideline for clopidogrel and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "clopidogrel"
+    ],
+    "version": 36,
+    "summary": "Avoid clopidogrel use in patients who are CYP2C19 poor metabolizers and are undergoing percutaneous coronary intervention, stroke or TIA. For CYP2C19 intermediate metabolizers who are undergoing percutaneous coronary intervention, stroke, or TIA, choose an alternative drug or double the dose to 150 mg/day (600 mg loading dose). No action is required for patients who are CYP2C19 ultra-rapid metabolizers.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-28",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104956"
+  },
+  {
+    "id": "PA166104960",
+    "name": "Annotation of DPWG Guideline for thioguanine and TPMT",
+    "source": "DPWG",
+    "genes": [
+      "TPMT"
+    ],
+    "drugs": [
+      "thioguanine"
+    ],
+    "version": 36,
+    "summary": "Select an alternative drug or reduce the initial dose of thioguanine for patients that are TPMT poor metabolizers and reduce initial dose for patients that are TPMT intermediate metabolizers.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between TPMT/NUDT15 and thiopurines.",
+        "pmid": "41318725",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/41318725"
+      },
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2025-12-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104960"
+  },
+  {
+    "id": "PA166104976",
+    "name": "Annotation of DPWG Guideline for paroxetine and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "paroxetine"
+    ],
+    "version": 37,
+    "summary": "Select an alternative drug rather than paroxetine for CYP2D6 ultrarapid metabolizer patients.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-19",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104976"
+  },
+  {
+    "id": "PA166182843",
+    "name": "Annotation of DPWG Guideline for atorvastatin and SLCO1B1",
+    "source": "DPWG",
+    "genes": [
+      "SLCO1B1"
+    ],
+    "drugs": [
+      "atorvastatin"
+    ],
+    "version": 16,
+    "summary": "Choose an alternative for patients with the SLCO1B1 521 CC or TC (rs4149056) genotype and with ADDITIONAL SIGNIFICANT RISK FACTORS for statin-induced myopathy. For patients without additional significant risk factors for statin-induced myopathy, advise the patients to contact their doctor in the event of muscle symptoms.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Dutch Pharmacogenetics Working Group (DPWG) guideline for the gene-drug interaction between SLCO1B1 and statins and CYP2C9 and sulfonylureas.",
+        "pmid": "39676086",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/39676086"
+      }
+    ],
+    "lastUpdated": "2025-01-21",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166182843"
+  },
+  {
+    "id": "PA166104984",
+    "name": "Annotation of DPWG Guideline for phenytoin and CYP2C9",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C9"
+    ],
+    "drugs": [
+      "phenytoin"
+    ],
+    "version": 38,
+    "summary": "Use the standard starting dose of phenytoin and reduce the maintenance dose based on CYP2C9 genotype; monitor response and serum concentrations and be aware of ADEs.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2025-04-25",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104984"
+  },
+  {
+    "id": "PA166182814",
+    "name": "Annotation of DPWG Guideline for fluvoxamine and CYP2C19",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C19"
+    ],
+    "drugs": [
+      "fluvoxamine"
+    ],
+    "version": 9,
+    "summary": "There are currently no dosing recommendations for fluvoxamine based on CYP2C19 genotypes.",
+    "recommendation": false,
+    "citations": [],
+    "lastUpdated": "2024-03-29",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166182814"
+  },
+  {
+    "id": "PA166104966",
+    "name": "Annotation of DPWG Guideline for tamoxifen and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "tamoxifen"
+    ],
+    "version": 34,
+    "summary": "For CYP2D6 poor and intermediate metabolizers, consider an alternative medication or a dose increase. For intermediate metabolizers, avoid concomitant CYP2D6 inhibitor use.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2026-04-27",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104966"
+  },
+  {
+    "id": "PA166104989",
+    "name": "Annotation of DPWG Guideline for atomoxetine and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "atomoxetine"
+    ],
+    "version": 36,
+    "summary": "The Dutch Pharmacogenetics Working Group Guideline for atomoxetine states for CYP2D6 ultrarapid metabolizers, to be alert to reduced efficacy of atomoxetine or select an alternative drug as a precaution. Be alert to side effects in CYP2D6 poor metabolizers.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-18",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104989"
+  },
+  {
+    "id": "PA166104970",
+    "name": "Annotation of DPWG Guideline for codeine and CYP2D6",
+    "source": "DPWG",
+    "genes": [
+      "CYP2D6"
+    ],
+    "drugs": [
+      "codeine"
+    ],
+    "version": 39,
+    "summary": "The Pharmacogenetics Working Group Guideline for codeine includes individual recommendations for cough or pain for CYP2D6 poor, intermediate, and ultrarapid metabolizer. In addition, for ultrarapid metabolizer, higher or lower doses and additional risk factors are taken into consideration.",
+    "recommendation": true,
+    "citations": [
+      {
+        "title": "Pharmacogenetics: from bench to byte--an update of guidelines.",
+        "pmid": "21412232",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/21412232"
+      }
+    ],
+    "lastUpdated": "2024-03-14",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166104970"
+  },
+  {
+    "id": "PA166265201",
+    "name": "Annotation of DPWG Guideline for oxcarbazepine and HLA-B",
+    "source": "DPWG",
+    "genes": [
+      "HLA-B"
+    ],
+    "drugs": [
+      "oxcarbazepine"
+    ],
+    "version": 13,
+    "summary": "Oxcarbazepine should be avoided if an alternative is available in patients with the HLA-B*15:02 allele.",
+    "recommendation": true,
+    "citations": [],
+    "lastUpdated": "2026-04-06",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166265201"
+  },
+  {
+    "id": "PA166182842",
+    "name": "Annotation of DPWG Guideline for warfarin and CYP2C9",
+    "source": "DPWG",
+    "genes": [
+      "CYP2C9"
+    ],
+    "drugs": [
+      "warfarin"
+    ],
+    "version": 15,
+    "summary": "Reduce warfarin dose in CYP2C9 poor and intermediate metabolizers (PM and IM) and patients with CYP2C9*1/*3, *2/*3, *2/*2 or *3/*3 genotype. The genotype-specific initial dose and maintenance dose can be calculated using an algorithm, as used in EU-PACT.",
+    "recommendation": true,
+    "citations": [],
+    "lastUpdated": "2025-04-25",
+    "url": "https://www.pharmgkb.org/guidelineAnnotation/PA166182842"
+  }
+]

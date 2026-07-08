@@ -5,8 +5,19 @@
  *   - rules[]            one per actionable CPIC recommendation, keyed by
  *                        `lookupkey` (gene→phenotype), with the authoritative
  *                        recommendation + implications text, derived severity,
- *                        strength, guideline citation + URL.
+ *                        strength, guideline citation + URL. Every CPIC rule is
+ *                        tagged `source: "CPIC"`.
+ *   - dpwgRules[]        the DPWG (Dutch Pharmacogenetics Working Group) second
+ *                        authority, one per in-scope gene-drug annotation, tagged
+ *                        `source: "DPWG"`. DPWG publishes one prose summary per
+ *                        pair (not a per-phenotype lookupkey), so these are matched
+ *                        by drug+gene and surfaced alongside the CPIC rule.
  *   - phenotypeByDiplotype   gene → { normalized diplotype → phenotype }.
+ *   - activityScore     for CYP2C9 / CYP2D6 / DPYD: per-allele activity values +
+ *                        the totalScore→phenotype bands, so diplotypes CPIC never
+ *                        pre-enumerated still resolve (the concrete gap over a
+ *                        fixed diplotype table). Bands are DERIVED from the real
+ *                        gene_result activity scores, not hardcoded from memory.
  *
  * Severity is DERIVED from CPIC's recommendation text + classification (CPIC
  * doesn't publish our critical/caution/info scale); the mapping is auditable
@@ -41,6 +52,8 @@ const recommendations = load<Rec[]>("recommendations.json");
 const geneResults = load<any[]>("gene-results.json");
 const lookups = load<any[]>("gene-result-lookups.json");
 const diplotypes = load<any[]>("diplotypes.json");
+const alleles = load<any[]>("alleles.json");
+const dpwgAnnotations = load<any[]>("dpwg.json");
 
 // ---- lookup maps ----
 const drugName = new Map<string, string>(
@@ -140,20 +153,134 @@ const rules = recommendations.map((rec) => {
     citation: titleCitation(rec, primaryGene),
     url: g?.url ?? "",
     comments: rec.comments ?? "",
+    // Guideline authority. All rows in `rules` are CPIC; DPWG lives in
+    // `dpwgRules`. Tagged so lookupRule/consumers can attribute each string.
+    source: "CPIC" as const,
   };
 });
+
+/* ------------------------------------------------------------------------- *
+ * Activity-score model (CYP2C9, CYP2D6, DPYD)
+ *
+ * CPIC phenotypes these three genes by an ACTIVITY SCORE — the sum of each
+ * allele's activity value — not by a fixed diplotype→phenotype string. The
+ * enumerated phenotypeByDiplotype table covers the named diplotypes CPIC shipped,
+ * but a diplotype it never enumerated (a novel *x/*y pairing) can still be scored:
+ * sum the per-allele values, then map the total into the phenotype band.
+ *
+ * Both halves are sourced, never fabricated:
+ *   - alleleValues  ← the real `activityvalue` on each allele row (alleles.json).
+ *   - bands         ← DERIVED from the real gene_result (result + activityscore)
+ *                     rows: the max enumerated score per phenotype becomes that
+ *                     band's inclusive upper bound; the top phenotype is open-ended.
+ * ------------------------------------------------------------------------- */
+const ACTIVITY_SCORE_GENES = ["CYP2C9", "CYP2D6", "DPYD"] as const;
+
+// allele name → numeric activity value, per gene (only rows with a numeric value).
+const alleleValues: Record<string, Record<string, number>> = {};
+for (const a of alleles) {
+  const gene = String(a.genesymbol);
+  if (!(ACTIVITY_SCORE_GENES as readonly string[]).includes(gene)) continue;
+  const v = Number(a.activityvalue);
+  if (!Number.isFinite(v)) continue; // skip "n/a" / null (unknown/increased)
+  (alleleValues[gene] ??= {})[String(a.name)] = v;
+}
+
+// totalScore → phenotype bands, DERIVED from gene_result rows. For each gene we
+// collect the numeric activity scores CPIC assigns to each phenotype, take the
+// MAX score per phenotype as its inclusive upper bound, order ascending, and make
+// the highest phenotype open-ended. Scores like CYP2D6 "≥3.0" are non-numeric and
+// only anchor Ultrarapid at the top, so they're excluded from boundary math.
+type Band = { phenotype: string; maxInclusive: number | null };
+const bands: Record<string, Band[]> = {};
+for (const gene of ACTIVITY_SCORE_GENES) {
+  const maxByPheno = new Map<string, number>();
+  for (const r of geneResults) {
+    if (String(r.genesymbol) !== gene) continue;
+    const score = Number(r.activityscore);
+    if (!Number.isFinite(score)) continue; // "n/a", "≥3.0", etc.
+    const pheno = String(r.result);
+    maxByPheno.set(pheno, Math.max(maxByPheno.get(pheno) ?? -Infinity, score));
+  }
+  const ordered = [...maxByPheno.entries()].sort((a, b) => a[1] - b[1]);
+  bands[gene] = ordered.map(([phenotype, max], i) => ({
+    phenotype,
+    // Top band is open-ended (covers everything above the previous bound,
+    // including CPIC's "≥3.0" Ultrarapid scores that carry no numeric ceiling).
+    maxInclusive: i === ordered.length - 1 ? null : max,
+  }));
+}
+
+/* ------------------------------------------------------------------------- *
+ * DPWG rules (second authority)
+ *
+ * DPWG publishes ONE prose recommendation per gene-drug pair (covering every
+ * phenotype in a single summary), not a per-phenotype lookupkey like CPIC. So a
+ * DPWG rule is matched by drug + gene, carries the REAL summary text + PMID
+ * citation, and is surfaced ALONGSIDE the CPIC rule — never replacing it (CPIC
+ * stays the load-bearing decision; DPWG corroborates). No DPWG text is authored
+ * here; it is passed through verbatim from the ingest.
+ * ------------------------------------------------------------------------- */
+const dpwgRules = dpwgAnnotations.map((a) => {
+  const cites: any[] = a.citations ?? [];
+  const withPmid = cites.find((c) => c.pmid);
+  const citation = withPmid
+    ? `DPWG Guideline: ${a.name} (PMID ${withPmid.pmid})`
+    : `DPWG Guideline: ${a.name}`;
+  return {
+    drug: String(a.drugs?.[0] ?? ""),
+    // A DPWG annotation can name several chemicals (e.g. a drug + its salt); keep
+    // them all so drug matching in lookupRule can hit any alias.
+    drugs: (a.drugs ?? []).map((d: string) => String(d)),
+    drugId: "", // DPWG keys on PA accession, not RxNorm; no drugId to map.
+    genes: (a.genes ?? []).map((g: string) => String(g)),
+    // Empty key: DPWG guidance is pair-level, not per-phenotype. Kept for
+    // CatalogRule shape-compatibility; matching is by drug/gene, not by key.
+    key: {} as Record<string, string>,
+    // The real, verbatim DPWG summary recommendation (HTML already stripped).
+    recommendation: String(a.summary ?? ""),
+    implications: "",
+    guidelineText: String(a.summary ?? ""),
+    citation,
+    url: String(a.url ?? ""),
+    comments: "",
+    strength: "", // DPWG summaries carry no CPIC-style strength classification.
+    source: "DPWG" as const,
+    version: a.version ?? null,
+    lastUpdated: a.lastUpdated ?? null,
+  };
+});
+// TODO(data): DPWG guidance is stored at pair-level (one summary covering all
+// phenotypes) because the PharmGKB guidelineAnnotations feed does not publish a
+// per-phenotype DPWG lookupkey. If a future feed exposes phenotype-keyed DPWG
+// recommendations, key dpwgRules by phenotype here (mirroring the CPIC `key`)
+// so a DPWG rule can be selected for the patient's exact phenotype.
 
 const catalog = {
   meta: {
     source: "CPIC via ClinPGx (api.cpicpgx.org)",
+    // Both guideline authorities baked into this catalog.
+    sources: dpwgRules.length ? ["CPIC", "DPWG"] : ["CPIC"],
     license: "CC BY-SA 4.0",
     generated: "cpic-build.ts",
     genes: [...new Set(pairs.map((p) => String(p.genesymbol)))].sort(),
     phenotypeValues: [...new Set(geneResults.map((g) => String(g.result)))].sort(),
-    counts: { rules: rules.length, actionable: rules.filter((r) => r.severity !== "info").length },
+    counts: {
+      rules: rules.length,
+      actionable: rules.filter((r) => r.severity !== "info").length,
+      dpwgRules: dpwgRules.length,
+      activityScoreGenes: ACTIVITY_SCORE_GENES.length,
+    },
   },
   rules,
+  dpwgRules,
   phenotypeByDiplotype,
+  // The activity-score fallback model (CYP2C9 / CYP2D6 / DPYD).
+  activityScore: {
+    genes: [...ACTIVITY_SCORE_GENES],
+    alleleValues,
+    bands,
+  },
 };
 
 mkdirSync(OUT, { recursive: true });
@@ -163,7 +290,22 @@ const bySev = rules.reduce<Record<string, number>>((a, r) => {
   a[r.severity] = (a[r.severity] ?? 0) + 1;
   return a;
 }, {});
-console.log(`catalog.json written: ${rules.length} rules`, bySev);
+console.log(`catalog.json written: ${rules.length} CPIC rules`, bySev);
+console.log(`DPWG rules: ${dpwgRules.length} (source: DPWG)`);
+console.log(
+  `activity-score model: ${ACTIVITY_SCORE_GENES.length} genes ` +
+    ACTIVITY_SCORE_GENES.map(
+      (g) => `${g}(${Object.keys(alleleValues[g] ?? {}).length} alleles, ${bands[g]?.length ?? 0} bands)`,
+    ).join(" "),
+);
+for (const g of ACTIVITY_SCORE_GENES) {
+  console.log(
+    `  ${g} bands: ` +
+      (bands[g] ?? [])
+        .map((b) => `${b.phenotype}≤${b.maxInclusive ?? "∞"}`)
+        .join(", "),
+  );
+}
 console.log(
   `phenotype maps: ${Object.keys(phenotypeByDiplotype).length} genes, ` +
     `${Object.values(phenotypeByDiplotype).reduce((n, m) => n + Object.keys(m).length, 0)} diplotypes`,

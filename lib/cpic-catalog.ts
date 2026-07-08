@@ -60,6 +60,10 @@ export function recommendedAlternative(drug: string): RecommendedAlternative | n
   return ALTERNATIVE_BY_DRUG[normDrug(drug)] ?? null;
 }
 
+/** Which guideline authority a rule came from. Defaults to CPIC for every
+ *  pre-existing rule so nothing downstream breaks; DPWG is the second body. */
+export type GuidelineSource = "CPIC" | "DPWG";
+
 export type CatalogRule = {
   drug: string;
   drugId: string;
@@ -74,12 +78,48 @@ export type CatalogRule = {
   citation: string;
   url: string;
   comments: string;
+  /** Guideline authority. Optional for backward-compat; absent ⇒ treat as "CPIC". */
+  source?: GuidelineSource;
+};
+
+/**
+ * A DPWG (Dutch Pharmacogenetics Working Group) recommendation — the second
+ * guideline authority. Shares CatalogRule's shape so consumers can render it the
+ * same way, but DPWG publishes ONE prose summary per gene-drug pair (not a
+ * per-phenotype lookupkey), so its `key` is empty and it's matched by drug+gene.
+ * It rides ALONGSIDE the CPIC rule (LookupResult.dpwg); it never gates the alert.
+ */
+export type DpwgRule = CatalogRule & {
+  source: "DPWG";
+  /** Every chemical the DPWG annotation names (drug + salts/aliases). */
+  drugs: string[];
+  /** DPWG annotation revision counter (from PharmGKB), or null. */
+  version: number | null;
+  /** ISO date of the DPWG revision this text reflects, or null. */
+  lastUpdated: string | null;
+};
+
+/** Per-allele activity value + totalScore→phenotype bands for the genes CPIC
+ *  phenotypes by activity score (CYP2C9, CYP2D6, DPYD). See scripts/cpic-build.ts. */
+type ActivityScoreModel = {
+  genes: string[];
+  /** gene → { allele name → numeric activity value }. */
+  alleleValues: Record<string, Record<string, number>>;
+  /** gene → ordered bands; `maxInclusive: null` marks the open-ended top band. */
+  bands: Record<string, { phenotype: string; maxInclusive: number | null }[]>;
 };
 
 type Catalog = {
-  meta: { genes: string[]; phenotypeValues: string[]; counts: Record<string, number> };
+  meta: {
+    genes: string[];
+    phenotypeValues: string[];
+    counts: Record<string, number>;
+    sources?: GuidelineSource[];
+  };
   rules: CatalogRule[];
+  dpwgRules?: DpwgRule[];
   phenotypeByDiplotype: Record<string, Record<string, string>>;
+  activityScore?: ActivityScoreModel;
 };
 
 const catalog = catalogData as unknown as Catalog;
@@ -112,9 +152,64 @@ const normDip = (d: string) =>
 
 const SEVERITY_RANK: Record<Severity, number> = { critical: 0, caution: 1, info: 2 };
 
-/** Authoritative diplotype → phenotype (returns null if the gene/diplotype isn't enumerated). */
+/**
+ * Authoritative diplotype → phenotype. First consults CPIC's enumerated
+ * diplotype table; if the diplotype isn't listed AND the gene is scored by
+ * activity (CYP2C9 / CYP2D6 / DPYD), falls back to summing per-allele activity
+ * values and mapping the total into CPIC's phenotype bands. Returns null when
+ * neither path resolves. The fallback is purely additive — an enumerated
+ * diplotype always resolves exactly as before.
+ */
 export function resolvePhenotype(gene: string, diplotype: string): string | null {
-  return catalog.phenotypeByDiplotype[gene]?.[normDip(diplotype)] ?? null;
+  const enumerated = catalog.phenotypeByDiplotype[gene]?.[normDip(diplotype)];
+  if (enumerated != null) return enumerated;
+  return resolvePhenotypeByActivityScore(gene, diplotype);
+}
+
+/**
+ * Score-based phenotype for the activity-score genes (CYP2C9 / CYP2D6 / DPYD):
+ * split the diplotype into alleles, sum each allele's real CPIC activity value
+ * (handling *NxK copy-number multiplications, e.g. "*1x2"), then map the total
+ * into the DERIVED phenotype band. This is the concrete gap over a fixed
+ * diplotype table — a novel *x/*y pairing CPIC never enumerated still resolves.
+ *
+ * Returns null (never a guess) when: the gene isn't activity-scored, the model
+ * is absent, or ANY allele lacks a known numeric activity value — because a
+ * partial sum would misclassify. Clinical safety: no value beats a wrong value.
+ */
+export function resolvePhenotypeByActivityScore(
+  gene: string,
+  diplotype: string,
+): string | null {
+  const model = catalog.activityScore;
+  if (!model || !model.genes.includes(gene)) return null;
+  const values = model.alleleValues[gene];
+  const bands = model.bands[gene];
+  if (!values || !bands?.length) return null;
+
+  let total = 0;
+  for (const raw of diplotype.split("/")) {
+    const allele = raw.trim();
+    // Copy-number notation "*NxK" (or "*Nx≥K") = K copies of *N. A "≥" multiplier
+    // has no fixed count, so we can't score it → bail (honest null).
+    const mult = allele.match(/^(.*?)x(≥?)(\d+)$/);
+    let value: number | undefined;
+    if (mult) {
+      if (mult[2] === "≥") return null;
+      const base = values[mult[1]];
+      if (base == null) return null;
+      value = base * Number(mult[3]);
+    } else {
+      value = values[allele];
+    }
+    if (value == null) return null; // unknown-function allele → cannot score
+    total += value;
+  }
+
+  for (const band of bands) {
+    if (band.maxInclusive == null || total <= band.maxInclusive) return band.phenotype;
+  }
+  return null;
 }
 
 /** Every drug the CPIC catalog has any rule for, normalized. Backs the
@@ -154,13 +249,31 @@ export type LookupInput = {
 
 export type LookupResult =
   | { applies: false; reason: "no-rule" | "missing-genes"; requiredGenes?: string[] }
-  | ({ applies: true } & CatalogRule);
+  | ({ applies: true; dpwg?: DpwgRule[] } & CatalogRule);
+
+/** All DPWG rules the catalog holds (empty if DPWG wasn't ingested). */
+const DPWG_RULES: readonly DpwgRule[] = catalog.dpwgRules ?? [];
+
+/**
+ * The DPWG (second-authority) recommendations for a drug, matched by any of the
+ * chemical names the annotation carries (aliases resolved). Pair-level guidance
+ * (one summary covers all phenotypes), so it's not phenotype-filtered — the UI
+ * surfaces it as corroborating evidence beside the CPIC rule. Empty when DPWG has
+ * no annotation for the drug (or DPWG wasn't ingested).
+ */
+export function dpwgRulesForDrug(drug: string): DpwgRule[] {
+  const d = normDrug(drug);
+  return DPWG_RULES.filter((r) =>
+    (r.drugs?.length ? r.drugs : [r.drug]).some((name) => normDrug(name) === d),
+  );
+}
 
 /**
  * Find the actionable rule for a drug given everything we know about the
  * patient's genetics. A rule matches only when EVERY gene in its lookupkey is
  * satisfied by a known phenotype, so a 2-gene rule (e.g. TPMT + NUDT15) needs
- * both genes present. Returns the most severe matching rule.
+ * both genes present. Returns the most severe matching rule, plus any DPWG
+ * guidance for the drug as a `dpwg` sibling (never gates the CPIC decision).
  */
 export function lookupRule(input: LookupInput): LookupResult {
   const drug = normDrug(input.drug);
@@ -188,7 +301,10 @@ export function lookupRule(input: LookupInput): LookupResult {
   }
 
   matched.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
-  return { applies: true, ...matched[0] };
+  const dpwg = dpwgRulesForDrug(drug);
+  return dpwg.length
+    ? { applies: true, ...matched[0], dpwg }
+    : { applies: true, ...matched[0] };
 }
 
 /* ------------------------------------------------------------------------- *

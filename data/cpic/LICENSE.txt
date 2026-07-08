@@ -9,4 +9,4 @@ Attribution: Clinical Pharmacogenetics Implementation Consortium (CPIC),
 ClinPGx, and PharmGKB. The data has been reshaped into JSON for use in
 Basepair; clinical content is unchanged. Per the ShareAlike term, this
 derived dataset is distributed under the same CC BY-SA 4.0 license.
-Accessed: 2026-07-07.
+Accessed: 2026-07-08.

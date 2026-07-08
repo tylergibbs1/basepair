@@ -7,7 +7,8 @@
       "CYP2D6"
     ],
     "clinpgxid": "PA166251459",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 100417,
@@ -17,7 +18,8 @@
       "CYP2D6"
     ],
     "clinpgxid": "PA166251457",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 100415,
@@ -27,7 +29,8 @@
       "CYP2D6"
     ],
     "clinpgxid": "PA166251458",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 5290480,
@@ -42,7 +45,8 @@
       "GRK5"
     ],
     "clinpgxid": "PA166343383",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 26
   },
   {
     "id": 100414,
@@ -53,7 +57,8 @@
       "CYP2D6"
     ],
     "clinpgxid": "PA166251445",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 100413,
@@ -67,7 +72,8 @@
       "HTR2A"
     ],
     "clinpgxid": "PA166251452",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 24
   },
   {
     "id": 100416,
@@ -79,7 +85,8 @@
       "OPRM1"
     ],
     "clinpgxid": "PA166251454",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 71
   },
   {
     "id": 100418,
@@ -89,7 +96,8 @@
       "CYP3A5"
     ],
     "clinpgxid": "PA166251451",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 100419,
@@ -99,7 +107,8 @@
       "DPYD"
     ],
     "clinpgxid": "PA166251462",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 71
   },
   {
     "id": 100422,
@@ -109,7 +118,8 @@
       "HLA-B"
     ],
     "clinpgxid": "PA166251446",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 100424,
@@ -119,7 +129,8 @@
       "IFNL3"
     ],
     "clinpgxid": "PA166251455",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 71
   },
   {
     "id": 826283,
@@ -129,7 +140,8 @@
       "MT-RNR1"
     ],
     "clinpgxid": "PA166251466",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 68
   },
   {
     "id": 6478852,
@@ -139,7 +151,8 @@
       "NAT2"
     ],
     "clinpgxid": "PA166416361",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 17
   },
   {
     "id": 100427,
@@ -150,7 +163,8 @@
       "RYR1"
     ],
     "clinpgxid": "PA166251460",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 100426,
@@ -162,7 +176,8 @@
       "CYP2C9"
     ],
     "clinpgxid": "PA166264281",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 71
   },
   {
     "id": 100428,
@@ -173,7 +188,8 @@
       "TPMT"
     ],
     "clinpgxid": "PA166251442",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 100429,
@@ -183,7 +199,8 @@
       "UGT1A1"
     ],
     "clinpgxid": "PA166251453",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 100409,
@@ -193,7 +210,8 @@
       "CFTR"
     ],
     "clinpgxid": "PA166251449",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 104245,
@@ -203,7 +221,8 @@
       "CYP2B6"
     ],
     "clinpgxid": "PA166251463",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 68
   },
   {
     "id": 5290481,
@@ -213,7 +232,8 @@
       "CYP2B6"
     ],
     "clinpgxid": "PA166411641",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 26
   },
   {
     "id": 100411,
@@ -223,7 +243,8 @@
       "CYP2C19"
     ],
     "clinpgxid": "PA166251443",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 110076,
@@ -233,7 +254,8 @@
       "CYP2C19"
     ],
     "clinpgxid": "PA166251441",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 67
   },
   {
     "id": 100410,
@@ -243,7 +265,8 @@
       "CYP2C19"
     ],
     "clinpgxid": "PA166251456",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 110058,
@@ -253,7 +276,8 @@
       "CYP2C9"
     ],
     "clinpgxid": "PA166251464",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 68
   },
   {
     "id": 100412,
@@ -264,7 +288,8 @@
       "HLA-B"
     ],
     "clinpgxid": "PA166251461",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 100425,
@@ -276,7 +301,8 @@
       "VKORC1"
     ],
     "clinpgxid": "PA166251465",
-    "notesonusage": "Warfarin recommendation does not follow simple diplotype to phenotype translation. Read the guideline text and follow the recommendation diagram found at http://files.cpicpgx.org/images/warfarin/warfarin_recommendation_diagram.png"
+    "notesonusage": "Warfarin recommendation does not follow simple diplotype to phenotype translation. Read the guideline text and follow the recommendation diagram found at http://files.cpicpgx.org/images/warfarin/warfarin_recommendation_diagram.png",
+    "version": 71
   },
   {
     "id": 2405438,
@@ -286,7 +312,8 @@
       "G6PD"
     ],
     "clinpgxid": "PA166251450",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 66
   },
   {
     "id": 100423,
@@ -297,7 +324,8 @@
       "HLA-B"
     ],
     "clinpgxid": "PA166251448",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   },
   {
     "id": 100421,
@@ -307,6 +335,7 @@
       "HLA-B"
     ],
     "clinpgxid": "PA166251444",
-    "notesonusage": null
+    "notesonusage": null,
+    "version": 70
   }
 ]

@@ -1,12 +1,63 @@
 {
   "source": "CPIC (Clinical Pharmacogenetics Implementation Consortium), via ClinPGx",
+  "sources": [
+    "CPIC",
+    "DPWG"
+  ],
   "api": "https://api.cpicpgx.org/v1",
   "apiVersion": "v1",
-  "accessed": "2026-07-07",
+  "accessed": "2026-07-08",
   "license": "CC BY-SA 4.0",
   "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
-  "attribution": "Data from CPIC / ClinPGx / PharmGKB, licensed under CC BY-SA 4.0. Reshaped into JSON for Basepair; not modified in substance.",
+  "attribution": "Data from CPIC / ClinPGx / PharmGKB (incl. DPWG annotations), licensed under CC BY-SA 4.0. Reshaped into JSON for Basepair; not modified in substance.",
   "scope": "usedforrecommendation = true (actionable pairs only)",
+  "dataVersions": {
+    "note": "CPIC/ClinPGx exposes no global data-version field; these are the real per-object `version` revision counters from the guideline / allele / recommendation rows, plus the DPWG annotation release date.",
+    "cpicGuidelines": {
+      "CFTR and Ivacaftor": 70,
+      "CYP2B6 and efavirenz": 68,
+      "CYP2B6 and methadone": 26,
+      "CYP2C19 and Clopidogrel": 70,
+      "CYP2C19 and Proton Pump Inhibitors": 67,
+      "CYP2C19 and Voriconazole": 70,
+      "CYP2C9 and NSAIDs": 68,
+      "CYP2C9, HLA-B and Phenytoin": 70,
+      "CYP2C9, VKORC1, CYP4F2 and Warfarin": 71,
+      "CYP2D6 and Atomoxetine": 70,
+      "CYP2D6 and Ondansetron and Tropisetron": 70,
+      "CYP2D6 and Tamoxifen": 70,
+      "CYP2D6, ADRB1, ADRB2, ADRA2C, GRK4, and GRK5 and Beta-Blockers": 26,
+      "CYP2D6, CYP2C19 and Tricyclic Antidepressants": 70,
+      "CYP2D6, CYP2C19, CYP2B6, SLC6A4, HTR2A and Serotonin Reuptake Inhibitor Antidepressants": 24,
+      "CYP2D6, OPRM1, COMT, and Opioids": 71,
+      "CYP3A5 and Tacrolimus": 70,
+      "DPYD and Fluoropyrimidines": 71,
+      "G6PD": 66,
+      "HLA-A, HLA-B and Carbamazepine and Oxcarbazepine": 70,
+      "HLA-B and Abacavir": 70,
+      "HLA-B and Allopurinol": 70,
+      "IFNL3 and Peginterferon-alpha-based Regimens": 71,
+      "MT-RNR1 and Aminoglycosides": 68,
+      "NAT2 and Hydralazine": 17,
+      "RYR1, CACNA1S and Volatile anesthetic agents and Succinylcholine": 70,
+      "SLCO1B1, ABCG2, CYP2C9, and Statins": 71,
+      "TPMT, NUDT15 and Thiopurines": 70,
+      "UGT1A1 and Atazanavir": 70
+    },
+    "cpicAlleleDefinitions": {
+      "min": 2,
+      "max": 404
+    },
+    "cpicRecommendations": {
+      "min": 1,
+      "max": 1
+    },
+    "dpwg": {
+      "channel": "PharmGKB guidelineAnnotations.json.zip",
+      "created": "2026-07-05",
+      "annotations": 56
+    }
+  },
   "counts": {
     "genes": 22,
     "pairs": 135,
@@ -18,6 +69,8 @@
     },
     "drugs": 112,
     "recommendations": 2115,
-    "diplotypes": 26562
+    "diplotypes": 26562,
+    "alleles": 380,
+    "dpwg": 56
   }
 }

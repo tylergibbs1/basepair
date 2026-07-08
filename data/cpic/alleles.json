@@ -1,0 +1,3042 @@
+[
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*9",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.25",
+    "strength": "Moderate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*29",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Moderate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*81",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*95",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*109",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.25",
+    "strength": "Limited",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*128",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*132",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.25",
+    "strength": "Limited",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*136",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*36+*10x2",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": null,
+    "version": 2
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*36x2+*10x2",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": null,
+    "version": 2
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*68+*2",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": null,
+    "version": 2
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*83",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*49",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*4x≥3",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*22",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.496A>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Moderate",
+    "version": 391
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.498G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1774C>T",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*3",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Definitive",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*23",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*33",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*5",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Definitve",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*20",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*34",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*41x2",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 330
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*41x3",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.75",
+    "strength": "Limited",
+    "version": 330
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2978T>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*133",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*147",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 306
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2336C>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2623A>C",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2656C>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2657G>A (*9B)",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Moderate",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2915A>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.295_298delTCAT (*7)",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 391
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1024G>A",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*35x2",
+    "clinicalfunctionalstatus": "Increased function",
+    "activityvalue": "2.0",
+    "strength": "Limited",
+    "version": 331
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*145",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 306
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.557A>G",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Moderate",
+    "version": 391
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1294G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1543G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1577C>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2977C>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.3049G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*29x2",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 330
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1129-5923C>G, c.1236G>A (HapB3)",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Strong",
+    "version": 387
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*19",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*163",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 304
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.632A>G",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1218G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Moderate",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1519G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*125",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*126",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1314T>G",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1682G>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1057C>T",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*25",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*28",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1615G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*134",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*171",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 129
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*17",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Moderate",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1156G>T (*12)",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1181G>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2021G>A",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*67",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*54",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2279C>T",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*56",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*86",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 32
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*115",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*87",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 32
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*88",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 32
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*51",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*69",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*146x2",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 223
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1905+1G>A (*2A)",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Strong",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1990G>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*27",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.868A>G",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*27",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*111",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*2x≥3",
+    "clinicalfunctionalstatus": "Increased function",
+    "activityvalue": "≥3.0",
+    "strength": "Limited",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*58",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*62",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*143",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 306
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.61C>T",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 397
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.62G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Moderate",
+    "version": 397
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.313G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.343A>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*56",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*4",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Strong",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*17x2",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 330
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*89",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*35",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*74",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*48",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*70",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*71",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*44",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*63",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*45x2",
+    "clinicalfunctionalstatus": "Increased function",
+    "activityvalue": "2.0",
+    "strength": "Limited",
+    "version": 330
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2921A>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2933A>G",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*46",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*50",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*52",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.25",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.451A>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2582A>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2872A>G",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*39",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*45",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*84",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2639G>T",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2846A>T",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Strong",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*80",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 140
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*24",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*2",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Moderate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*3",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*8",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*13",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*21",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*41",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.25",
+    "strength": "Strong",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*176",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 46
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*1x≥3",
+    "clinicalfunctionalstatus": "Increased function",
+    "activityvalue": "≥3.0",
+    "strength": "Limited",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*178",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 36
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*179",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 36
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*180",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 36
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*181",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 36
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*182",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 36
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*183",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 36
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*184",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 36
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*185",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 36
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*164",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 129
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*165",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 129
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*166",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 129
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*170",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 129
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*167",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 129
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*168",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 129
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*169",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 129
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*172",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 103
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*174",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 50
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*175",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 50
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*177",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 40
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1777G>A",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1796T>C",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*151",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 129
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*9",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Strong",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*42",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*45",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*47",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*43",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*19",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*48",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*50",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*51",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*12",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*32",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*52",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*62",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*46",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*150",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 129
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*15",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*28",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*41",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*38",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*24",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*10",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*16",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*2x2",
+    "clinicalfunctionalstatus": "Increased function",
+    "activityvalue": "2.0",
+    "strength": "Limited",
+    "version": 331
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*158",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*10",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.25",
+    "strength": "Strong",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*173",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 50
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*49",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*82",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*88",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*94",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*117",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1906A>C",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*10x2",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 331
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*33",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*76",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 140
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*77",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 140
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*78",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 140
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*79",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 140
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*82",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 140
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*81",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 140
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*83",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 140
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*84",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 140
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*85",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 140
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*38",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*68",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*72",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*73",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*75",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*36",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*106",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*120",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*142",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 306
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*1",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": null,
+    "version": 403
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*27x2",
+    "clinicalfunctionalstatus": "Increased function",
+    "activityvalue": "2.0",
+    "strength": "Limited",
+    "version": 96
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*43x2",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 330
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*53",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*96",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*99",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*103",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*108",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*146",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 306
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*162",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*100",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*119",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.25",
+    "strength": "Limited",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*127",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*129",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*12",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*97",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*154",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*157",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*161",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "limited",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*87",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*93",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*112",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*114",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*121",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*123",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*124",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*130",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*131",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*91",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.25",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*137",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*13+*1",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": null,
+    "version": 2
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*26",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*31",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*42",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*65",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*13+*1x2",
+    "clinicalfunctionalstatus": "Increased function",
+    "activityvalue": "2.0",
+    "strength": null,
+    "version": 2
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*13+*2",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": null,
+    "version": 2
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*13+*68x2+*4",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": null,
+    "version": 2
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*36+*10",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.25",
+    "strength": null,
+    "version": 2
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*36x2+*10",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.25",
+    "strength": null,
+    "version": 2
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*68+*4",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": null,
+    "version": 2
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "Reference",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": null,
+    "version": 241
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*35",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Moderate",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.85T>C (*9A)",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Strong",
+    "version": 389
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.3061G>C",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*144",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 306
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1601G>A (*4)",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Moderate",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1278G>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1627A>G (*5)",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Strong",
+    "version": 387
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*26",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*53",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*139",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*107",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2983G>T (*10)",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*31",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*3x2",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 330
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*22",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*92",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*155",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*113",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.775A>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1180C>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1349C>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1108A>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1129-5923C>G",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Strong",
+    "version": 174
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*75",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.929T>C",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*85",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.525G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2186C>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*17",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*36x2",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 331
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.934C>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1358C>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1403C>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1775G>A",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1896T>C",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Moderate",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1898delC (*3)",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*7",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1475C>T",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*11",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*110",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*23",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.703C>T (*8)",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 389
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1003G>T (*11)",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Moderate",
+    "version": 387
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*4",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*64",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1260T>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.3067C>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*1x2",
+    "clinicalfunctionalstatus": "Increased function",
+    "activityvalue": "2.0",
+    "strength": "Limited",
+    "version": 334
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*74",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*90",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*138",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.967G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1905C>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2161G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*59",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*9x2",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 330
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.601A>C",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 391
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*64",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1371C>T",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1484A>G",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 387
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*101",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.1679T>G (*13)",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 387
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*86",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*68",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*14",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2194G>A (*6)",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Moderate",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2195T>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*65",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*140",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 306
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*63",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*61",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*59",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Moderate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*60",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*11",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Definitive",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*66",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*43",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*141",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 306
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*156",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*71",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*69",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*61",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*54",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*6x2",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 330
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*32",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.25",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*30",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*58",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*60",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*73",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*55",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*70",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*122",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*98",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*21",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*30",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*36",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*102",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*1",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": null,
+    "version": 403
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*7",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*149",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 306
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*152",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*153",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 304
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.46C>G",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 397
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*5",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Strong",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*13",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Definitive",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*25",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*34",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*37",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*44",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*55",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*20",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*2",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Definitive",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*135",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*186",
+    "clinicalfunctionalstatus": null,
+    "activityvalue": null,
+    "strength": null,
+    "version": 4
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*160",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*39",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*18",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*57",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*15",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*6",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Strong",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*105",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*14",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Moderate",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*40",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate evidence",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*116",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*159",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*8",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Definitive",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*72",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No evidence",
+    "version": 386
+  },
+  {
+    "genesymbol": "CYP2C9",
+    "name": "*29",
+    "clinicalfunctionalstatus": "Decreased function",
+    "activityvalue": "0.5",
+    "strength": "Limited",
+    "version": 404
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*47",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Limited",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*28x2",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 96
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*104",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*118",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 399
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*18",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*37",
+    "clinicalfunctionalstatus": "Uncertain function",
+    "activityvalue": "n/a",
+    "strength": "Inadequate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*4x2",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 304
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*6",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Strong",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*40",
+    "clinicalfunctionalstatus": "No function",
+    "activityvalue": "0.0",
+    "strength": "Moderate",
+    "version": 400
+  },
+  {
+    "genesymbol": "CYP2D6",
+    "name": "*148",
+    "clinicalfunctionalstatus": "Unknown function",
+    "activityvalue": "n/a",
+    "strength": "No Evidence",
+    "version": 306
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2303C>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  },
+  {
+    "genesymbol": "DPYD",
+    "name": "c.2482G>A",
+    "clinicalfunctionalstatus": "Normal function",
+    "activityvalue": "1.0",
+    "strength": "Limited",
+    "version": 385
+  }
+]

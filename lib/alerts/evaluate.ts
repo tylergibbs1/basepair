@@ -209,9 +209,28 @@ export function readGenetics(obs: Observation[]): GeneReading[] {
   for (const o of obs) {
     const codes = o.code?.coding?.map((c) => c.code) ?? [];
     if (codes.includes("84413-4")) {
-      // Genotype: valueCodeableConcept.text = "CYP2C19 *2/*2".
-      const m = (o.valueCodeableConcept?.text ?? "").match(/^(\S+)\s+(\S+)$/);
-      if (m) diplotypeByGene[m[1]] = m[2];
+      // Genotype: valueCodeableConcept.text = "CYP2C19 *2/*2". Widened for the
+      // PharmCAT ingest path (lib/pharmcat) to be more tolerant WITHOUT changing
+      // the passing case: the canonical two-token text still resolves unchanged,
+      // but we now also accept
+      //   (a) extra internal whitespace incl. spaces around the "/" separator,
+      //       so a slightly-off "CYP2C19  *2 / *2" still reads as *2/*2, and
+      //   (b) the gene-prefixed allele form "CYP2D6*1/CYP2D6*2" ≡ "*1/*2".
+      // Split off the gene (first whitespace-delimited token), squeeze all
+      // whitespace out of the remaining diplotype, then drop a redundant
+      // gene-symbol prefix on each allele.
+      const text = (o.valueCodeableConcept?.text ?? "").trim();
+      const sp = text.indexOf(" ");
+      if (sp > 0) {
+        const gene = text.slice(0, sp);
+        const dip = text
+          .slice(sp + 1)
+          .replace(/\s+/g, "")
+          .split("/")
+          .map((a) => (a.startsWith(gene) ? a.slice(gene.length) : a))
+          .join("/");
+        if (gene && dip) diplotypeByGene[gene] = dip;
+      }
     } else if (codes.includes("53040-2")) {
       // Phenotype: gene from the gene-studied component, value = phenotype.
       const gene = geneOf(o);

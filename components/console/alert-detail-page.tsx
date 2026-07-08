@@ -14,7 +14,12 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { SeverityChip } from "@/components/ui/severity-chip"
+import { Source, SourceContent, SourceTrigger } from "@/components/ui/source"
 import { useAlerts } from "@/components/console/alerts-provider"
+import {
+  citationSourceLabel,
+  citationSourceUrl,
+} from "@/lib/alerts/citation"
 import {
   formatFiredAtAbsolute,
   orderedContributingGenes,
@@ -383,9 +388,28 @@ export function AlertDetailPage({ id }: { id: string }) {
                         verified={alert.verification.verified}
                       />
                     </blockquote>
-                    <cite className="mt-1.5 block text-xs not-italic text-muted-foreground">
-                      {alert.citation}
-                    </cite>
+                    {(() => {
+                      const sourceUrl = citationSourceUrl(alert.citation)
+                      if (!sourceUrl) {
+                        return (
+                          <cite className="mt-1.5 block text-xs not-italic text-muted-foreground">
+                            {alert.citation}
+                          </cite>
+                        )
+                      }
+                      const sourceLabel = citationSourceLabel(sourceUrl)
+                      return (
+                        <cite className="mt-1.5 flex not-italic">
+                          <Source href={sourceUrl}>
+                            <SourceTrigger label={sourceLabel} showFavicon />
+                            <SourceContent
+                              title={alert.citation}
+                              description={`Open the cited guideline source on ${sourceLabel}.`}
+                            />
+                          </Source>
+                        </cite>
+                      )
+                    })()}
                   </Step>
                   <Step
                     n={5}

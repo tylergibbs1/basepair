@@ -146,7 +146,24 @@ function Detail({ entry }: { entry: AuditEntry }) {
       <span className="text-muted-foreground">{reasonLabel(entry.reason)}</span>
     )
   }
-  // Approved / dismissed: show the severity the pharmacist triaged.
+  // Dismissed with a recorded reason: show the severity that was triaged plus
+  // why it was dismissed (the override-review evidence). The false-alarm vs
+  // override distinction reads through the label text — no extra color.
+  if (entry.kind === "dismissed" && entry.dismissReason) {
+    const { label, note } = entry.dismissReason
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <SeverityChip severity={entry.severity} />
+        <span
+          className="text-xs text-muted-foreground text-pretty"
+          title={note}
+        >
+          {note ? `${label}: ${note}` : label}
+        </span>
+      </div>
+    )
+  }
+  // Approved / dismissed-without-reason: show the severity the pharmacist triaged.
   return <SeverityChip severity={entry.severity} />
 }
 

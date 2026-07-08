@@ -2,6 +2,7 @@ import type {
   DetectedIssue,
   Patient,
   Provenance,
+  Task,
 } from "@medplum/fhirtypes"
 import type { MedplumClient } from "@medplum/core"
 
@@ -13,6 +14,32 @@ import {
 } from "@/lib/medplum/fhir"
 import type { Alert, DecisionPath, SignalStats } from "@/lib/alerts/types"
 import { isCleared, isEnacted, parsePgxAlert, patientName } from "@/lib/alerts/pgx"
+import {
+  DISMISS_REASON_SYSTEM,
+  dismissReasonByCode,
+  type DismissReasonKind,
+} from "@/lib/alerts/dismiss-reasons"
+
+/** The dismiss reason recorded on a cancelled Task, resolved through the
+ *  taxonomy. `null` for a legacy/seed dismissal that carries no reason code. */
+function readDismissReason(
+  task: Task,
+): { code: string; label: string; kind: DismissReasonKind; note?: string } | null {
+  const code = task.statusReason?.coding?.find(
+    (c) => c.system === DISMISS_REASON_SYSTEM,
+  )?.code
+  if (!code) return null
+  const known = dismissReasonByCode(code)
+  return {
+    code,
+    // Prefer the taxonomy label; fall back to the persisted display or the raw
+    // code so an unknown/retired code still reads as something.
+    label: known?.label ?? task.statusReason?.coding?.[0]?.display ?? code,
+    // An unknown code is read conservatively as a false alarm (see getSignalStats).
+    kind: known?.kind ?? "false-alarm",
+    note: task.statusReason?.text?.trim() || undefined,
+  }
+}
 
 /**
  * One row in the Audit view. Unifies the three things Basepair records while
@@ -66,6 +93,14 @@ export type AuditEntry =
        *  Communication (+ substitute order) was written, not just a plain
        *  approve. Only meaningful for "approved". */
       enacted?: boolean
+      /** Why the alert was dismissed (label + kind + optional note), read from
+       *  Task.statusReason. Only meaningful for "dismissed"; absent for a
+       *  legacy dismissal with no recorded reason. */
+      dismissReason?: {
+        label: string
+        kind: DismissReasonKind
+        note?: string
+      }
       /** ISO 8601 timestamp of when the pharmacist triaged the alert. */
       at: string
     } & FhirProvenance)
@@ -256,6 +291,8 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
     if (!pgx || isCleared(pgx)) continue
 
     const enacted = task.status === "completed" ? isEnacted(task) : undefined
+    const dismissReason =
+      task.status === "cancelled" ? readDismissReason(task) : null
     // The transition this row records: an enacted approve wrote back via "enact",
     // a plain approve via "approve", a decline via "dismiss".
     const lifecycle: AuditLifecycle =
@@ -277,6 +314,13 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
       severity: pgx.severity,
       decisionPath: pgx.decisionPath,
       enacted,
+      dismissReason: dismissReason
+        ? {
+            label: dismissReason.label,
+            kind: dismissReason.kind,
+            note: dismissReason.note,
+          }
+        : undefined,
       at: fhir.at,
       provenanceId: fhir.provenanceId,
       auditEventId: fhir.auditEventId,
@@ -302,9 +346,14 @@ const STATS_LIMIT = 1000
  *
  * Counts (per issue #1): a considered-and-cleared DetectedIssue (`outcome:
  * "cleared"`, no Task) is a `cleared`; a flagged DetectedIssue (has a pharmacist
- * Task) is a `flagged`; a dismissed Task (`status:"cancelled"`) is a
- * `falseAlarm` — the pharmacist judged it not clinically valid. Approved
- * (completed) Tasks are true positives and never count as false alarms.
+ * Task) is a `flagged`; a completed Task is `approved` (reviewed and held up). A
+ * cancelled Task is classified by its dismiss reason: an *override* reason (the
+ * alert was clinically real) counts as an `override` — a true positive, not a
+ * false alarm — while a *false-alarm* reason counts as a `falseAlarm`. A
+ * cancelled Task with no reason code (legacy/seed) is read conservatively as a
+ * `falseAlarm`, preserving the pre-taxonomy reading. Flagged minus
+ * (approved + overrides + falseAlarms) is still pending in the queue, and the
+ * metric never presents those as reviewed.
  *
  * Scope: all-time (bounded by STATS_LIMIT), so the counts summarise exactly the
  * records the Audit table shows. Server-only, never import into a client
@@ -341,17 +390,27 @@ export async function getSignalStats(): Promise<SignalStats> {
     else flagged++
   }
 
-  const falseAlarms = dismissedTasks.length
   const approved = approvedTasks.length
   const enacted = approvedTasks.filter((t) => isEnacted(t)).length
   const open = openTasks.bundle.total ?? 0
+  // Classify each dismissed Task by its reason: a recorded override reason is a
+  // true positive (the alert was clinically real), anything else (a false-alarm
+  // reason, or no reason at all) reads as a false alarm.
+  let overrides = 0
+  let falseAlarms = 0
+  for (const task of dismissedTasks) {
+    const reason = readDismissReason(task)
+    if (reason?.kind === "override") overrides++
+    else falseAlarms++
+  }
 
   return {
     evaluated: flagged + cleared,
     flagged,
     cleared,
-    falseAlarms,
     approved,
+    overrides,
+    falseAlarms,
     enacted,
     open,
   }

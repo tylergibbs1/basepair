@@ -1,9 +1,10 @@
 "use client"
 
-import { BellRing, ScrollText, ShieldCheck } from "lucide-react"
+import { BellRing, ScrollText, ShieldCheck, LogOut } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
+import { signOut, useSession } from "@/lib/auth-client"
 import { useAlerts } from "@/components/console/alerts-provider"
 import { BasepairMark } from "@/components/basepair-mark"
 import {
@@ -40,6 +41,23 @@ function isActive(href: string, pathname: string): boolean {
 export function AppSidebar() {
   const { openCount } = useAlerts()
   const pathname = usePathname()
+  const router = useRouter()
+  const { data: session } = useSession()
+
+  const name = session?.user?.name || "Pharmacist"
+  const initials =
+    name
+      .split(/\s+/)
+      .map((w) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "PH"
+
+  async function handleSignOut() {
+    await signOut()
+    router.push("/login")
+    router.refresh()
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -97,21 +115,26 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              tooltip="Priya Nair, PharmD"
-              render={<button type="button" aria-label="Priya Nair, PharmD" />}
+              tooltip={`Sign out (${name})`}
+              onClick={handleSignOut}
+              render={<button type="button" aria-label={`Sign out (${name})`} />}
             >
               <span
                 aria-hidden
                 className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground"
               >
-                PN
+                {initials}
               </span>
-              <span className="grid text-left leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate text-sm font-medium">Priya Nair</span>
+              <span className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+                <span className="truncate text-sm font-medium">{name}</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  PharmD
+                  {session?.user?.email ?? "Pharmacist"}
                 </span>
               </span>
+              <LogOut
+                aria-hidden
+                className="ml-auto size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden"
+              />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

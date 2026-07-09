@@ -1,5 +1,8 @@
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 
+import { auth } from "@/lib/auth"
 import { AppSidebar } from "@/components/console/app-sidebar"
 import { AlertsProvider } from "@/components/console/alerts-provider"
 import { SignalStatsProvider } from "@/components/console/signal-stats-provider"
@@ -26,6 +29,12 @@ export default async function ConsoleLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Auth gate (the authoritative check — the middleware only does an optimistic
+  // cookie redirect). No session → bounce to /login before any Medplum fetch, so
+  // the console never renders or reads clinical data for an unauthenticated user.
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) redirect("/login")
+
   // The console shell lives in this layout so it persists across the queue and
   // the `/alerts/[id]` detail page — navigating between them never re-fetches
   // or re-mounts the shell (and the AlertsProvider keeps the optimistic queue

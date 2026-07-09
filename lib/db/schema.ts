@@ -24,6 +24,12 @@ import { authenticatedRole } from "drizzle-orm/supabase";
 
 import type { SealedSecret } from "./tenant-creds";
 
+// Better Auth tables (user/session/account/verification) live alongside the
+// app-config tables so drizzle-kit migrates them together and the Drizzle
+// adapter (lib/auth.ts) can resolve them. They carry no RLS — auth is gated in
+// the app layer (middleware + server session checks), not via Postgres RLS.
+export * from "./auth-schema";
+
 export const tenants = pgTable(
   "tenants",
   {

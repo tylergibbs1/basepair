@@ -20,6 +20,7 @@
     "db:studio": "drizzle-kit studio",
     "db:cpic:load": "bun scripts/load-cpic-supabase.ts",
     "db:seed:tenant": "bun scripts/seed-tenant.ts",
+    "db:seed:user": "bun scripts/seed-user.ts",
     "pinecone:drugs": "bun scripts/build-drug-index.ts",
     "pinecone:guidelines": "bun scripts/build-guideline-index.ts",
     "doctor": "npx react-doctor@latest"
@@ -35,6 +36,7 @@
     "@upstash/ratelimit": "2.0.8",
     "@upstash/redis": "1.38.0",
     "ai": "7.0.16",
+    "better-auth": "^1.6.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

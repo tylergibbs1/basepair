@@ -150,17 +150,26 @@ export interface DialogPatientContext {
  * - `evaluated`   — total orders assessed (flagged + cleared).
  * - `flagged`     — orders that produced a pharmacist alert.
  * - `cleared`     — orders evaluated with nothing to flag (the suppression proof).
- * - `falseAlarms` — flagged alerts a pharmacist dismissed as not clinically
- *                   valid (target: 0).
+ * - `approved`    — flagged alerts a pharmacist reviewed and accepted.
+ * - `overrides`   — flagged alerts a pharmacist dismissed but for an *override*
+ *                   reason (the alert was clinically real; they chose not to act).
+ *                   A TRUE positive — the system was right — so not a false alarm.
+ * - `falseAlarms` — flagged alerts dismissed as a *false alarm* (wrong result or
+ *                   duplicate). A FALSE positive (target: 0).
  */
 export interface SignalStats {
   evaluated: number
   flagged: number
   cleared: number
-  falseAlarms: number
   /** Flagged alerts a pharmacist approved (Task status "completed"), including
    *  the ones they enacted. The denominator for the enactment rate. */
   approved: number
+  /** Flagged alerts dismissed for an *override* reason — clinically real, but the
+   *  pharmacist chose not to act. A true positive, so not a false alarm. */
+  overrides: number
+  /** Flagged alerts dismissed as a false alarm (wrong result or duplicate). A
+   *  false positive (target: 0). */
+  falseAlarms: number
   /** Approved alerts where the pharmacist enacted the recommendation — wrote the
    *  prescriber Communication (+ substitute order), not just a plain approve.
    *  `enacted <= approved`; the buyer's "did the safety catch close the loop" metric. */
@@ -169,6 +178,31 @@ export interface SignalStats {
    *  is the actionable count that matches the sidebar badge, distinct from the
    *  all-time `flagged` total (which includes already-resolved alerts). */
   open: number
+}
+
+/** Below ~95% precision pharmacists start tuning alerts out — alert fatigue is
+ *  the documented failure mode of PGx alerting — so the target is the line the
+ *  director defends, not decoration. */
+export const PRECISION_TARGET = 0.95
+
+/**
+ * Positive predictive value: of the alerts a pharmacist reviewed and that were
+ * clinically valid, what share were correct.
+ *
+ * validReviewed / (validReviewed + falseAlarms), where validReviewed = approved
+ * + overrides. Both an approve and an *override* are true positives — the alert
+ * correctly flagged a real interaction; an override just means the pharmacist
+ * made a clinical decision not to act. Only a *false alarm* (wrong result or
+ * duplicate) is a false positive. Deliberately not flagged-based — a pending
+ * alert nobody has reviewed is neither, and counting it would let the metric
+ * overclaim. `null` when nothing has been reviewed yet — precision is undefined
+ * then, not a perfect score.
+ */
+export function precision(stats: SignalStats): number | null {
+  const validReviewed = stats.approved + stats.overrides
+  const reviewed = validReviewed + stats.falseAlarms
+  if (reviewed === 0) return null
+  return validReviewed / reviewed
 }
 
 /** Result of the AI verification step (see lib/ai/verify.ts). */

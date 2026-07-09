@@ -18,6 +18,7 @@ import { SeverityChip, severityActionVerb } from "@/components/ui/severity-chip"
 import { VerificationChip } from "@/components/ui/verification-chip"
 import { Source, SourceContent, SourceTrigger } from "@/components/ui/source"
 import { EnactConfirmDialog } from "@/components/console/enact-confirm-dialog"
+import { DismissMenu } from "@/components/console/dismiss-menu"
 import { useAlerts } from "@/components/console/alerts-provider"
 import {
   citationSourceLabel,
@@ -450,12 +451,15 @@ export function AlertDetailPage({ id }: { id: string }) {
               <Button variant="outline" onClick={() => act(approve)}>
                 Approve Alert
               </Button>
-              <Button
-                variant="destructive-outline"
-                onClick={() => act(dismiss)}
-              >
-                Dismiss Alert
-              </Button>
+              {/* Dismiss now demands a reason (override-review evidence + honest
+                  metric); the menu collects it, then dismisses and returns to
+                  the queue. */}
+              <DismissMenu
+                onDismiss={(reason) => {
+                  dismiss(id, reason)
+                  router.push("/")
+                }}
+              />
             </div>
           </header>
 

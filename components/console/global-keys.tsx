@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 
 import { useAlerts } from "@/components/console/alerts-provider"
 import { useCommand } from "@/components/console/command-provider"
+import { REQUEST_DISMISS_EVENT } from "@/components/console/dismiss-menu"
 import {
   CHORD_WINDOW_MS,
   SHORTCUTS,
@@ -44,7 +45,7 @@ function isEditableTarget(el: EventTarget | null): boolean {
 export function GlobalKeys() {
   const router = useRouter()
   const pathname = usePathname()
-  const { alerts, filteredAlerts, approve, dismiss } = useAlerts()
+  const { alerts, filteredAlerts, approve } = useAlerts()
   const cmd = useCommand()
 
   const latest = React.useRef({
@@ -53,7 +54,6 @@ export function GlobalKeys() {
     alerts,
     filteredAlerts,
     approve,
-    dismiss,
     cmd,
   })
   latest.current = {
@@ -62,7 +62,6 @@ export function GlobalKeys() {
     alerts,
     filteredAlerts,
     approve,
-    dismiss,
     cmd,
   }
 
@@ -83,7 +82,7 @@ export function GlobalKeys() {
         if (k !== "j" && k !== "k") return
       }
 
-      const { router, pathname, alerts, filteredAlerts, approve, dismiss, cmd } =
+      const { router, pathname, alerts, filteredAlerts, approve, cmd } =
         latest.current
 
       // 1. The palette toggle is the one shortcut that works everywhere,
@@ -217,8 +216,13 @@ export function GlobalKeys() {
           return
         }
         if (key === "x") {
-          event.preventDefault()
-          actOnCursor(dismiss)
+          // Dismiss now requires a reason, so `x` can't complete it from the
+          // queue. Open the alert, where the reason menu lives.
+          const target = filteredAlerts.find((a) => a.id === cmd.cursorId)
+          if (target) {
+            event.preventDefault()
+            router.push(`/alerts/${target.id}`)
+          }
           return
         }
       }
@@ -239,9 +243,10 @@ export function GlobalKeys() {
           return
         }
         if (key === "x") {
+          // Open the dismiss reason menu (the menu listens for this event) so
+          // the pharmacist picks a reason rather than dismissing blind.
           event.preventDefault()
-          dismiss(id)
-          router.push("/")
+          window.dispatchEvent(new CustomEvent(REQUEST_DISMISS_EVENT))
           return
         }
       }

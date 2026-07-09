@@ -25,6 +25,11 @@ import {
   type ApprovalDecision,
 } from "@/lib/alerts/write-back"
 import type { AuditLifecycle } from "@/lib/medplum/fhir"
+import {
+  DISMISS_REASON_SYSTEM,
+  dismissReasonByCode,
+  type DismissReasonInput,
+} from "@/lib/alerts/dismiss-reasons"
 import type { RecommendedAlternative } from "@/lib/cpic-catalog"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
 import type { MedplumClient } from "@medplum/core"
@@ -122,13 +127,19 @@ async function setTaskStatus(
   taskId: string,
   status: TaskStatus,
   lifecycle: AuditLifecycle,
+  statusReason?: Task["statusReason"],
 ): Promise<void> {
   const medplum = await createMedplumClient()
   const task = await medplum.readResource("Task", taskId)
   if (status !== "requested") {
     await completeApprovalToken(task, status === "completed")
   }
-  await medplum.updateResource({ ...task, status })
+  // A dismiss carries a reason on statusReason; every other transition clears it
+  // so a reopen→re-dismiss (or an approve) never inherits a stale reason.
+  const next = { ...task, status }
+  if (statusReason) next.statusReason = statusReason
+  else delete next.statusReason
+  await medplum.updateResource(next)
   await recordTriageProvenance(medplum, task, lifecycle)
   revalidatePath("/")
 }
@@ -138,12 +149,40 @@ export async function approveAlert(taskId: string): Promise<void> {
   await setTaskStatus(taskId, "completed", "approve")
 }
 
-/** Dismiss an alert, the pharmacist declined it. */
-export async function dismissAlert(taskId: string): Promise<void> {
-  await setTaskStatus(taskId, "cancelled", "dismiss")
+/**
+ * Dismiss an alert, recording *why* on `Task.statusReason`. The reason is what
+ * gives the safety officer override-review evidence and what lets the metric
+ * tell a true override (alert was real) from a false alarm (alert was wrong).
+ * Routes through setTaskStatus so the durable waitpoint and FHIR provenance
+ * (#21/#22) are handled the same as an approve.
+ *
+ * The label is looked up from the taxonomy by code server-side — never trusted
+ * from the client — so an audit record can't be mislabeled; an unknown code
+ * still persists (coding without a display) rather than being dropped.
+ */
+export async function dismissAlert(
+  taskId: string,
+  reason: DismissReasonInput,
+): Promise<void> {
+  const known = dismissReasonByCode(reason.code)
+  const note = reason.note?.trim() || undefined
+  await setTaskStatus(taskId, "cancelled", "dismiss", {
+    coding: [
+      {
+        system: DISMISS_REASON_SYSTEM,
+        code: reason.code,
+        display: known?.label,
+      },
+    ],
+    text: note,
+  })
 }
 
-/** Reopen an alert, reverses an approve/dismiss (Undo). */
+/**
+ * Reopen an alert, reverses an approve/dismiss (Undo). Also clears any
+ * `statusReason` so an undo→re-dismiss with a *different* reason starts clean
+ * (a stale reason on a reopened alert would be a lie waiting to happen).
+ */
 export async function reopenAlert(taskId: string): Promise<void> {
   await setTaskStatus(taskId, "requested", "reopen")
 }

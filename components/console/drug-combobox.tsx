@@ -114,7 +114,14 @@ export function DrugCombobox({
           setActive(0)
           setOpen(true)
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={(e) => {
+          setOpen(true)
+          // Select any existing text so re-typing REPLACES it instead of
+          // appending a second drug name — an appended value like
+          // "clopidogrelclopidogrel" is a malformed order string RxNav can't
+          // resolve, forcing an offline fallback (or a wrong match).
+          e.currentTarget.select()
+        }}
         onKeyDown={onKeyDown}
         onBlur={() => {
           // Delay so a suggestion click (which blurs the input first) still lands.

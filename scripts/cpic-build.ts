@@ -98,19 +98,42 @@ function deriveSeverity(rec: Rec): Severity {
   const t = rec.drugrecommendation.toLowerCase();
   const phenos = Object.values(rec.phenotypes ?? {}).join(" ").toLowerCase();
 
-  const noChange =
-    /(no indication to change|no need to change|standard (dose|dosing|starting)|no (dose |dosing )?adjustment|use .*at (the )?standard|there is no (indication|reason))/.test(
+  // A NEGATED avoid ("no reason to avoid", "there is no need to avoid") is a
+  // no-action row even though it contains the word "avoid". This was the bug:
+  // the avoid-detector fired on the very word the sentence negates, tagging 567
+  // "no reason to avoid" / normal-dose rows (29% of the actionable set) as
+  // critical/caution alerts whose own text says no action is needed.
+  const negatedAvoid =
+    /(no reason to avoid|no need to avoid|not necessary to avoid|do not need to avoid)/.test(
       t,
     );
+
+  // A genuine avoid / contraindicate / alternative action — but NOT the negated
+  // form above.
   const avoid =
+    !negatedAvoid &&
     /\b(avoid|contraindicat|do not use|not recommended|select an alternative)\b/.test(
       t,
     );
+
+  // "No action needed" phrasings CPIC uses for normal / expected-response rows.
+  // Anchored on the standalone normal idioms ("initiate therapy with recommended
+  // starting dose", "label-recommended ... dosing", "no indication to change") so
+  // a dose CHANGE that merely names the "recommended starting dose" it reduces
+  // (e.g. "consider a 25% reduction of recommended starting dose") is NOT caught.
+  // Only consulted when there is no real avoid action (which owns those rows).
+  const noAction =
+    negatedAvoid ||
+    (!avoid &&
+      /(initiate therapy with (the )?recommended starting dose|label[ -]recommended|no indication to change|no need to change|no (dose |dosing )?adjustment|there is no (indication|reason)|standard (dose|dosing|starting|of care)|use .* at (the )?standard|per standard dose)/.test(
+        t,
+      ));
+
   const poorTier = /(poor metabolizer|poor function|no function|malignant hyperthermia|abnormal)/.test(
     phenos,
   );
 
-  if (noChange && !avoid) return "info";
+  if (noAction) return "info";
   if (avoid || (poorTier && /strong/i.test(rec.classification))) return "critical";
   return "caution";
 }

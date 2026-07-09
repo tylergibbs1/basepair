@@ -103,3 +103,70 @@ export async function searchGuideline(
     return null
   }
 }
+
+export type GuidelinePassage = {
+  text: string
+  citation: string | null
+  url: string | null
+  source: string | null
+  score: number
+}
+
+/**
+ * Multi-passage retrieval for the agent recommender (lib/ai/recommend.ts): return
+ * the top guideline passages for a drug (optionally focused by gene + phenotype)
+ * as RAW EVIDENCE — no rerank-to-one, no severity, no verdict. The agent reads the
+ * spectrum (every phenotype's passage comes back together), maps the patient's
+ * phenotype itself, and authors the recommendation. Deliberately different from
+ * `searchGuideline`, which reranks to the single best span for the verifier.
+ *
+ * No score floor: the agent judges relevance, not a threshold. Deduped by text
+ * (the corpus carries near-duplicate rows per phenotype). Returns [] when Pinecone
+ * is unset or on any error, so the caller can fall back to clinical knowledge.
+ */
+export async function searchGuidelinePassages(input: {
+  drug: string
+  gene?: string
+  phenotype?: string
+  limit?: number
+}): Promise<GuidelinePassage[]> {
+  const pc = getPinecone()
+  if (!pc) return []
+
+  const limit = input.limit ?? 6
+  const text = [input.drug, input.gene, input.phenotype].filter(Boolean).join(" ").trim()
+  if (!text) return []
+
+  try {
+    const index = pc.index(PINECONE_CONFIG.guidelineIndex)
+    const res = await index.searchRecords({
+      query: {
+        topK: Math.max(limit * 3, 12),
+        inputs: { text },
+        filter: { drug: { $eq: input.drug.toLowerCase() } },
+      },
+      fields: [PINECONE_CONFIG.textField, "citation", "url", "source"],
+    })
+
+    const seen = new Set<string>()
+    const out: GuidelinePassage[] = []
+    for (const hit of res.result?.hits ?? []) {
+      const f = hit.fields as GuidelineFields
+      const passage = f.chunk_text?.trim()
+      if (!passage || seen.has(passage)) continue
+      seen.add(passage)
+      out.push({
+        text: passage,
+        citation: f.citation ?? null,
+        url: f.url ?? null,
+        source: f.source ?? null,
+        score: hit._score,
+      })
+      if (out.length >= limit) break
+    }
+    return out
+  } catch (err) {
+    console.error("searchGuidelinePassages: Pinecone lookup failed", err)
+    return []
+  }
+}

@@ -4,7 +4,7 @@ import Link from "next/link"
 export const metadata: Metadata = {
   title: "Basepair, medication safety review for pharmacists",
   description:
-    "Basepair reviews every medication order for drug and pharmacogenomic risk, shows its work, and logs the decision. Pharmacists see the signal, not the noise.",
+    "Basepair reviews every order for drug and pharmacogenomic risk, shows its reasoning, and logs the decision. Signal, not noise.",
 }
 
 // Warm, product-led landing (docs/DESIGN.md marketing shell). Depth comes from
@@ -20,17 +20,17 @@ const STEPS = [
   {
     n: "01",
     title: "Reads the order and the patient",
-    body: "Every medication order is checked against the patient's active medications and their pharmacogenomic profile, the same inputs a pharmacist would gather by hand.",
+    body: "Checks each order against the patient's active medications and pharmacogenomic profile, the same inputs a pharmacist gathers by hand.",
   },
   {
     n: "02",
     title: "Matches guidance, then double-checks",
-    body: "Basepair matches CPIC and interaction guidance to the order, confirms the match with a second pass, and keeps the reasoning visible at every step.",
+    body: "Matches CPIC and interaction guidance, confirms it on a second pass, and keeps the reasoning visible.",
   },
   {
     n: "03",
     title: "Flags with the evidence, or clears it",
-    body: "A real risk arrives flagged with its source and severity. Everything else clears quietly, so the queue holds only orders that need a person.",
+    body: "Real risk arrives flagged with its source and severity. Everything else clears. The queue holds only what needs you.",
   },
 ]
 
@@ -38,32 +38,41 @@ export default function WelcomePage() {
   return (
     <main id="main-content">
       {/* Hero — editorial statement, then the real product */}
-      <section className="mx-auto max-w-6xl px-6 pt-20 pb-16 sm:pt-28">
-        <div className="max-w-3xl">
-          <h1 className="font-serif text-5xl leading-[1.04] tracking-[-0.02em] text-balance text-foreground sm:text-6xl">
-            Catch the interaction before it reaches the patient.
-          </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground text-pretty">
-            Basepair reviews every medication order for drug and pharmacogenomic
-            risk, shows its work, and logs the decision, so pharmacists see the
-            signal, not the noise.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center gap-5">
-            <Link
-              href="/"
-              className="group inline-flex h-11 items-center gap-2 rounded-md bg-navy px-5 text-sm font-medium text-white transition-colors hover:bg-navy-press"
-            >
-              Open the console
-              <span className="transition-transform group-hover:translate-x-0.5">
-                &rarr;
-              </span>
-            </Link>
-            <Link
-              href="#how"
-              className="text-sm font-medium text-navy transition-colors hover:text-navy-press"
-            >
-              See how it works &rarr;
-            </Link>
+      <section className="mx-auto max-w-6xl px-6 pt-16 pb-16 sm:pt-20">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
+          <div className="max-w-xl">
+            <h1 className="font-serif text-5xl leading-[1.04] tracking-[-0.02em] text-balance text-foreground sm:text-6xl">
+              Catch the interaction before it reaches the patient.
+            </h1>
+            <p className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty">
+              Basepair reviews every order for drug and pharmacogenomic risk,
+              shows its reasoning, and logs the decision. Signal, not noise.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-5">
+              <Link
+                href="/"
+                className="group inline-flex h-11 items-center gap-2 rounded-md bg-navy px-5 text-sm font-medium text-white transition-colors hover:bg-navy-press"
+              >
+                Open the console
+                <span className="transition-transform group-hover:translate-x-0.5">
+                  &rarr;
+                </span>
+              </Link>
+              <Link
+                href="#how"
+                className="text-sm font-medium text-navy transition-colors hover:text-navy-press"
+              >
+                See how it works &rarr;
+              </Link>
+            </div>
+          </div>
+          <div className="order-first lg:order-none">
+            <img
+              src="/art/sketch-hero.png"
+              alt=""
+              aria-hidden="true"
+              className="mx-auto w-full max-w-xs sm:max-w-sm"
+            />
           </div>
         </div>
 
@@ -86,18 +95,17 @@ export default function WelcomePage() {
         <div className="rounded-2xl bg-muted p-10 sm:p-14">
           <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
             <p className="font-serif text-3xl leading-[1.15] tracking-[-0.01em] text-balance text-foreground sm:text-[40px]">
-              Roughly 3 of every 4 pharmacogenomic flags a pharmacist reviews
-              are not clinically relevant.
+              3 of every 4 pharmacogenomic flags aren&rsquo;t clinically
+              relevant.
             </p>
             <div className="flex flex-col justify-end">
               <p className="text-lg leading-relaxed text-muted-foreground text-pretty">
-                Pharmacists manually filter pharmacogenomic flags from about 79%
-                of patients down to the 24% that actually change a decision.
-                Basepair automates that triage, so the orders that reach the
-                queue are the ones that need a person.
+                Today, pharmacists filter that by hand: 79% of patients flagged,
+                24% clinically relevant. Basepair does the triage. The queue
+                holds only orders that need a person.
               </p>
               <p className="mt-6 border-t border-border/70 pt-4 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Source — Bright et al., 2020
+                Source: Bright et al., 2020
               </p>
             </div>
           </div>
@@ -142,12 +150,12 @@ export default function WelcomePage() {
             <div className="mt-6 flex flex-col gap-5 text-lg leading-relaxed text-muted-foreground text-pretty">
               <p>
                 Each alert records the guidance it matched and a snapshot of the
-                catalog it read, so a decision made today can be reconstructed
-                months from now, exactly as it stood.
+                catalog it read. Reconstruct any decision months later, exactly
+                as it stood.
               </p>
               <p>
-                The audit trail tracks what was flagged, what was enacted, and
-                how often recommendations become real orders.
+                The trail tracks what was flagged, what was enacted, and how
+                often recommendations become orders.
               </p>
             </div>
           </div>
@@ -173,7 +181,7 @@ export default function WelcomePage() {
               Bring the signal to your pharmacy.
             </h2>
             <p className="mt-5 max-w-md text-lg leading-relaxed text-white/70 text-pretty">
-              See the queue triaged, every alert sourced, every decision logged.
+              See the queue triaged. Every alert sourced, every decision logged.
             </p>
             <Link
               href="/"
@@ -185,12 +193,6 @@ export default function WelcomePage() {
               </span>
             </Link>
           </div>
-          <img
-            src="/art/hero.png"
-            alt=""
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-16 -bottom-24 hidden w-[460px] opacity-90 lg:block"
-          />
         </div>
       </section>
     </main>

@@ -1,5 +1,7 @@
 import Link from "next/link"
 
+import { BasepairMark } from "@/components/basepair-mark"
+
 // Marketing shell (docs/DESIGN.md): warm ivory canvas, navy accent, Source Serif
 // for editorial statements + Geist for everything structural. Anthropic-style
 // minimal nav — wordmark left, sans links right, one solid pill action.
@@ -14,10 +16,11 @@ export default function MarketingLayout({
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <Link
             href="/welcome"
-            className="flex items-center gap-2 font-serif text-lg tracking-tight text-foreground"
+            className="flex items-center gap-2.5 text-foreground"
+            aria-label="Basepair home"
           >
-            Basepair
-            <span className="h-1.5 w-1.5 rounded-full bg-[#cf8a63]" aria-hidden="true" />
+            <BasepairMark className="w-8 text-navy" />
+            <span className="font-serif text-lg tracking-tight">Basepair</span>
           </Link>
           <div className="flex items-center gap-1 sm:gap-2">
             <Link
@@ -47,9 +50,9 @@ export default function MarketingLayout({
       <footer className="border-t border-border">
         <div className="mx-auto max-w-6xl px-6 py-14">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <p className="flex items-center gap-2 font-serif text-base text-foreground">
-              Basepair
-              <span className="h-1.5 w-1.5 rounded-full bg-[#cf8a63]" aria-hidden="true" />
+            <p className="flex items-center gap-2.5 text-foreground">
+              <BasepairMark className="w-8 text-navy" />
+              <span className="font-serif text-base">Basepair</span>
             </p>
             <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
               <Link href="#how" className="transition-colors hover:text-foreground">
@@ -64,7 +67,7 @@ export default function MarketingLayout({
             </div>
           </div>
           <p className="mt-8 text-sm text-muted-foreground">
-            Pharmacist-grade medication safety review. Signal, not noise.
+            Medication safety review for pharmacists. Signal, not noise.
           </p>
         </div>
       </footer>

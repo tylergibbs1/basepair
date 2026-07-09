@@ -33,6 +33,11 @@ export default defineConfig({
           "ANTHROPIC_API_KEY",
           "UPSTASH_REDIS_REST_URL",
           "UPSTASH_REDIS_REST_TOKEN",
+          // PINECONE_API_KEY lets the task's guideline retrieval + drug-synonym
+          // fallback (#28) run in prod; unset → both no-op gracefully. Index
+          // names / embed models have defaults in lib/pinecone/client.ts, so
+          // only the key needs syncing.
+          "PINECONE_API_KEY",
         ]
           .filter((name) => process.env[name])
           .map((name) => ({ name, value: process.env[name]! })),

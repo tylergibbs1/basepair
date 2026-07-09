@@ -22,7 +22,7 @@ Two load-bearing facts to hold before reading further:
 | `normalizeDrug` — RxNav / RxClass drug normalization | **Shipped** | [#26](https://github.com/tylergibbs1/basepair/issues/26) |
 | Upstash Redis — per-tenant rate limit + terminology cache (graceful fallback) | **Shipped** | [#27](https://github.com/tylergibbs1/basepair/issues/27) |
 | Pinecone vector search — guideline-prose retrieval (`guidelineSearch`), integrated inference | **Shipped** — reverses the original "decided against" call | [#28](https://github.com/tylergibbs1/basepair/issues/28) |
-| AI Gateway routing + per-step model tiers | **Shipped** | [#29](https://github.com/tylergibbs1/basepair/issues/29) |
+| Direct Anthropic provider + per-step model tiers | **Shipped** | [#29](https://github.com/tylergibbs1/basepair/issues/29) |
 | Live queue via `createUIMessageStream` streaming rebuild | **Decided against** — kept Realtime-signaled reconciliation | [#30](https://github.com/tylergibbs1/basepair/issues/30) |
 | CPIC catalog: **2,115 rules across 22 genes** (33 phenotype values; ~1,940 actionable) | **Shipped** | core |
 
@@ -42,9 +42,9 @@ Anything not in this table and not marked "Future" below is present in the codeb
 - **Vector search:** **Pinecone** (serverless, **integrated inference** — text in, Pinecone embeds server-side with a hosted model, so there's no separate embedding provider). One index ([#28](https://github.com/tylergibbs1/basepair/issues/28)): `basepair-guidelines` (guideline prose for the verifier's citation retrieval), a **general English dense** model (`llama-text-embed-v2`) reranked with `bge-reranker-v2-m3`. **Optional** and no-op when `PINECONE_API_KEY` is unset — the verifier falls back to the catalog's own `guidelineText`. Built by `bun run pinecone:guidelines`. `lib/pinecone/client.ts`. (A drug-synonym index was tried and **removed**: resolving a drug by semantic guess gave a false sense of success in a safety tool — `normalizeDrug` is authoritative-only, see §3 step 3.)
 - **UI:** **shadcn/ui** + Tailwind. The pharmacist console is a bespoke queue UI, not a chat window. (Deliberately **not** `@medplum/react`, which is Mantine-based and would clash with shadcn — use the headless Medplum SDK for data, render in shadcn.)
 - **Lint:** **oxlint** (fast, run in CI and pre-commit).
-- **AI SDK:** `ai@7` (`ai` core + `@ai-sdk/react`). Provides the agent loop (`generateText` with `stopWhen: stepCountIs(n)`), structured output (`Output.object`), and tools (`tool({ inputSchema, execute })`). Bun on Node 22+ semantics.
+- **AI SDK:** `ai@7` (`ai` core + `@ai-sdk/react`). Provides the agent loop (`generateText` with `stopWhen: isStepCount(n)`), structured output (`Output.object`), and tools (`tool({ inputSchema, execute })`). Bun on Node 22+ semantics.
 - **Durable tasks:** **Trigger.dev** v4 (`@trigger.dev/sdk`, config in `trigger.config.ts`). Runs the per-order evaluation as a durable task with automatic retries, native **idempotency keys** (dedupe), and **wait tokens** for human-in-the-loop. Trigger.dev **Realtime** (`useRealtimeRun`) drives the live console. Tasks run in Trigger.dev's managed Node environment, which also isolates the heavy `ai` + Medplum SDK work from any Bun-compat risk.
-- **Model access:** Claude via **Vercel AI Gateway** — model passed as a string (e.g. `anthropic/claude-opus-4.5`), one `AI_GATEWAY_API_KEY`, with a direct `@ai-sdk/anthropic` fallback. Model **tier is picked per step** (`lib/ai/models.ts` `resolveModel(tier)`): an Opus tier for fuzzy work (genetics parsing, the verifier) and a cheaper Sonnet tier for the deterministic CPIC agent loop. `BASEPAIR_MODEL` is a global override ([#29](https://github.com/tylergibbs1/basepair/issues/29)).
+- **Model access:** Claude via the direct **`@ai-sdk/anthropic` provider** (`ANTHROPIC_API_KEY`). Model **tier is picked per step** (`lib/ai/models.ts` `resolveModel(tier)`): an Opus tier for fuzzy work (genetics parsing, the verifier) and a cheaper Sonnet tier for the deterministic CPIC agent loop. `BASEPAIR_MODEL` is a local-only override ([#29](https://github.com/tylergibbs1/basepair/issues/29)).
 - **Deploy:** Vercel (the app + the trigger call). Medplum is the separate clinical backend; Trigger.dev runs the durable tasks.
 
 > **Integration boundary (the key decision):** Medplum is the **clinical substrate** (FHIR store, SMART auth, CDS Hooks trigger, prescriber-facing card). The **agentic evaluation runs as a durable Trigger.dev task** that wraps the deterministic engine plus the AI SDK agent cross-check. Medplum *triggers* the app; the CDS ingress enqueues the Trigger.dev task; the task evaluates, persists a `DetectedIssue` + a pharmacist `Task` to Medplum, then **pauses on a Trigger.dev wait token** until the pharmacist acts. Approval completes the token, the task resumes and writes the `Communication` + `AuditEvent`/`Provenance`. This is a genuinely durable, resumable clinical service (Trigger.dev holds the waitpoint up to a 48h timeout). The evaluation is deliberately **not** a Medplum Bot — CDS Hooks Bots are synchronous and that would collapse the durable pharmacist gate.
@@ -53,7 +53,7 @@ Anything not in this table and not marked "Future" below is present in the codeb
 > - **Bun + Next 16:** use `bun install` and `bunx --bun next dev` for the app. The heavy `ai` + Medplum work runs inside the Trigger.dev task (Node runtime), so Bun only needs to run the Next app + the trigger call (`tasks.trigger`) + Upstash/Supabase clients.
 > - **Medplum:** register the hosted free tier; create a ClientApplication for machine auth; the trigger is modeled as **both** a CDS Hooks service (`order-sign`, synchronous prescriber card) and a `Subscription` on `MedicationRequest` create → rest-hook to the Vercel route (async pharmacist evaluation). See [§9](#9-open-questions--now-resolved).
 > - **Drizzle + Supabase:** app-config only. Tenant isolation via RLS keyed on the `app.current_tenant_id` GUC.
-> - **ai@7 idioms:** multi-step loop uses `stopWhen: stepCountIs(n)`; tools use `inputSchema` (not `parameters`); structured output is `Output.object({ schema })`. Pull current docs for Next 16, Drizzle, Supabase, Medplum, `@trigger.dev/sdk`, and CDS Hooks via Context7 before relying on version-specific APIs.
+> - **ai@7 idioms:** multi-step loop uses `stopWhen: isStepCount(n)`; tools use `inputSchema` (not `parameters`); structured output is `Output.object({ schema })`. Pull current docs for Next 16, Drizzle, Supabase, Medplum, `@trigger.dev/sdk`, and CDS Hooks via Context7 before relying on version-specific APIs.
 
 ---
 
@@ -90,7 +90,7 @@ Anything not in this table and not marked "Future" below is present in the codeb
    │      └─ resume → Communication + AuditEvent/Provenance ; or cancel  │
    └──────────────┬──────────────────────────────────────────────────────┘
                   ▼
-   Medplum FHIR store  ·  Supabase (app config · RLS)  ·  Claude via AI Gateway
+   Medplum FHIR store  ·  Supabase (app config · RLS)  ·  Claude via @ai-sdk/anthropic
 ```
 
 ---
@@ -106,7 +106,7 @@ One order event = one run of a durable **Trigger.dev task** (`evaluate-order`). 
 **Steps** (implemented in `lib/alerts/evaluate.ts` `evaluateAndWrite`, phase-reported to the console via `onPhase`):
 
 1. **Read genetics** (`reading-genetics`) — read the patient's genomic `Observation` resources and the `MedicationRequest` from Medplum via the headless SDK, using the per-tenant Medplum client. `readGenetics` folds them into a `{ gene → { diplotype, phenotype } }` map. Terminology/RxNorm lookups are cached in Upstash (stable, repeat across orders).
-2. **Parse genetics** — resolve `{ gene, diplotype, phenotype, phenotypeSource }` per the precedence in §5d: a coded phenotype (LOINC 53040-2 + LL3856-3) is used directly; else a diplotype (LOINC 84413-4) is mapped via the deterministic CPIC diplotype→phenotype table (`catalog.json` `phenotypeByDiplotype`); else the model (`lib/ai/parse-genetics.ts`, `Output.object`) extracts the diplotype from free-text/PDF/consumer-raw and then maps. The model's real work is the messy-input path only; the phenotype→recommendation mapping is always the published table.
+2. **Parse genetics** — resolve `{ gene, diplotype, phenotype, phenotypeSource }` per the precedence in §5d: a coded phenotype (LOINC 53040-2 + LL3856-3) is used directly; else a diplotype (LOINC 84413-4) is mapped via the deterministic CPIC diplotype→phenotype table (`catalog.json` `phenotypeByDiplotype`); else messy-input intake first extracts PGx report PDFs to markdown with **Mistral OCR** (`lib/ai/ocr.ts`, default `mistral-ocr-latest`) and then normalizes called results into the same coded Observations. The model/OCR work is only the unstructured→structured path; the phenotype→recommendation mapping is always the published table.
 3. **`normalizeDrug`** (`normalizing-drug`, [#26](https://github.com/tylergibbs1/basepair/issues/26)) — `lib/ai/parse/drug.ts` resolves the ordered drug to an ingredient + ATC class via the free NLM **RxNav** API: `rxcui.json` for the RxCUI, then `rxclass/class/byRxcui.json?relaSource=ATC` for the class, normalizing brand/product to ingredient via `minConcept`. Resolution is **authoritative-only** and never throws: **RxNav** (`source: "rxnav"`, cached) → a curated `DRUG_ALIASES` hit to a CPIC-covered drug (`source: "alias"`) → otherwise **`source: "unresolved"`**. There is deliberately **no semantic-guess fallback** and the raw string is never passed off as a match — a safety tool must not present a guess as success. An unresolved drug is surfaced in the feed as a caution ("Couldn't identify the drug"), not a green check. Only RxNav hits are cached.
 4. **`lookupRule`** (`matching-cpic`) — **the authoritative clinical decision.** `lib/cpic-catalog.ts` `lookupRule({ drug, genePhenotypes })` does a deterministic lookup against the encoded CPIC catalog (2,115 rules) for the ordered drug and the patient's phenotypes. Returns the applicable rule + recommendation + severity + citation, or "no rule applies."
 5. **`decideWithAgent`** (cross-check) — `lib/ai/evaluate-agent.ts` runs a real multi-step `generateText` ToolLoopAgent (`cpicResolvePhenotype`, `cpicLookupRule` tools) *alongside* the deterministic call. Every tool's `execute` itself runs the deterministic engine, and the module compares the agent's lookup to a direct `lookupRule`. It emits a `DecisionPath`:
@@ -144,12 +144,12 @@ Why a wait token rather than a plain Task mutation: it keeps the entire lifecycl
 | Durable, resumable per-order evaluation with retries | **Trigger.dev** `task({ id, run })`, triggered via `tasks.trigger(..., { idempotencyKey })` — *not* an AI SDK API | The "unattended, resumable clinical service": ingress returns fast, task survives crashes, retries per step, dedupes by idempotency key. |
 | Durable human-in-the-loop approval (pause hours, resume) | **Trigger.dev wait tokens**: `wait.createToken` + `wait.forToken().unwrap()` in the task; `wait.completeToken(id, { approved })` from the console | The pharmacist gate as a genuinely durable waitpoint — the real version of "waits for sign-off". |
 | The clinical decision | **Deterministic engine** `lib/cpic-catalog.ts` `lookupRule` — *not* the model | Correctness bar is a document, not a judgment. This is authoritative in every path. |
-| Agent cross-check over the decision | **`generateText` ToolLoopAgent** (`stopWhen: stepCountIs(n)`) whose tools wrap the deterministic engine; emits a `DecisionPath` | Observability + messy-input reasoning **without** moving the published-rule decision into the model's hands. |
+| Agent cross-check over the decision | **`generateText` ToolLoopAgent** (`stopWhen: isStepCount(n)`) whose tools wrap the deterministic engine; emits a `DecisionPath` | Observability + messy-input reasoning **without** moving the published-rule decision into the model's hands. |
 | Parse messy genotype + free-text order into typed data | **`Output.object({ schema })`** | The genuine model cognition; answers "it's just a switch statement." Used only on the messy-input path. |
 | Drug normalization | **RxNav / RxClass** HTTP calls wrapped by `normalizeDrug`; static alias map fallback | Resolve brand/product order strings to an ingredient + ATC class deterministically. |
 | Independently verify each alert against source | **isolated verifier** (`citeAndVerify`, Opus tier) that grades the alert against the rule's literal `guidelineText` | Verification-as-product. A `fail` flags "needs review" — it never suppresses (surface-with-flag). |
 | Live pharmacist queue: cards appear and flip in place | **Trigger.dev Realtime** (`useRealtimeRun`) fires a targeted `router.refresh()` + an id-reconciled `seenIds` merge — **no polling timer** | The "second surface beyond chat" that separates polished from toy. `createUIMessageStream` was rejected as the wrong primitive (see [§10](#10-considered-not-built)). |
-| Cost/latency control | **AI Gateway** model strings + per-step model tiers (`resolveModel(tier)`: Opus for fuzzy parse + verifier, Sonnet for the deterministic agent loop) | Cost-maturity: the right model per step, one gateway key, direct-provider fallback. |
+| Cost/latency control | Direct Anthropic model ids + per-step model tiers (`resolveModel(tier)`: Opus for fuzzy parse + verifier, Sonnet for the deterministic agent loop) | Cost-maturity: the right model per step without adding a routing layer. |
 | Multi-tenancy for FHIR calls | Per-tenant Medplum client (`createMedplumClient(tenantId)`), creds resolved from the Supabase `tenants` table | Each tenant's FHIR calls use their own Medplum credential. |
 
 ---
@@ -293,7 +293,7 @@ The PGx result is stored in Medplum as plain FHIR `Observation`s following the *
 **`readGenetics` / `parseGenetics` contract** → `{ gene, diplotype, phenotype, phenotypeSource }` where `phenotypeSource ∈ 'coded' | 'derived-from-diplotype' | 'inferred-from-text'`. Precedence, most-trusted first:
 1. **Coded phenotype present** (a 53040-2 Observation with an LL3856-3 answer) → use directly. Deterministic, no model judgment.
 2. **Diplotype present** (84413-4) but no coded phenotype → map via the deterministic CPIC diplotype→phenotype table (`catalog.json` `phenotypeByDiplotype`).
-3. **Only messy source** (free-text note, lab PDF `DocumentReference`, consumer raw genotype/rsIDs) → the model (`lib/ai/parse-genetics.ts`) extracts `{ gene, diplotype }`, then maps via the table. The genuine unstructured→structured model work.
+3. **Only messy source** (free-text note, lab PDF `DocumentReference`, consumer raw genotype/rsIDs) → PDF reports are extracted to page-level markdown via Mistral OCR (`mistral-ocr-latest` by default, `MISTRAL_OCR_MODEL` can pin a local override), then the called result is normalized into `{ gene, diplotype }` / coded FHIR Observations and mapped via the CPIC table. The genuine unstructured→structured work lives here only.
 
 In every path the phenotype→recommendation step is the published CPIC catalog, never model judgment.
 
@@ -324,7 +324,7 @@ trigger.config.ts         → Trigger.dev project config
     parse-genetics.ts      → Output.object messy-input → { gene, diplotype } (§5d path 3)
     verify.ts              → citeAndVerify: verifier (surface-with-flag)
     guideline-search.ts    → searchGuideline: Pinecone guideline-prose retrieval (#28)
-    models.ts              → resolveModel(tier): AI Gateway strings + per-step tiers (#29)
+    models.ts              → resolveModel(tier): direct Anthropic ids + per-step tiers (#29)
     tools/cpic.ts          → cpicResolvePhenotype / cpicLookupRule tools (wrap the engine)
     parse/drug.ts          → normalizeDrug: authoritative-only (RxNav | curated alias | unresolved) (#26)
   alerts/

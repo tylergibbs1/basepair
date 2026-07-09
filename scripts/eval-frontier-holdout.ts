@@ -21,7 +21,7 @@
  *
  * Live Anthropic calls. Run: bun scripts/eval-frontier-holdout.ts
  */
-import { generateText, Output, tool, stepCountIs } from "ai";
+import { generateText, Output, tool, isStepCount } from "ai";
 import { z } from "zod";
 
 import {
@@ -157,7 +157,7 @@ async function fTools(c: Case, reducedRules: readonly CatalogRule[]): Promise<Ag
   const { output } = await generateText({
     model: resolveModel("opus"),
     tools: { resolvePhenotypeTool, lookupTool },
-    stopWhen: stepCountIs(5),
+    stopWhen: isStepCount(5),
     output: Output.object({ schema: AgentSchema }),
     prompt:
       TASK(c) +

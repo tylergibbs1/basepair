@@ -231,6 +231,7 @@ export async function getOpenAlerts(): Promise<Alert[]> {
       severity: pgx.severity,
       recommendation: pgx.recommendation,
       recommendedAlternative: pgx.recommendedAlternative,
+      phenotypeConcordance: pgx.phenotypeConcordance,
       citedSentence: pgx.citedSentence,
       guidelineText: pgx.guidelineText ?? pgx.citedSentence,
       citation: pgx.citation,

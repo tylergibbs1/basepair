@@ -12,7 +12,7 @@
  * Returns the authoritative LookupResult plus how it was reached, so the task
  * can surface whether the agent agreed (a trust signal), not just the verdict.
  */
-import { generateText, stepCountIs } from "ai";
+import { generateText, isStepCount } from "ai";
 import { lookupRule, type LookupResult } from "@/lib/cpic-catalog";
 import { cpicTools, toLookupOutput, type CpicLookupOutput } from "@/lib/ai/tools/cpic";
 import { resolveModel } from "@/lib/ai/models";
@@ -73,7 +73,7 @@ export async function decideWithAgent(
   const result = await generateText({
     model,
     tools: cpicTools,
-    stopWhen: stepCountIs(6),
+    stopWhen: isStepCount(6),
     prompt: `<patient_genetics>
 ${readingLines}
 </patient_genetics>

@@ -10,7 +10,7 @@ Some drugs are useless or dangerous for patients with certain genetic variants (
 
 ## Stack
 
-Next.js 16, TypeScript, Bun, Drizzle, Supabase (app config + RLS), Better Auth (email/password console login), Trigger.dev (durable evaluation tasks + wait-token approvals), Upstash Redis (ratelimit / cache), Pinecone (guideline-prose retrieval for the verifier via integrated inference; optional, no-op when unset), shadcn/ui, oxlint. AI via the Vercel AI SDK (`ai@7`) and Claude through the Vercel AI Gateway. **EHR layer: Medplum** (FHIR datastore, SMART on FHIR auth, CDS Hooks trigger) — clinical data lives in Medplum as FHIR resources; the agentic evaluation runs as a durable Trigger.dev task. The verifier stays anchored on the matched CPIC rule's own `guidelineText` (retrieval only supplies the citation span, never the graded evidence; see ARCHITECTURE §10).
+Next.js 16, TypeScript, Bun, Drizzle, Supabase (app config + RLS), Better Auth (email/password console login), Trigger.dev (durable evaluation tasks + wait-token approvals), Upstash Redis (ratelimit / cache), Pinecone (guideline-prose retrieval for the verifier via integrated inference; optional, no-op when unset), shadcn/ui, oxlint. AI via the Vercel AI SDK (`ai@7`) and Claude through the direct `@ai-sdk/anthropic` provider. **EHR layer: Medplum** (FHIR datastore, SMART on FHIR auth, CDS Hooks trigger) — clinical data lives in Medplum as FHIR resources; the agentic evaluation runs as a durable Trigger.dev task. The verifier stays anchored on the matched CPIC rule's own `guidelineText` (retrieval only supplies the citation span, never the graded evidence; see ARCHITECTURE §10).
 
 ## Docs
 

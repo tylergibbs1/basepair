@@ -7,6 +7,7 @@ import { Popover } from "@base-ui/react/popover"
 import {
   ArrowLeft,
   Check,
+  ClipboardCheck,
   Radar,
   SearchX,
   ShieldAlert,
@@ -31,7 +32,37 @@ import {
   type Alert,
   type PatientContext,
 } from "@/lib/alerts/types"
+import {
+  planLocalAction,
+  type LocalActionConfig,
+  type LocalActionPlan,
+} from "@/lib/alerts/local-action"
 import { cn } from "@/lib/utils"
+
+const DEMO_LOCAL_ACTION_CONFIG: LocalActionConfig = {
+  alternativesByDrug: {
+    clopidogrel: ["prasugrel", "ticagrelor"],
+    simvastatin: ["pravastatin", "rosuvastatin"],
+  },
+  formulary: {
+    prasugrel: {
+      status: "preferred",
+      reason: "Preferred local antiplatelet alternative.",
+    },
+    ticagrelor: {
+      status: "available",
+      reason: "Available local antiplatelet alternative.",
+    },
+    pravastatin: {
+      status: "preferred",
+      reason: "Preferred local statin alternative.",
+    },
+    rosuvastatin: {
+      status: "available",
+      reason: "Available local statin alternative.",
+    },
+  },
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -105,6 +136,155 @@ function PatientContextBand({
       className="mt-6 rounded-md border bg-secondary/40 px-4 py-3"
     >
       <dl className="flex flex-wrap gap-x-8 gap-y-3">{items}</dl>
+    </section>
+  )
+}
+
+/**
+ * Phenotype concordance QA callout (#46). When the lab reported a coded
+ * phenotype that CONFLICTS with the CPIC diplotype-derived one — or CPIC could
+ * not derive one at all — silently trusting or overwriting it would lose
+ * defensibility, so we surface both values side by side with the human reason.
+ * A clean `match` renders nothing (this is only shown for a "mismatch*" or
+ * "unresolved-derived" verdict). A high-impact mismatch (one that CHANGES the
+ * recommendation) is the pharmacist review path: it adds a review-required note
+ * in the sev-caution tone (color reserved for attention, never decoration).
+ */
+function PhenotypeConcordanceCallout({ alert }: { alert: Alert }) {
+  const concordance = alert.phenotypeConcordance
+  // By-exception surface: a matching (or unassessable) phenotype adds nothing a
+  // pharmacist must act on, so it renders nothing — consistent with the queue's
+  // signal-not-noise thesis. The callout appears only when the lab and CPIC
+  // disagree, or CPIC could not derive a phenotype to check against.
+  if (!concordance) return null
+
+  const { verdict, severity, sourcePhenotype, derivedPhenotype, reason } =
+    concordance
+  const showReview =
+    verdict.startsWith("mismatch") || verdict === "unresolved-derived"
+
+  // A match (or a missing-source read) is the quiet, expected case: nothing to
+  // surface. Only a disagreement or an underivable phenotype earns the callout.
+  if (!showReview) return null
+
+  const highImpact = severity === "high-impact"
+
+  return (
+    <section
+      aria-labelledby="concordance-label"
+      className="rounded-md border bg-secondary/40 px-4 py-3"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3
+          id="concordance-label"
+          className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+        >
+          <ShieldAlert aria-hidden className="size-3.5" />
+          Phenotype concordance
+        </h3>
+        <span className="rounded-sm bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground">
+          {severity.replaceAll("-", " ")}
+        </span>
+      </div>
+      {/* Source-reported vs CPIC-derived, side by side — the two values the QA
+          is comparing. Neutral chrome; the phenotype text reads as data. */}
+      <dl className="mt-3 grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-0.5">
+          <dt className="text-xs text-muted-foreground">Lab-reported</dt>
+          <dd className="text-sm text-foreground">
+            {sourcePhenotype ?? "—"}
+          </dd>
+        </div>
+        <div className="grid gap-0.5">
+          <dt className="text-xs text-muted-foreground">CPIC-derived</dt>
+          <dd className="text-sm text-foreground">
+            {derivedPhenotype ?? (
+              <span className="text-muted-foreground">
+                Could not be derived from the diplotype
+              </span>
+            )}
+          </dd>
+        </div>
+      </dl>
+      <p className="mt-3 max-w-prose text-pretty text-sm leading-relaxed text-muted-foreground">
+        {reason}
+      </p>
+      <div className="mt-3 flex gap-2.5 rounded-sm border border-sev-caution-br bg-sev-caution-bg px-3 py-2.5">
+        <ShieldAlert
+          aria-hidden
+          className="mt-0.5 size-4 shrink-0 text-sev-caution"
+        />
+        <p className="max-w-prose text-pretty text-sm leading-relaxed text-sev-caution-fg">
+          {highImpact
+            ? "The two phenotypes lead to different CPIC recommendations. Confirm the phenotype before write-back."
+            : "The phenotypes differ even though the CPIC action is unchanged. Confirm the phenotype before write-back."}
+        </p>
+      </div>
+    </section>
+  )
+}
+
+function LocalActionSummary({ plan }: { plan: LocalActionPlan }) {
+  if (plan.kind !== "switch" && plan.candidates.length === 0) return null
+
+  const selected = plan.selected
+  return (
+    <section
+      aria-labelledby="local-action-label"
+      className="mt-4 rounded-md border bg-secondary/25 px-4 py-3"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="grid gap-1">
+          <h3
+            id="local-action-label"
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+          >
+            <ClipboardCheck aria-hidden className="size-3.5" />
+            Local actionability
+          </h3>
+          <p className="text-sm text-pretty text-foreground">
+            {plan.rationale}
+          </p>
+        </div>
+        {selected && (
+          <span className="rounded-sm border bg-background px-2 py-1 text-xs font-medium text-foreground">
+            Selected {selected.drug}
+          </span>
+        )}
+      </div>
+      {plan.candidates.length > 0 && (
+        <dl className="mt-3 grid gap-2">
+          {plan.candidates.map((candidate) => (
+            <div
+              key={candidate.drug}
+              className="grid gap-0.5 border-t border-border/70 pt-2 first:border-t-0 first:pt-0"
+            >
+              <dt className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
+                {candidate.drug}
+                <span className="rounded-sm bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                  {candidate.status}
+                </span>
+                {candidate.contraindicated && (
+                  <span className="rounded-sm bg-sev-caution-bg px-1.5 py-0.5 text-[11px] text-sev-caution-fg">
+                    needs review
+                  </span>
+                )}
+              </dt>
+              {candidate.reasons.length > 0 && (
+                <dd className="text-xs text-pretty text-muted-foreground">
+                  {candidate.reasons.join(" ")}
+                </dd>
+              )}
+            </div>
+          ))}
+        </dl>
+      )}
+      {plan.requiresManualReview && (
+        <p className="mt-3 text-xs text-pretty text-sev-caution-fg">
+          Local checks did not produce a fully enactable alternative; pharmacist
+          review is required before write-back.
+        </p>
+      )}
     </section>
   )
 }
@@ -365,6 +545,15 @@ export function AlertDetailPage({ id }: { id: string }) {
 
   const alert = getAlert(id)
   const inQueue = alerts.some((a) => a.id === id)
+  const localAction = alert
+    ? planLocalAction({
+        orderedDrug: alert.drug,
+        recommendation: alert.recommendation,
+        recommendedAlternative: alert.recommendedAlternative,
+        patientContext: alert.patientContext,
+        config: DEMO_LOCAL_ACTION_CONFIG,
+      })
+    : null
 
   // Co-tested genes beyond the driver, for the CPIC-rule step's honest account
   // of a multi-gene match (e.g. "…with NUDT15 normal metabolizer").
@@ -471,8 +660,23 @@ export function AlertDetailPage({ id }: { id: string }) {
             patientMrn={alert.patientMrn}
             patientDob={alert.patientDob}
             actionText={enactActionText}
+            // #48: pass the local formulary rationale only for an enactable local
+            // switch (a selected alternative). A dose/avoid/notify plan has no
+            // local pick to justify, so the dialog shows guideline support alone.
+            localAction={
+              localAction?.kind === "switch" && localAction.selected
+                ? {
+                    rationale: localAction.rationale,
+                    selectedDrug: localAction.selected.drug,
+                    status: localAction.selected.status,
+                  }
+                : undefined
+            }
             confirmLabel={enactLabel}
-            onConfirm={() => act(enact)}
+            onConfirm={() => {
+              setEnactOpen(false)
+              act(enact)
+            }}
           />
 
           {/* Patient-context band (#36): the clinical facts to check before
@@ -482,6 +686,7 @@ export function AlertDetailPage({ id }: { id: string }) {
             context={alert.patientContext}
             pgxDrugCount={alert.pgxDrugCount}
           />
+          {localAction && <LocalActionSummary plan={localAction} />}
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
             <div className="grid content-start gap-8">
@@ -489,6 +694,12 @@ export function AlertDetailPage({ id }: { id: string }) {
                   plain-language account of what that means so the state is
                   unmistakable, not a bare badge. Verified alerts skip it. */}
               {!alert.verification.verified && <NeedsReviewNote />}
+
+              {/* Phenotype concordance QA (#46): when the lab's coded phenotype
+                  conflicts with the CPIC-derived one, show both before the
+                  recommendation so the pharmacist reads the discrepancy first.
+                  Renders nothing on a clean match. */}
+              <PhenotypeConcordanceCallout alert={alert} />
 
               {/* Verdict first: the recommendation is the decision the
                   pharmacist is here to make. The action LEADS (#39) — the verb

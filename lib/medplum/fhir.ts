@@ -27,6 +27,7 @@ import type {
 } from "@medplum/fhirtypes";
 import type { RecommendedAlternative } from "@/lib/cpic-catalog";
 import type { DecisionPath } from "@/lib/alerts/types";
+import type { PhenotypeConcordanceResult } from "@/lib/pgx/phenotype-concordance";
 
 export const LOINC = "http://loinc.org";
 const HGNC = "http://www.genenames.org";
@@ -376,6 +377,8 @@ export type AlertFacts = {
    * label without re-deriving it. Absent when no alternative is curated.
    */
   recommendedAlternative?: RecommendedAlternative;
+  /** Lab/source phenotype compared with the CPIC diplotype-derived phenotype. */
+  phenotypeConcordance?: PhenotypeConcordanceResult;
   /** How the CPIC decision was reached (agent loop vs deterministic backstop),
    *  surfaced in the Audit view. Absent when the caller doesn't record it. */
   decisionPath?: DecisionPath;
@@ -427,6 +430,9 @@ export function buildDetectedIssue(
     verifierHighlight: facts.verifierHighlight,
     ...(facts.recommendedAlternative
       ? { recommendedAlternative: facts.recommendedAlternative }
+      : {}),
+    ...(facts.phenotypeConcordance
+      ? { phenotypeConcordance: facts.phenotypeConcordance }
       : {}),
     ...(facts.decisionPath ? { decisionPath: facts.decisionPath } : {}),
   };

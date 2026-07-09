@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { formatDob } from "@/lib/alerts/types"
+import type { FormularyStatus } from "@/lib/alerts/local-action"
 
 /**
  * The wrong-patient guard: a patient-identity confirm shown before ENACT.
@@ -26,6 +27,9 @@ import { formatDob } from "@/lib/alerts/types"
  * quiet mono) because that identity is exactly what's being verified — it must
  * read clearly, not as fine print. base-ui Dialog supplies the focus trap,
  * Escape, and aria wiring; the action sentence is the accessible description.
+ * (Context7-confirmed for @base-ui/react v1.6.0: Dialog children are free-form
+ * ReactNode, so the local-formulary section sits cleanly between header and
+ * footer, and DialogDescription remains the accessible description.)
  * Confirm is deliberately not autofocused: a safety confirm must never fire on
  * a stray Enter.
  */
@@ -37,6 +41,7 @@ export function EnactConfirmDialog({
   patientMrn,
   patientDob,
   actionText,
+  localAction,
   confirmLabel,
   onConfirm,
 }: {
@@ -51,6 +56,20 @@ export function EnactConfirmDialog({
   patientDob?: string
   /** Plain-language sentence of what enact will do (built by the caller). */
   actionText: string
+  /**
+   * #48: the LOCAL formulary rationale for the substitution, so the enact
+   * confirmation shows guideline support (actionText) PLUS why this local
+   * alternative was chosen. Passed only for an enactable local switch; absent
+   * for a dose/avoid/notify path (nothing local to add — renders nothing).
+   */
+  localAction?: {
+    /** planLocalAction's rationale for the selected alternative. */
+    rationale: string
+    /** The selected alternative drug (for the section heading). */
+    selectedDrug?: string
+    /** Its local formulary status, e.g. "preferred". */
+    status?: FormularyStatus
+  }
   /** The confirm button label, mirroring the enact button that opened this. */
   confirmLabel: string
   onConfirm: () => void
@@ -84,6 +103,28 @@ export function EnactConfirmDialog({
             )}
           </div>
         </div>
+        {/* #48: the local formulary rationale, beneath the identity block —
+            guideline support (the action sentence above) PLUS why this local
+            alternative was picked. Rendered only when a local switch plan was
+            passed; a dose/avoid/notify enact shows nothing extra here. */}
+        {localAction && (
+          <div className="rounded-md border border-border bg-secondary/25 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                Local formulary
+              </span>
+              {localAction.selectedDrug && (
+                <span className="rounded-sm border bg-background px-2 py-1 text-xs font-medium text-foreground">
+                  {localAction.selectedDrug}
+                  {localAction.status ? ` · ${localAction.status}` : ""}
+                </span>
+              )}
+            </div>
+            <p className="mt-2 text-pretty text-sm leading-relaxed text-foreground">
+              {localAction.rationale}
+            </p>
+          </div>
+        )}
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
           <Button onClick={onConfirm}>{confirmLabel}</Button>

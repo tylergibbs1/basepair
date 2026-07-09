@@ -8,6 +8,7 @@ import {
 } from "@/lib/medplum/fhir"
 import type { RecommendedAlternative } from "@/lib/cpic-catalog"
 import type { Alert, DecisionPath } from "@/lib/alerts/types"
+import type { PhenotypeConcordanceResult } from "@/lib/pgx/phenotype-concordance"
 
 /**
  * Shared helpers for reading the structured PGx payload off a DetectedIssue and
@@ -48,6 +49,8 @@ export type FlaggedPgxPayload = {
   // Structured CPIC action for one-click enact (issue #2); absent on alerts
   // written before it existed, and on rules with no curated alternative.
   recommendedAlternative?: RecommendedAlternative
+  /** Lab/source phenotype compared with the CPIC-derived phenotype. */
+  phenotypeConcordance?: PhenotypeConcordanceResult
   // How the CPIC decision was reached (agent loop vs deterministic backstop);
   // absent on alerts written before the agent loop existed.
   decisionPath?: DecisionPath

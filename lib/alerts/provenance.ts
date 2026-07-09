@@ -13,6 +13,10 @@ import {
   type ProvenanceEntityInput,
 } from "@/lib/medplum/fhir";
 import type { DecisionPath } from "@/lib/alerts/types";
+import type {
+  PhenotypeConcordanceVerdict,
+  PhenotypeConcordanceSeverity,
+} from "@/lib/pgx/phenotype-concordance";
 
 /**
  * FHIR-native provenance emission (issue #22). One call writes BOTH the
@@ -54,6 +58,18 @@ export type AlertProvenanceContext = {
   phenotypeObservation?: Reference<Observation>;
   /** How the phenotype was reached, e.g. "coded" | "derived-from-diplotype". */
   phenotypeSource?: string;
+  /**
+   * #46: when the lab reported a coded phenotype, the concordance between it and
+   * the CPIC diplotype-derived phenotype. Recorded so the reproduce-the-decision
+   * record preserves BOTH the source-reported and CPIC-derived phenotype values
+   * plus the mismatch verdict — not just the one we used. Additive/optional.
+   */
+  phenotypeConcordance?: {
+    sourcePhenotype?: string;
+    derivedPhenotype?: string;
+    verdict: PhenotypeConcordanceVerdict;
+    severity: PhenotypeConcordanceSeverity;
+  };
   /** (c) Matched CPIC rule citation. */
   citation?: string;
   /** (d) Verifier verdict + the sentence it cited. */
@@ -129,6 +145,25 @@ export async function writeAlertProvenance(
       detail.push({ type: "cited-sentence", valueString: ctx.citedSentence });
     if (ctx.phenotypeSource)
       detail.push({ type: "phenotype-source", valueString: ctx.phenotypeSource });
+    // #46: preserve both phenotype values + the mismatch verdict on the audit
+    // trail, so a source-vs-derived conflict stays reproducible after the fact.
+    if (ctx.phenotypeConcordance) {
+      const pc = ctx.phenotypeConcordance;
+      if (pc.sourcePhenotype)
+        detail.push({
+          type: "phenotype-source-reported",
+          valueString: pc.sourcePhenotype,
+        });
+      if (pc.derivedPhenotype)
+        detail.push({
+          type: "phenotype-cpic-derived",
+          valueString: pc.derivedPhenotype,
+        });
+      detail.push({
+        type: "phenotype-concordance-verdict",
+        valueString: pc.verdict,
+      });
+    }
     if (ctx.decisionPath)
       detail.push({ type: "decision-path", valueString: ctx.decisionPath });
     if (detail.length) {
@@ -156,6 +191,16 @@ export async function writeAlertProvenance(
       ...(ctx.verifierModel ? { verifierModel: ctx.verifierModel } : {}),
       ...(ctx.verifierRationale ? { verifierRationale: ctx.verifierRationale } : {}),
       ...(ctx.phenotypeSource ? { phenotypeSource: ctx.phenotypeSource } : {}),
+      // #46: the reproduce-record keeps BOTH phenotypes + the verdict, plus a
+      // note of the CPIC derivation used, so neither value is lost to the other.
+      ...(ctx.phenotypeConcordance
+        ? {
+            phenotypeConcordance: {
+              ...ctx.phenotypeConcordance,
+              derivation: "CPIC diplotype→phenotype allele-function table",
+            },
+          }
+        : {}),
       ...(ctx.decisionPath ? { decisionPath: ctx.decisionPath } : {}),
       ...ctx.extra,
     };

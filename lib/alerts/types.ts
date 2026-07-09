@@ -1,6 +1,7 @@
 import type { Severity } from "@/components/ui/severity-chip"
 import type { ContributingGene } from "@/lib/medplum/fhir"
 import type { RecommendedAlternative } from "@/lib/cpic-catalog"
+import type { PhenotypeConcordanceResult } from "@/lib/pgx/phenotype-concordance"
 
 export type { ContributingGene, RecommendedAlternative }
 
@@ -100,6 +101,13 @@ export interface Alert {
   sweptAt?: string
   /** AI trust gate: how Basepair verified the alert against the guideline. */
   verification: Verification
+  /**
+   * #46: concordance between the lab-reported (coded) phenotype and the
+   * CPIC-derived phenotype for the driving gene, when the lab supplied a coded
+   * phenotype. Absent when the lab gave no coded phenotype (nothing to compare)
+   * or on records written before this QA step existed.
+   */
+  phenotypeConcordance?: PhenotypeConcordanceResult
   /** ISO 8601 timestamp of when the alert fired. */
   firedAt: string
   status: "pending"

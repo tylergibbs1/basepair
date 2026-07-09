@@ -24,6 +24,10 @@ import { citeAndVerify } from "@/lib/ai/verify";
 import { searchGuideline } from "@/lib/ai/guideline-search";
 import { decideWithAgent } from "@/lib/ai/evaluate-agent";
 import { normalizeDrug } from "@/lib/ai/parse/drug";
+import {
+  assessPhenotypeConcordance,
+  type PhenotypeConcordanceResult,
+} from "@/lib/pgx/phenotype-concordance";
 import type { DecisionPath } from "@/lib/alerts/types";
 
 /**
@@ -191,6 +195,14 @@ export type EvaluateResult =
       verifierModel: string;
       /** How the CPIC decision was reached (agent loop vs deterministic backstop). */
       decisionPath: DecisionPath;
+      /**
+       * #46: concordance between the lab-reported coded phenotype and the
+       * CPIC-derived phenotype for the driving gene. Present ONLY when the lab
+       * supplied a coded phenotype for that gene (phenotypeSource === "coded");
+       * absent when the phenotype was derived from the diplotype (nothing to
+       * compare — we never fabricate a source).
+       */
+      phenotypeConcordance?: PhenotypeConcordanceResult;
       detectedIssueId?: string;
       taskId?: string;
     }
@@ -302,6 +314,35 @@ export function readGenetics(obs: Observation[]): GeneReading[] {
     if (phenotype) readings.push({ gene, diplotype, phenotype });
   }
   return readings;
+}
+
+/**
+ * #46 — Phenotype concordance QA for the driving gene. When the lab supplied a
+ * CODED phenotype for the driving gene (phenotypeSource === "coded"), the reading
+ * carries that lab text verbatim (readGenetics prefers the coded phenotype over
+ * the derived one), so we compare it against the CPIC diplotype-derived phenotype
+ * via the frozen assessor. When the phenotype was derived from the diplotype
+ * there is no independent source to compare — we return undefined rather than
+ * fabricate one. Pure so the wiring is unit-testable without Medplum I/O.
+ */
+export function drivingGeneConcordance(input: {
+  gene: string;
+  diplotype: string;
+  /** The phenotype used for the driving gene — the lab's coded text when
+   *  phenotypeSource is "coded", which is exactly the source to compare. */
+  phenotype: string;
+  phenotypeSource: "coded" | "derived-from-diplotype";
+  /** The CPIC-normalized drug the rule keyed on, so the assessor can decide
+   *  whether a mismatch actually changes the recommendation. */
+  drug: string;
+}): PhenotypeConcordanceResult | undefined {
+  if (input.phenotypeSource !== "coded") return undefined;
+  return assessPhenotypeConcordance({
+    gene: input.gene,
+    diplotype: input.diplotype,
+    sourcePhenotype: input.phenotype,
+    drug: input.drug,
+  });
 }
 
 /** The gene actually driving the alert, the abnormal one, not a co-tested normal gene. */
@@ -608,6 +649,15 @@ export async function evaluateAndWrite(
       : {}),
   });
 
+  const src = sourceObservations(observations, primary.gene);
+  const phenotypeConcordance = drivingGeneConcordance({
+    gene: primary.gene,
+    diplotype: primary.diplotype,
+    phenotype: primary.phenotype,
+    phenotypeSource: src.phenotypeSource,
+    drug: rule.drug,
+  });
+
   // Write the alert as a DetectedIssue + a pharmacist Task. Both writes are
   // idempotent on the order id (when present): a retry that re-enters here
   // returns the existing resource instead of creating a duplicate clinical
@@ -631,6 +681,7 @@ export async function evaluateAndWrite(
       verifierModel: verification?.model ?? "",
       verifierHighlight: verification?.highlight ?? "",
       recommendedAlternative: recommendedAlternative(rule.drug) ?? undefined,
+      phenotypeConcordance,
       decisionPath: decision.path,
     }),
     ...(orderTag ? { identifier: orderTag } : {}),
@@ -676,7 +727,6 @@ export async function evaluateAndWrite(
   // (DetectedIssue + Task) to (a) the source genotype Observation, (b) the
   // phenotype derivation, (c) the matched CPIC rule + citation, (d) the verifier
   // verdict + cited sentence. Best-effort: never blocks the clinical write.
-  const src = sourceObservations(observations, primary.gene);
   await writeAlertProvenance(medplum, {
     lifecycle: "evaluation-flagged",
     targets: [
@@ -688,6 +738,16 @@ export async function evaluateAndWrite(
     genotypeObservation: src.genotype,
     phenotypeObservation: src.phenotype,
     phenotypeSource: src.phenotypeSource,
+    // Preserve BOTH the lab-reported and CPIC-derived phenotypes + the verdict
+    // in the reproduce-the-decision record (#46) so a mismatch stays defensible.
+    phenotypeConcordance: phenotypeConcordance
+      ? {
+          sourcePhenotype: phenotypeConcordance.sourcePhenotype,
+          derivedPhenotype: phenotypeConcordance.derivedPhenotype,
+          verdict: phenotypeConcordance.verdict,
+          severity: phenotypeConcordance.severity,
+        }
+      : undefined,
     citation: rule.citation,
     citedSentence,
     verifierVerdict: verification
@@ -725,6 +785,7 @@ export async function evaluateAndWrite(
     verifierRationale: verification?.rationale ?? "",
     verifierModel: verification?.model ?? "",
     decisionPath: decision.path,
+    phenotypeConcordance,
     detectedIssueId: detectedIssue.id,
     taskId: pharmacistTask.id,
   };

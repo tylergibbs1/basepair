@@ -7,12 +7,18 @@ import type {
 import type { MedplumClient } from "@medplum/core"
 
 import { createMedplumClient } from "@/lib/medplum/client"
+import { genesForDrug } from "@/lib/cpic-catalog"
 import {
   provenanceLifecycle,
   PGX_AUDIT_LIFECYCLE_SYSTEM,
   type AuditLifecycle,
 } from "@/lib/medplum/fhir"
 import type { Alert, DecisionPath, SignalStats } from "@/lib/alerts/types"
+import type {
+  PhenotypeConcordanceVerdict,
+  PhenotypeConcordanceSeverity,
+} from "@/lib/pgx/phenotype-concordance"
+import type { FormularyStatus, LocalActionPlan } from "@/lib/alerts/local-action"
 import { isCleared, isEnacted, parsePgxAlert, patientName } from "@/lib/alerts/pgx"
 import {
   DISMISS_REASON_SYSTEM,
@@ -58,6 +64,16 @@ function readDismissReason(
  * provenance emission existed (the DetectedIssue/Task extension still renders the
  * row, so the console degrades gracefully).
  */
+/** #46: compact phenotype-concordance shape carried on an audit row (and read
+ *  permissively off the parsed payload). Both phenotype values are preserved so
+ *  a source-vs-derived conflict stays visible in the trail. */
+export type AuditEntryPhenotypeConcordance = {
+  sourcePhenotype?: string
+  derivedPhenotype?: string
+  verdict: PhenotypeConcordanceVerdict
+  severity: PhenotypeConcordanceSeverity
+}
+
 export type FhirProvenance = {
   /** The Provenance resource id recording this transition. */
   provenanceId?: string
@@ -101,6 +117,25 @@ export type AuditEntry =
         kind: DismissReasonKind
         note?: string
       }
+      /** #46: phenotype concordance QA for the driving gene, when the underlying
+       *  record carried it (lab reported a coded phenotype). Optional/additive:
+       *  absent on records written without it. */
+      phenotypeConcordance?: {
+        sourcePhenotype?: string
+        derivedPhenotype?: string
+        verdict: PhenotypeConcordanceVerdict
+        severity: PhenotypeConcordanceSeverity
+      }
+      /** #48: local-formulary actionability for this alert, when the underlying
+       *  record carried it. Optional/additive — see the follow-up note in
+       *  getAuditEntries: the plan is computed at render time today, not
+       *  persisted, so this stays undefined until a write-back path records it. */
+      localAction?: {
+        selectedDrug?: string
+        status?: FormularyStatus
+        kind: LocalActionPlan["kind"]
+        requiresManualReview: boolean
+      }
       /** ISO 8601 timestamp of when the pharmacist triaged the alert. */
       at: string
     } & FhirProvenance)
@@ -112,6 +147,25 @@ function resourceTimestamp(resource: {
   meta?: { lastUpdated?: string }
 }): string {
   return resource.meta?.lastUpdated ?? new Date().toISOString()
+}
+
+/**
+ * Repair a narrow legacy-data defect where an order label was concatenated with
+ * itself before being persisted (for example `clopidogrelclopidogrel`). The
+ * repeated half is accepted only when it is a known CPIC drug, so ordinary
+ * names that merely contain repeated text are left untouched.
+ */
+export function auditDrugLabel(drug: string): string {
+  const value = drug.trim()
+  if (value.length < 8 || value.length % 2 !== 0) return value
+  const half = value.slice(0, value.length / 2)
+  if (
+    half.toLowerCase() === value.slice(value.length / 2).toLowerCase() &&
+    genesForDrug(half).length > 0
+  ) {
+    return half
+  }
+  return value
 }
 
 /**
@@ -261,7 +315,7 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
       kind: "cleared",
       id: issue.id,
       patientName: patientName(patient),
-      drug: pgx.drug,
+      drug: auditDrugLabel(pgx.drug),
       gene,
       phenotype,
       reason: pgx.reason,
@@ -293,6 +347,13 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
     const enacted = task.status === "completed" ? isEnacted(task) : undefined
     const dismissReason =
       task.status === "cancelled" ? readDismissReason(task) : null
+    // #46: thread the concordance QA the same way phenotype/decisionPath are —
+    // straight off the parsed payload. Read permissively so this compiles and
+    // lights up automatically once the write path persists it (the payload type
+    // in lib/alerts/pgx.ts doesn't declare it yet); undefined otherwise.
+    const phenotypeConcordance = (
+      pgx as { phenotypeConcordance?: AuditEntryPhenotypeConcordance }
+    ).phenotypeConcordance
     // The transition this row records: an enacted approve wrote back via "enact",
     // a plain approve via "approve", a decline via "dismiss".
     const lifecycle: AuditLifecycle =
@@ -308,7 +369,7 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
       kind: task.status === "completed" ? "approved" : "dismissed",
       id: task.id,
       patientName: patientName(patient),
-      drug: pgx.drug,
+      drug: auditDrugLabel(pgx.drug),
       gene: pgx.gene,
       phenotype: pgx.phenotype,
       severity: pgx.severity,
@@ -321,6 +382,11 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
             note: dismissReason.note,
           }
         : undefined,
+      phenotypeConcordance,
+      // #48 follow-up: localAction stays undefined — the plan is computed at
+      // render time (planLocalAction on the detail page), never persisted, so
+      // there's no mapping on the record to thread. Recording it would need a
+      // new write-back, which is out of scope here.
       at: fhir.at,
       provenanceId: fhir.provenanceId,
       auditEventId: fhir.auditEventId,

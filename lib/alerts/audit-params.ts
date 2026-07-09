@@ -92,18 +92,22 @@ export function applyAuditFilters(
   entries: AuditEntry[],
   { q, outcome, sort, dir }: AuditFilterValues
 ): AuditEntry[] {
-  const needle = q.trim().toLowerCase()
+  const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean)
   const filtered = entries.filter((entry) => {
     if (outcome.length > 0 && !outcome.includes(entry.kind)) return false
-    if (!needle) return true
+    if (terms.length === 0) return true
     const reason = entry.kind === "cleared" ? entry.reason : ""
-    return (
-      entry.patientName.toLowerCase().includes(needle) ||
-      entry.drug.toLowerCase().includes(needle) ||
-      (entry.gene?.toLowerCase().includes(needle) ?? false) ||
-      (entry.phenotype?.toLowerCase().includes(needle) ?? false) ||
-      reason.toLowerCase().includes(needle)
-    )
+    const haystack = [
+      entry.patientName,
+      entry.drug,
+      entry.gene,
+      entry.phenotype,
+      reason,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+    return terms.every((term) => haystack.includes(term))
   })
   return sortFilteredEntries(filtered, sort, dir)
 }

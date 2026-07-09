@@ -16,24 +16,14 @@ import { Skeleton } from "@/components/ui/skeleton"
  * It mirrors `AuditPage`'s *full* output so the trail lands with zero layout
  * shift, matching each region that was previously missing and dropping the
  * table down on load:
- *   1. the header block — description line + the `variant="block"` SignalMetric
- *      (a four-cell stat row that was absent, the biggest shift here);
+ *   1. the header — description line + the signal-quality evidence sentences
+ *      (prose lines, not stat tiles), each a text-sm line-box (h-5);
  *   2. the filter/search toolbar AuditTable renders above its rows;
  *   3. the table itself — columns and cell layout match the loaded trail.
  * Block heights are pinned to each cell's text line-box (text-sm → h-5,
  * text-xs → h-4); the two-line Gene / Phenotype cell (h-4 gene + h-4 phenotype)
  * is the tallest cell and sets the row height, so it's reproduced verbatim.
  */
-
-// The four block-metric cells (evaluated / flagged / cleared / false alarms):
-// the label width tracks the word, the value width the count. Reserves the
-// SignalMetric block's exact footprint (text-xs label over a text-2xl number).
-const METRIC_STATS = [
-  { id: "evaluated", label: "w-20", value: "w-10" },
-  { id: "flagged", label: "w-16", value: "w-8" },
-  { id: "cleared", label: "w-16", value: "w-8" },
-  { id: "falseAlarms", label: "w-24", value: "w-8" },
-] as const
 
 // Width variation per row so the placeholder reads as real records, not a grid.
 const ROWS = [
@@ -50,26 +40,16 @@ const ROWS = [
 export function AuditSkeleton() {
   return (
     <div>
-      {/* Header block — mirrors AuditPage's `flex flex-col gap-5 … px-4 py-5`
-          exactly. The description is static copy, rendered for real; the
-          SignalMetric below it is a placeholder (four label-over-number cells)
-          that reserves the block's height the loaded metric would otherwise
-          push the table down by. */}
+      {/* Header — mirrors AuditPage's `flex flex-col gap-5 … px-4 py-5` exactly.
+          The description is static copy, rendered for real; the two placeholder
+          lines below reserve the signal-quality evidence sentences (text-sm,
+          h-5) so the toolbar and table don't drop on hand-off. */}
       <div className="flex flex-col gap-5 border-b border-border px-4 py-5">
         <p className="text-sm text-muted-foreground text-pretty">
           Every order Basepair evaluated, including the ones it cleared.
         </p>
-        <div
-          aria-hidden
-          className="flex flex-wrap items-stretch gap-x-8 gap-y-4"
-        >
-          {METRIC_STATS.map((stat) => (
-            <div key={stat.id} className="grid gap-0.5">
-              <Skeleton className={`h-4 rounded-sm ${stat.label}`} />
-              <Skeleton className={`h-8 rounded-sm ${stat.value}`} />
-            </div>
-          ))}
-        </div>
+        <Skeleton aria-hidden className="h-5 w-full max-w-md rounded-sm" />
+        <Skeleton aria-hidden className="h-5 w-full max-w-sm rounded-sm" />
       </div>
 
       {/* Filter/search toolbar — mirrors the non-sticky bar AuditTable renders

@@ -112,6 +112,10 @@ export function DismissMenu({
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
                   onKeyDown={(event) => {
+                    // base-ui Menu runs a typeahead handler on the popup that
+                    // swallows printable keys; stop the event here so the note
+                    // field actually receives what the pharmacist types.
+                    event.stopPropagation()
                     if (event.key === "Enter") {
                       event.preventDefault()
                       confirmOther()

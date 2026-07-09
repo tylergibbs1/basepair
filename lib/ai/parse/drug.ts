@@ -14,20 +14,20 @@
  * The typed result is validated through {@link NormalizedDrugSchema}, declared in
  * AI-SDK terms via {@link normalizedDrugOutput} (`Output.object`).
  *
- * SAFETY / resolution order (each degrades to the next, never throws):
- *   1. RxNav (authoritative) — cached, since RxCUIs are stable.
- *   2. static alias map (resolveDrugAlias) — offline, when it lands on a covered drug.
- *   3. Pinecone drug-synonym index (searchDrugSynonym) — semantic last resort for
- *      messy/brand/misspelled strings; no-op when Pinecone is unset. Conservative
- *      score floor so a wrong match can't slip through (see drug-synonym.ts).
- *   4. the raw/alias string, marked `source: "fallback"` — an evaluation is never
- *      failed by a terminology outage; an unresolved drug just yields "no rule".
- * Only step 1 is cached — a fallback must not poison later lookups.
+ * SAFETY — resolution is AUTHORITATIVE-ONLY. A safety tool must never present a
+ * guess as a match ("false sense of success"), so there are only two ways to
+ * resolve a drug, and everything else is UNRESOLVED — surfaced, not swallowed:
+ *   1. RxNav (`source: "rxnav"`) — the live NLM terminology, cached (RxCUIs are stable).
+ *   2. Curated static alias (`source: "alias"`) — the hand-verified DRUG_ALIASES
+ *      map, and only when it lands on a drug the CPIC catalog actually covers.
+ *   else → `source: "unresolved"` — RxNav missed and no curated alias applies. We do
+ *      NOT fall back to a semantic guess or pass the raw string off as a match; the
+ *      caller surfaces "couldn't identify the drug" instead of a green check.
+ * Never throws. Only RxNav hits are cached.
  */
 import { Output } from "ai";
 import { z } from "zod";
 import { resolveDrugAlias, isPgxRelevantDrug } from "@/lib/cpic-catalog";
-import { searchDrugSynonym } from "@/lib/ai/parse/drug-synonym";
 import { getRedis } from "@/lib/cache/redis";
 import {
   terminologyKey,
@@ -44,10 +44,21 @@ export const NormalizedDrugSchema = z.object({
   name: z.string(),
   /** ATC class name (e.g. "Platelet aggregation inhibitors excl. heparin"), or null. */
   drugClass: z.string().nullable(),
-  /** Provenance: a live RxNav resolution vs the offline alias fallback. */
-  source: z.enum(["rxnav", "fallback"]),
+  /**
+   * How the drug was resolved:
+   *   "rxnav"      — live RxNav (authoritative);
+   *   "alias"      — a curated DRUG_ALIASES hit to a CPIC-covered drug (authoritative);
+   *   "unresolved" — neither matched. `name` holds the raw/alias-normalized string
+   *                  for display only; the caller must NOT treat it as a match.
+   */
+  source: z.enum(["rxnav", "alias", "unresolved"]),
 });
 export type NormalizedDrug = z.infer<typeof NormalizedDrugSchema>;
+
+/** True when the drug was authoritatively identified (RxNav or a curated alias). */
+export function isDrugResolved(d: NormalizedDrug): boolean {
+  return d.source !== "unresolved";
+}
 
 /**
  * The `Output.object` wrapper for the normalization result (ARCHITECTURE §3
@@ -167,20 +178,22 @@ async function resolveViaRxNav(
   };
 }
 
-/** Offline degradation: static alias map + lowercase/trim, no live lookup. */
-function aliasFallback(drug: string): NormalizedDrug {
+/** An unresolved drug — RxNav missed and no curated alias covers it. `name`
+ *  keeps the alias-normalized string for DISPLAY only; it is NOT a match. */
+function unresolvedDrug(drug: string): NormalizedDrug {
   return {
     rxcui: null,
     name: resolveDrugAlias(drug),
     drugClass: null,
-    source: "fallback",
+    source: "unresolved",
   };
 }
 
 /**
- * Normalize an ordered drug string to `{ rxcui, name, drugClass }`. Cached on
- * the lowercased order string. Never throws: any RxNav failure degrades to the
- * offline alias map so the evaluation continues.
+ * Normalize an ordered drug string to `{ rxcui, name, drugClass, source }`.
+ * Authoritative-only: RxNav or a curated alias to a covered drug, else
+ * `source: "unresolved"` (the caller surfaces that, never a false match).
+ * Never throws. Cached on the lowercased order string (RxNav hits only).
  */
 export async function normalizeDrug(
   drug: string,
@@ -190,53 +203,35 @@ export async function normalizeDrug(
   const doFetch = opts.fetchImpl ?? fetch;
 
   const key = drug.trim().toLowerCase();
-  if (!key) {
-    return NormalizedDrugSchema.parse({
-      rxcui: null,
-      name: drug.trim(),
-      drugClass: null,
-      source: "fallback",
-    });
-  }
+  if (!key) return unresolvedDrug(drug);
 
   const cached = await cache.get(key);
   if (cached) return cached;
 
-  const resolved = await resolveViaRxNav(key, doFetch).catch(
-    (err: unknown) => {
-      console.error(
-        `normalizeDrug: RxNav unreachable for "${drug}"; using alias fallback`,
-        err,
-      );
-      return null;
-    },
-  );
+  const resolved = await resolveViaRxNav(key, doFetch).catch((err: unknown) => {
+    console.error(`normalizeDrug: RxNav unreachable for "${drug}"`, err);
+    return null;
+  });
 
-  // Authoritative RxNav hit — cache it (RxCUIs are stable) and return.
+  // 1. Authoritative RxNav hit — cache it (RxCUIs are stable) and return.
   if (resolved) {
     const normalized = NormalizedDrugSchema.parse(resolved);
     await cache.set(key, normalized);
     return normalized;
   }
 
-  // RxNav missed or was unreachable. Try the static alias map next; if it lands
-  // on a drug the CPIC catalog actually covers, that's a confident resolution.
-  const alias = aliasFallback(drug);
-  if (isPgxRelevantDrug(alias.name)) return NormalizedDrugSchema.parse(alias);
-
-  // Last resort: the Pinecone drug-synonym index (no-op/null when Pinecone is
-  // unset or the match is below the safety floor). A hit maps a messy/brand/
-  // misspelled string to a covered drug name. Fallbacks are NEVER cached — a
-  // transient RxNav outage must not poison later lookups.
-  const synonym = await searchDrugSynonym(key);
-  if (synonym) {
+  // 2. Curated alias to a CPIC-covered drug — hand-verified, so authoritative.
+  const aliasName = resolveDrugAlias(drug);
+  if (isPgxRelevantDrug(aliasName)) {
     return NormalizedDrugSchema.parse({
-      rxcui: synonym.rxcui,
-      name: synonym.name,
+      rxcui: null,
+      name: aliasName,
       drugClass: null,
-      source: "fallback",
+      source: "alias",
     });
   }
 
-  return NormalizedDrugSchema.parse(alias);
+  // 3. Unresolved. No semantic guess, no passing the raw string off as a match —
+  //    a safety tool must not present a guess as success. Not cached.
+  return NormalizedDrugSchema.parse(unresolvedDrug(drug));
 }

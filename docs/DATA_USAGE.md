@@ -54,7 +54,7 @@ Two independent build inputs: the **rules** (deterministic tables + prose corpus
 
 ### RxNorm / RxClass — drug normalization (live API, nothing bundled)
 
-- **`normalizeDrug`** hits the free NLM API: name → RxCUI → ATC drug class. No local copy (avoids UMLS-gated bundling). RxCUIs cached in **Upstash Redis** (stable). Messy order strings fall back to a **Pinecone** drug-synonym index.
+- **`normalizeDrug`** hits the free NLM API: name → RxCUI → ATC drug class. No local copy (avoids UMLS-gated bundling). RxCUIs cached in **Upstash Redis** (stable). Resolution is authoritative-only — RxNav or a curated alias, else `unresolved` (no semantic guess; a safety tool must not present a guess as a match).
 
 ### Code systems — LOINC / HGNC (individual codes, not corpora)
 

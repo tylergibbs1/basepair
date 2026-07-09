@@ -107,7 +107,7 @@ describe("normalizeDrug", () => {
     expect(r.drugClass).toBe("Pyrimidine analogues");
   });
 
-  test("misspelling-adjacent input with no RxNav match falls back to the alias map", async () => {
+  test("misspelling with no RxNav match and no covered alias → unresolved (no guess)", async () => {
     // RxNav returns an empty idGroup for a typo like "clopidigrel".
     const { fetchImpl, calls } = rxnavFetch({ rxcui: { idGroup: {} } });
 
@@ -115,22 +115,24 @@ describe("normalizeDrug", () => {
       cache: freshCache(),
       fetchImpl,
     });
-    expect(r.source).toBe("fallback");
+    // Not RxNav-resolvable and not a covered drug → unresolved, never a guess.
+    expect(r.source).toBe("unresolved");
     // No usable RxCUI → the class hop is skipped.
     expect(calls.some((u) => u.includes("byRxcui"))).toBe(false);
-    // Not in the alias map → lowercased raw string, so lookupRule can still try.
+    // The raw string is kept for DISPLAY only, not as a match.
     expect(r.name).toBe("clopidigrel");
     expect(r.rxcui).toBeNull();
   });
 
-  test("known alias still resolves offline when RxNav has no match (5-fu → fluorouracil)", async () => {
+  test("curated alias still resolves offline when RxNav has no match (5-fu → fluorouracil)", async () => {
     const { fetchImpl } = rxnavFetch({ rxcui: { idGroup: {} } });
     const r = await normalizeDrug("5-fu", { cache: freshCache(), fetchImpl });
-    expect(r.source).toBe("fallback");
+    // A hand-verified alias to a covered drug is authoritative.
+    expect(r.source).toBe("alias");
     expect(r.name).toBe("fluorouracil");
   });
 
-  test("graceful degradation: RxNav transport error falls back, never throws", async () => {
+  test("graceful degradation: RxNav transport error → curated alias, never throws", async () => {
     const fetchImpl = (async () => {
       throw new Error("ECONNREFUSED");
     }) as unknown as typeof fetch;
@@ -139,17 +141,18 @@ describe("normalizeDrug", () => {
       cache: freshCache(),
       fetchImpl,
     });
-    expect(r.source).toBe("fallback");
+    // "clopidogrel" is a covered drug, so it resolves via the alias path.
+    expect(r.source).toBe("alias");
     expect(r.name).toBe("clopidogrel");
   });
 
-  test("graceful degradation: non-200 from RxNav falls back", async () => {
+  test("graceful degradation: non-200 from RxNav → curated alias for a covered drug", async () => {
     const { fetchImpl } = rxnavFetch({ rxcuiStatus: 500 });
     const r = await normalizeDrug("clopidogrel", {
       cache: freshCache(),
       fetchImpl,
     });
-    expect(r.source).toBe("fallback");
+    expect(r.source).toBe("alias");
   });
 
   test("caches RxNav hits: second call does not re-fetch", async () => {
@@ -177,15 +180,15 @@ describe("normalizeDrug", () => {
     expect(second.name).toBe("clopidogrel");
   });
 
-  test("does NOT cache fallbacks, so a later success can still resolve", async () => {
+  test("does NOT cache non-RxNav resolutions, so a later success can still resolve", async () => {
     const cache = freshCache();
-    // First call: outage → fallback (must not be cached).
+    // First call: outage → alias (covered drug); must NOT be cached.
     const down = rxnavFetch({ rxcuiStatus: 503 });
     const first = await normalizeDrug("clopidogrel", {
       cache,
       fetchImpl: down.fetchImpl,
     });
-    expect(first.source).toBe("fallback");
+    expect(first.source).toBe("alias");
 
     // Second call: RxNav is back → we must hit the network and get a real hit.
     const up = rxnavFetch({
@@ -206,10 +209,10 @@ describe("normalizeDrug", () => {
     expect(up.calls.length).toBeGreaterThan(0);
   });
 
-  test("empty / whitespace input degrades without a network call", async () => {
+  test("empty / whitespace input → unresolved without a network call", async () => {
     const { fetchImpl, calls } = rxnavFetch({});
     const r = await normalizeDrug("   ", { cache: freshCache(), fetchImpl });
-    expect(r.source).toBe("fallback");
+    expect(r.source).toBe("unresolved");
     expect(calls.length).toBe(0);
   });
 });

@@ -408,22 +408,34 @@ export async function evaluateAndWrite(
     });
   }
 
-  await emit({
-    kind: "drug",
-    label: "Matched the drug",
-    detail: normalized.rxcui
-      ? `${normalized.name} · RxCUI ${normalized.rxcui}`
-      : normalized.name,
-    substeps: [
-      {
-        label:
-          normalized.source === "rxnav"
-            ? "Resolved via RxNorm (RxNav)"
-            : "Resolved offline (alias / synonym fallback)",
-        detail: normalized.drugClass ?? undefined,
-      },
-    ],
-  });
+  // Authoritative-only drug resolution (RxNav or a curated alias). An unresolved
+  // drug is surfaced as a caution — NOT a green "matched" — so a guess never reads
+  // as success (the trust story: prove the match, never fake it).
+  if (normalized.source === "unresolved") {
+    await emit({
+      kind: "drug",
+      label: "Couldn't identify the drug",
+      detail: `"${drug}" isn't a recognized medication — not checked against the guidelines`,
+      tone: "caution",
+    });
+  } else {
+    await emit({
+      kind: "drug",
+      label: "Matched the drug",
+      detail: normalized.rxcui
+        ? `${normalized.name} · RxCUI ${normalized.rxcui}`
+        : normalized.name,
+      substeps: [
+        {
+          label:
+            normalized.source === "rxnav"
+              ? "Resolved via RxNorm (RxNav)"
+              : "Resolved via a curated alias",
+          detail: normalized.drugClass ?? undefined,
+        },
+      ],
+    });
+  }
 
   await input.onPhase?.("matching-cpic");
   // The CPIC decision runs as an agent loop over cpicTools: the model drives

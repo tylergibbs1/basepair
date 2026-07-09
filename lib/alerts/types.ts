@@ -130,6 +130,19 @@ export interface PatientContext {
 }
 
 /**
+ * Patient context for the New Order dialog card (shown when a patient is picked,
+ * to confirm identity + surface safety-relevant context at order time). Identity
+ * (name / MRN) already comes from the dialog's OrderablePatient; this adds the
+ * date of birth and the compact clinical context.
+ */
+export interface DialogPatientContext {
+  /** patient.birthDate (bare ISO date, e.g. "1962-04-08"), or undefined. */
+  dob?: string
+  /** Allergies / renal / weight — the same shape the alert-detail band uses. */
+  context: PatientContext
+}
+
+/**
  * Live signal-quality counts, sourced from Medplum (DetectedIssue + Task), never
  * mocked. Basepair's core differentiator made visible and quantified: it only
  * fires when it provably matches a guideline, so the suppression is on-screen.

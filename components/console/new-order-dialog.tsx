@@ -10,14 +10,17 @@ import {
   ShieldAlert,
   Clock,
 } from "lucide-react"
-import { AnimatePresence, motion } from "motion/react"
+import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import { useRealtimeRun } from "@trigger.dev/react-hooks"
 import { toast } from "sonner"
 
 import { placeOrder } from "@/lib/alerts/actions"
+import { getPatientContext } from "@/lib/alerts/patient-context"
+import { OrderPatientCard } from "@/components/console/order-patient-card"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
 import type { EvalEvent } from "@/lib/alerts/evaluate"
 import type { OrderablePatient } from "@/lib/alerts/orderable"
+import type { DialogPatientContext } from "@/lib/alerts/types"
 import { PRESCRIBERS } from "@/lib/orders"
 import { spring } from "@/lib/springs"
 import { cn } from "@/lib/utils"
@@ -335,7 +338,7 @@ function FeedItem({
         {!last && <span aria-hidden className="w-px flex-1 bg-border" />}
       </div>
       <div className={cn("grid gap-0.5", last ? "pb-0.5" : "pb-3")}>
-        <span className="text-sm font-medium leading-snug text-foreground">
+        <span className="text-sm leading-snug font-medium text-foreground">
           {event.label}
         </span>
         <span className="line-clamp-2 text-xs text-muted-foreground">
@@ -448,7 +451,9 @@ export function OrderEvaluation({
   } else {
     const live = readPhase(run.metadata)
     phase =
-      live === "awaiting-approval" || live === "writing-back" || live === "resolved"
+      live === "awaiting-approval" ||
+      live === "writing-back" ||
+      live === "resolved"
         ? "flagged"
         : live === "verifying"
           ? "verifying"
@@ -503,6 +508,12 @@ export function NewOrderDialog({
   const [patientRef, setPatientRef] = React.useState<string | null>(null)
   const [drug, setDrug] = React.useState<string | null>(null)
   const [prescriber, setPrescriber] = React.useState<string>(PRESCRIBERS[0])
+  // Patient context card: fetched when a patient is picked, so the pharmacist
+  // confirms identity + sees allergies/renal/weight at order time.
+  const [patientCtx, setPatientCtx] =
+    React.useState<DialogPatientContext | null>(null)
+  const [ctxLoading, setCtxLoading] = React.useState(false)
+  const reduceMotion = useReducedMotion()
   // `submitting` = the order-write server action is in flight; `submission` =
   // the placed run we're streaming; `runPhase` = the phase the live run reports.
   const [submitting, setSubmitting] = React.useState(false)
@@ -538,6 +549,33 @@ export function NewOrderDialog({
     [patients]
   )
 
+  const selectedPatient = React.useMemo(
+    () => patients.find((p) => p.ref === patientRef) ?? null,
+    [patients, patientRef]
+  )
+
+  // Fetch the picked patient's context. Guarded against a stale response if the
+  // user switches patients mid-fetch. getPatientContext never throws (returns an
+  // empty context on error), so the card just shows identity if the read fails.
+  React.useEffect(() => {
+    if (!patientRef) {
+      setPatientCtx(null)
+      setCtxLoading(false)
+      return
+    }
+    let cancelled = false
+    setPatientCtx(null)
+    setCtxLoading(true)
+    getPatientContext(patientRef).then((ctx) => {
+      if (cancelled) return
+      setPatientCtx(ctx)
+      setCtxLoading(false)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [patientRef])
+
   const reset = React.useCallback(() => {
     setSubmitting(false)
     setSubmission(null)
@@ -545,6 +583,8 @@ export function NewOrderDialog({
     setEvents([])
     setDrug(null)
     setPatientRef(null)
+    setPatientCtx(null)
+    setCtxLoading(false)
     onOpenChange(false)
   }, [onOpenChange])
 
@@ -566,7 +606,8 @@ export function NewOrderDialog({
     } catch {
       setSubmitting(false)
       toast.error("Could not place the order", {
-        description: "Something went wrong saving the order. Try again, or contact support if it keeps failing.",
+        description:
+          "Something went wrong saving the order. Try again, or contact support if it keeps failing.",
       })
       return
     }
@@ -594,7 +635,16 @@ export function NewOrderDialog({
           }
         />
       )}
-      <DialogContent showCloseButton={!inFlight}>
+      <DialogContent
+        showCloseButton={!inFlight}
+        // Widen to two columns once a patient is picked (the context card slides
+        // in beside the form); the width eases so the dialog grows, not jumps.
+        // Back to one column during the evaluation stepper.
+        className={cn(
+          "transition-[max-width] duration-200 ease-out",
+          patientRef && !busy ? "sm:max-w-2xl" : "sm:max-w-md"
+        )}
+      >
         <DialogHeader>
           <DialogTitle>New Order</DialogTitle>
           <DialogDescription>
@@ -638,77 +688,117 @@ export function NewOrderDialog({
               transition={spring.moderate}
               className="grid gap-4"
             >
-              <div className="grid gap-2">
-                <label htmlFor="order-patient" className="text-sm">
-                  Patient
-                </label>
-                <Select
-                  items={patientItems}
-                  value={patientRef}
-                  onValueChange={(value) => setPatientRef(value as string)}
-                >
-                  <SelectTrigger
-                    id="order-patient"
-                    className="w-full"
-                    disabled={busy}
-                  >
-                    <SelectValue placeholder="Select a patient…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {patientItems.map((p) => (
-                      <SelectItem key={p.value} value={p.value}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <div
+                className={cn(
+                  "grid gap-4",
+                  patientRef && "md:grid-cols-2 md:items-start md:gap-6"
+                )}
+              >
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <label htmlFor="order-patient" className="text-sm">
+                      Patient
+                    </label>
+                    <Select
+                      items={patientItems}
+                      value={patientRef}
+                      onValueChange={(value) => setPatientRef(value as string)}
+                    >
+                      <SelectTrigger
+                        id="order-patient"
+                        className="w-full"
+                        disabled={busy}
+                      >
+                        <SelectValue placeholder="Select a patient…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {patientItems.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="grid gap-2">
-                <label htmlFor="order-drug" className="text-sm">
-                  Drug
-                </label>
-                <DrugCombobox
-                  id="order-drug"
-                  value={drug ?? ""}
-                  onChange={setDrug}
-                  disabled={busy}
-                />
-              </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="order-drug" className="text-sm">
+                      Drug
+                    </label>
+                    <DrugCombobox
+                      id="order-drug"
+                      value={drug ?? ""}
+                      onChange={setDrug}
+                      disabled={busy}
+                    />
+                  </div>
 
-              <div className="grid gap-2">
-                <label htmlFor="order-prescriber" className="text-sm">
-                  Prescriber
-                </label>
-                <Select
-                  value={prescriber}
-                  onValueChange={(value) => setPrescriber(value as string)}
-                >
-                  <SelectTrigger
-                    id="order-prescriber"
-                    className="w-full"
-                    disabled={busy}
-                  >
-                    <SelectValue placeholder="Select a prescriber…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRESCRIBERS.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {p}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <div className="grid gap-2">
+                    <label htmlFor="order-prescriber" className="text-sm">
+                      Prescriber
+                    </label>
+                    <Select
+                      value={prescriber}
+                      onValueChange={(value) => setPrescriber(value as string)}
+                    >
+                      <SelectTrigger
+                        id="order-prescriber"
+                        className="w-full"
+                        disabled={busy}
+                      >
+                        <SelectValue placeholder="Select a prescriber…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRESCRIBERS.map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {p}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Patient context card — slides in beside the form once a
+                    patient is picked (identity confirm + allergies/renal/weight).
+                    Stacks below the form on mobile. */}
+                <AnimatePresence>
+                  {patientRef && selectedPatient && (
+                    <motion.div
+                      initial={
+                        reduceMotion ? { opacity: 0 } : { opacity: 0, x: 10 }
+                      }
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{
+                        duration: reduceMotion ? 0 : 0.18,
+                        ease: "easeOut",
+                      }}
+                    >
+                      <OrderPatientCard
+                        name={selectedPatient.name}
+                        mrn={selectedPatient.mrn}
+                        data={patientCtx ?? undefined}
+                        loading={ctxLoading}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         <DialogFooter>
-          <DialogClose render={<Button variant="outline" disabled={inFlight} />}>
+          <DialogClose
+            render={<Button variant="outline" disabled={inFlight} />}
+          >
             Cancel
           </DialogClose>
-          <Button onClick={submitOrder} disabled={busy || !patientRef || !drug?.trim()}>
+          <Button
+            onClick={submitOrder}
+            disabled={busy || !patientRef || !drug?.trim()}
+          >
             {phase === "placing" ? (
               <>
                 <Loader2Icon aria-hidden className="animate-spin" />

@@ -77,7 +77,7 @@ function makePgxDrugCounter(
  * missing/erroring resource degrades to `undefined` rather than dropping the
  * alert. Every field is independent: renal can be present while allergies aren't.
  */
-function makePatientContextReader(
+export function makePatientContextReader(
   medplum: Awaited<ReturnType<typeof createMedplumClient>>,
 ) {
   const cache = new Map<string, Promise<PatientContext>>()

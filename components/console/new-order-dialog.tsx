@@ -798,30 +798,19 @@ export function NewOrderDialog({
             onClick={submitOrder}
             disabled={busy || !patientRef || !drug?.trim()}
           >
-            {phase === "placing" ? (
-              <>
-                <Loader2Icon aria-hidden className="animate-spin" />
-                Placing Order…
-              </>
-            ) : phase === "genetics" ? (
-              <>
-                <Loader2Icon aria-hidden className="animate-spin" />
-                Evaluating Genetics…
-              </>
-            ) : phase === "verifying" ? (
-              <>
-                <Loader2Icon aria-hidden className="animate-spin" />
-                Verifying Guideline…
-              </>
-            ) : phase === "flagged" ? (
-              "Alert Flagged"
-            ) : phase === "cleared" ? (
-              "No Alert"
-            ) : phase === "timeout" ? (
-              "Check The Queue"
-            ) : (
-              "Place Order"
-            )}
+            {phase === "placing"
+              ? "Placing Order…"
+              : phase === "genetics"
+                ? "Evaluating Genetics…"
+                : phase === "verifying"
+                  ? "Verifying Guideline…"
+                  : phase === "flagged"
+                    ? "Alert Flagged"
+                    : phase === "cleared"
+                      ? "No Alert"
+                      : phase === "timeout"
+                        ? "Check The Queue"
+                        : "Place Order"}
           </Button>
         </DialogFooter>
       </DialogContent>

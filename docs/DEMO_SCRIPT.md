@@ -36,7 +36,7 @@ Principle: **technical terms live on screen, speech stays plain.** The gene ID, 
 
 ### [1:45–2:30] — The money shot (suppression)
 
-- **SAY:** "Okay, here's the part I care about most. The problem with tools like this: three out of four flags don't actually matter. Pharmacists drown in them, so they stop looking. Basepair takes a side. It decides what's worth your attention. So I'll place an order that looks scary but doesn't really break the rule. Basepair drafts the warning, checks it against the guideline, finds nothing real, and drops it. No alert. The queue only holds what needs a person. It fires when the guideline says fire. And it proves it, every time."
+- **SAY:** "Okay, here's the part I care about most. The problem with tools like this: three out of four flags don't actually matter. Pharmacists drown in them, so they stop looking. Basepair takes a side. It decides what's worth your attention. So I'll place an order that looks scary but doesn't really break the rule. Basepair evaluates it, finds that no published guideline actually applies, and clears it to the audit trail instead of the queue. No alert. The queue only holds what needs a person. It fires when the guideline says fire. And it proves it, every time."
 - **DO:** Place the planted case → watch the stream resolve to **No Alert**. *(If latency is tight, skip the live placement and open `/audit` to show it sitting as a cleared row instead.)*
 
 ### [2:30–2:55] — Audit trail + close

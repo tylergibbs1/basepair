@@ -33,7 +33,7 @@ The clinical decision is **authored by the agent** (`decideWithAgent`) from the 
 
 ### CPIC via the ClinPGx API — the catalog + the primary corpus
 
-The catalog is **fetched from the public ClinPGx PostgREST API** (`api.cpicpgx.org/v1`), not a bundled SQL dump. `scripts/cpic-ingest.ts` pulls the pairs, drugs, guidelines, recommendations, diplotypes, and allele tables into `/data/cpic/*.json` (attributed extracts); `scripts/cpic-build.ts` then compiles those into the runtime catalog `lib/cpic/catalog.json` (~3.7MB) plus a small `data/cpic/MANIFEST.json`. Current scope: **2,115 rules across 22 genes** (~1,940 actionable), a full-scope catalog rather than a handful of demo pairs.
+The catalog is **fetched from the public ClinPGx PostgREST API** (`api.cpicpgx.org/v1`), not a bundled SQL dump. `scripts/cpic-ingest.ts` pulls the pairs, drugs, guidelines, recommendations, diplotypes, and allele tables into `/data/cpic/*.json` (attributed extracts); `scripts/cpic-build.ts` then compiles those into the runtime catalog `lib/cpic/catalog.json` (~3.7MB) plus a small `data/cpic/MANIFEST.json`. Current scope: **2,115 rules across 22 genes** (~1,605 actionable), a full-scope catalog rather than a handful of demo pairs.
 
 - **Deterministic tables (in `catalog.json`):**
   1. **`phenotypeByDiplotype`** — the diplotype→phenotype map. This is what genetics parsing resolves against deterministically (§5d); the model only handles the messy-input path (parse into coded Observations), never the phenotype mapping itself.

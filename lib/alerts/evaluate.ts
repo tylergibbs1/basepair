@@ -599,7 +599,7 @@ export async function evaluateAndWrite(
       ? retrieved.text
       : rule.guidelineText;
 
-  // AI trust gate: the deterministic engine already made the call; the model
+  // AI trust gate: the decision agent already made the call; the model
   // picks the verbatim supporting sentence (from the full guidelineText) and
   // grades the verdict against the EVIDENCE ONLY. We pass rule.implications as
   // that evidence: the catalog builds guidelineText as

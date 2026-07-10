@@ -2,12 +2,13 @@
  * Central model config — the single place model IDs and cost tiers live.
  *
  * Two tiers, chosen by what the model is actually doing:
- *   - "opus" — real cognition where quality is the whole point: the verifier
- *              (verify). Opus-tier.
- *   - "fast" — deterministic / formatting steps where the model only drives
- *              tools and reports a result it did not author (the CPIC agent
- *              loop, evaluate-agent). A cheaper model; the clinical decision is
- *              deterministic, so there's no judgment at stake to protect.
+ *   - "opus" — real cognition where quality is the whole point: the decision
+ *              agent (decideWithAgent), which AUTHORS the clinical call, and the
+ *              verifier (verify). Opus-tier.
+ *   - "fast" — a cheaper tier for deterministic / formatting steps where the
+ *              model only drives tools and reports a result it did not author.
+ *              Currently unused: the decision agent moved to the opus tier when
+ *              it took authorship of the clinical decision (issue #29).
  *
  * All calls go through the direct @ai-sdk/anthropic provider (ANTHROPIC_API_KEY).
  *

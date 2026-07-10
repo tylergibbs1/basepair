@@ -117,6 +117,17 @@ export type AuditEntry =
         kind: DismissReasonKind
         note?: string
       }
+      /** #45: ISO 8601 timestamp of when the alert *fired* — the pharmacist Task's
+       *  authoredOn, the same instant getOpenAlerts reads as `firedAt`. Paired with
+       *  `at` (when it was triaged/enacted) this yields time-to-review and
+       *  time-to-enact. Optional/additive: absent when the Task carried no
+       *  authoredOn, in which case the duration math skips this row. */
+      firedAt?: string
+      /** #45: the CPIC guideline citation this alert was drawn from, read straight
+       *  off the flagged payload (`pgx.citation`), so a governance/P&T export can
+       *  cite its source per rule. Optional/additive: absent on a record that
+       *  carried none. */
+      citation?: string
       /** #46: phenotype concordance QA for the driving gene, when the underlying
        *  record carried it (lab reported a coded phenotype). Optional/additive:
        *  absent on records written without it. */
@@ -375,6 +386,11 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
       severity: pgx.severity,
       decisionPath: pgx.decisionPath,
       enacted,
+      // #45: the fired instant (Task authored) and the guideline citation, so the
+      // governance view can measure time-to-review/enact and cite the source per
+      // rule. Both degrade to undefined when the record lacks them.
+      firedAt: task.authoredOn,
+      citation: pgx.citation,
       dismissReason: dismissReason
         ? {
             label: dismissReason.label,

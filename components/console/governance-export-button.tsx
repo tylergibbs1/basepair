@@ -5,10 +5,14 @@ import { Download } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
+  formatDuration,
   ruleInterruptionSplit,
   type GovernanceRuleMetric,
   type GovernanceWatchlistItem,
 } from "@/lib/alerts/governance"
+// Client-safe by design (imports only the small MANIFEST, never the ~3.6MB
+// catalog) — so the P&T packet can name the exact snapshot it fired against.
+import { formatCatalogSnapshot } from "@/lib/cpic-provenance"
 
 /** Quote a CSV field only when it needs it (comma, quote, or newline), doubling
  *  embedded quotes per RFC 4180 — keeps the common case unquoted and readable. */
@@ -30,6 +34,10 @@ function buildCsv(
 ): string {
   const lines: string[] = []
 
+  // #45: name the source snapshot up top, so a P&T packet cites which CPIC
+  // catalog version these rules fired against.
+  lines.push(`# Source: ${formatCatalogSnapshot()}`)
+  lines.push("")
   lines.push("# Rule-level metrics")
   lines.push(
     toCsvRow([
@@ -44,6 +52,10 @@ function buildCsv(
       "False alarms",
       "Prescriber interruptions",
       "Pharmacist-only",
+      // #45: per-rule time-to-outcome and the guideline citation the rule cites.
+      "Median time to review",
+      "Median time to enact",
+      "Guideline citation",
       "Last activity",
     ]),
   )
@@ -62,6 +74,13 @@ function buildCsv(
         metric.falseAlarms,
         split.prescriberInterruptions,
         split.pharmacistOnly,
+        metric.medianTimeToReviewMs !== undefined
+          ? formatDuration(metric.medianTimeToReviewMs)
+          : "",
+        metric.medianTimeToEnactMs !== undefined
+          ? formatDuration(metric.medianTimeToEnactMs)
+          : "",
+        metric.citation ?? "",
         metric.lastActivityAt,
       ]),
     )

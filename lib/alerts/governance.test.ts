@@ -5,8 +5,10 @@ import type { AuditEntry } from "@/lib/alerts/audit"
 
 import {
   aggregateInterruptionSplit,
+  buildDurationStats,
   buildGovernanceMetrics,
   buildNoisyRuleWatchlist,
+  formatDuration,
   ruleInterruptionSplit,
   type GovernanceRuleMetric,
 } from "./governance"
@@ -209,6 +211,105 @@ describe("buildGovernanceMetrics", () => {
       "clopidogrel|cyp2c19|poor metabolizer",
       "warfarin|cyp2c9|intermediate metabolizer",
     ])
+  })
+})
+
+describe("formatDuration", () => {
+  test("renders the two largest non-zero units", () => {
+    expect(formatDuration(3 * 3_600_000 + 20 * 60_000)).toBe("3h 20m")
+    expect(formatDuration(45 * 60_000)).toBe("45m")
+    expect(formatDuration(26 * 3_600_000)).toBe("1d 2h")
+    expect(formatDuration(30_000)).toBe("30s")
+  })
+
+  test("a sub-second (or clamped) span reads 0s", () => {
+    expect(formatDuration(0)).toBe("0s")
+    expect(formatDuration(-5000)).toBe("0s")
+  })
+})
+
+describe("buildDurationStats", () => {
+  test("medians fired→review over reviewed entries and fired→enact over enacted", () => {
+    const stats = buildDurationStats([
+      // enacted approval: 2h review, and counts toward enact too.
+      approved({
+        id: "enacted",
+        enacted: true,
+        firedAt: "2026-07-02T10:00:00.000Z",
+        at: "2026-07-02T12:00:00.000Z",
+      }),
+      // plain approval (not enacted): 4h review, NOT an enact sample.
+      approved({
+        id: "plain",
+        enacted: false,
+        firedAt: "2026-07-02T10:00:00.000Z",
+        at: "2026-07-02T14:00:00.000Z",
+      }),
+      // dismissal: 6h review, never an enact sample.
+      dismissed({
+        id: "declined",
+        firedAt: "2026-07-03T10:00:00.000Z",
+        at: "2026-07-03T16:00:00.000Z",
+      }),
+    ])
+
+    // review sample = [2h, 4h, 6h] → median 4h; enact sample = [2h] → median 2h.
+    expect(stats.review.count).toBe(3)
+    expect(stats.review.medianMs).toBe(4 * 3_600_000)
+    expect(stats.enact.count).toBe(1)
+    expect(stats.enact.medianMs).toBe(2 * 3_600_000)
+  })
+
+  test("skips rows with no fired timestamp, a bad timestamp, or a negative span", () => {
+    const stats = buildDurationStats([
+      approved({ id: "no-fired", firedAt: undefined, at: "2026-07-02T12:00:00.000Z" }),
+      approved({ id: "bad-fired", firedAt: "not-a-date", at: "2026-07-02T12:00:00.000Z" }),
+      // enacted BEFORE it fired (clock skew) — dropped, not clamped to 0.
+      approved({
+        id: "skewed",
+        enacted: true,
+        firedAt: "2026-07-02T12:00:00.000Z",
+        at: "2026-07-02T10:00:00.000Z",
+      }),
+      cleared({ id: "cleared-never-triaged" }),
+    ])
+
+    expect(stats.review.count).toBe(0)
+    expect(stats.review.medianMs).toBeUndefined()
+    expect(stats.enact.count).toBe(0)
+    expect(stats.enact.medianMs).toBeUndefined()
+  })
+})
+
+describe("buildGovernanceMetrics durations and citation", () => {
+  test("carries per-rule median review/enact durations and the guideline citation", () => {
+    const metrics = buildGovernanceMetrics([
+      approved({
+        id: "a",
+        enacted: true,
+        citation: "CPIC CYP2C19-clopidogrel (2022)",
+        firedAt: "2026-07-02T10:00:00.000Z",
+        at: "2026-07-02T13:00:00.000Z",
+      }),
+      dismissed({
+        id: "b",
+        firedAt: "2026-07-03T10:00:00.000Z",
+        at: "2026-07-03T15:00:00.000Z",
+      }),
+    ])
+
+    // review = [3h, 5h] → median 4h; enact = [3h] → median 3h.
+    expect(metrics[0]?.medianTimeToReviewMs).toBe(4 * 3_600_000)
+    expect(metrics[0]?.medianTimeToEnactMs).toBe(3 * 3_600_000)
+    expect(metrics[0]?.citation).toBe("CPIC CYP2C19-clopidogrel (2022)")
+  })
+
+  test("leaves duration fields and citation undefined when nothing measurable", () => {
+    const metrics = buildGovernanceMetrics([cleared({ id: "only-cleared" })])
+
+    expect(metrics[0]?.medianTimeToReviewMs).toBeUndefined()
+    expect(metrics[0]?.medianTimeToEnactMs).toBeUndefined()
+    expect(metrics[0]?.citation).toBeUndefined()
   })
 })
 

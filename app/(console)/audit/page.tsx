@@ -2,9 +2,7 @@ import type { Metadata } from "next"
 import { Inbox } from "lucide-react"
 
 import { AuditTable } from "@/components/console/audit-table"
-import { GovernanceConfigDraft } from "@/components/console/governance-config-draft"
-import { GovernanceExportButton } from "@/components/console/governance-export-button"
-import { GovernanceRuleTable } from "@/components/console/governance-rule-table"
+import { GovernanceWorkbench } from "@/components/console/governance-workbench"
 import { GovernanceRuleLink } from "@/components/console/governance-rule-link"
 import { getAuditEntries, getSignalStats } from "@/lib/alerts/audit"
 import { getGovernanceThresholds } from "@/lib/alerts/governance-config"
@@ -204,23 +202,16 @@ export default async function AuditPage() {
         <EmptyState />
       ) : (
         <>
-          {/* Governance workbench (issue #47): the tenant config draft, the full
-              rule-level metrics table (each rule links back to its audit rows),
-              and the CDS / P&T CSV export — above the audit table they drill
-              into. */}
-          <div className="flex flex-col gap-6 border-b border-border px-4 py-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-sm font-medium text-foreground">
-                Governance workbench
-              </h2>
-              <GovernanceExportButton
-                metrics={governanceMetrics}
-                watchlist={watchlist}
-              />
-            </div>
-            <GovernanceConfigDraft initialConfig={governanceThresholds} />
-            <GovernanceRuleTable metrics={governanceMetrics} />
-          </div>
+          {/* Governance workbench (issue #47 + #45): the tenant config draft, the
+              full rule-level metrics table (each rule links back to its audit
+              rows), the CDS / P&T CSV export, and the time-to-review/enact
+              medians — all scoped to a date window the pharmacist picks. A client
+              leaf so the date filter recomputes the metrics off the entries
+              already fetched here, adding no new Medplum query. */}
+          <GovernanceWorkbench
+            entries={entries}
+            thresholds={governanceThresholds}
+          />
           <AuditTable entries={entries} />
         </>
       )}

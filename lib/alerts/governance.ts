@@ -15,6 +15,27 @@ export type GovernanceRuleMetric = {
   falseAlarms: number
   agentAnomalies: number
   lastActivityAt: string
+  /** #45: the CPIC guideline citation this rule fires against, carried from the
+   *  most recent flagged entry that recorded one. Undefined when no entry in the
+   *  group carried a citation (e.g. only cleared records). Surfaced in the P&T
+   *  export so the packet cites its source per rule. */
+  citation?: string
+  /** #45: median elapsed time from alert fired → pharmacist triage across this
+   *  rule's reviewed (approved + dismissed) entries that carried a fired
+   *  timestamp. Undefined when the rule has no measurable review sample. */
+  medianTimeToReviewMs?: number
+  /** #45: median elapsed time from alert fired → enact across this rule's enacted
+   *  approvals that carried a fired timestamp. Undefined when the rule has no
+   *  measurable enact sample. */
+  medianTimeToEnactMs?: number
+}
+
+/** #45: overall time-to-outcome for the workbench prose. `count` is the sample
+ *  size behind each median so the sentence can read honestly ("median X across N
+ *  alerts"); `medianMs` is undefined when nothing measurable is in the window. */
+export type OutcomeDurationStats = {
+  review: { count: number; medianMs?: number }
+  enact: { count: number; medianMs?: number }
 }
 
 export type GovernanceWatchlistItem = {
@@ -80,10 +101,105 @@ function mostRecentFirst(
   return a.key.localeCompare(b.key)
 }
 
+/**
+ * #45: elapsed ms between two ISO instants, or undefined when the math can't be
+ * trusted — a missing `from` (fired timestamp absent on the record), an
+ * unparseable value, or a NEGATIVE span (clock skew / bad data). Skipping those
+ * rather than clamping keeps a garbage row out of the median entirely, so the
+ * metric degrades gracefully instead of reporting a fake "0" or a wild outlier.
+ */
+function entryDurationMs(from: string | undefined, to: string): number | undefined {
+  if (!from) return undefined
+  const start = Date.parse(from)
+  const end = Date.parse(to)
+  if (Number.isNaN(start) || Number.isNaN(end)) return undefined
+  const ms = end - start
+  return ms >= 0 ? ms : undefined
+}
+
+/** Median of a numeric sample (average of the two middles for an even count), or
+ *  undefined for an empty sample. Median, not mean: one alert triaged a week late
+ *  shouldn't drag the typical-case number. */
+function median(values: number[]): number | undefined {
+  if (values.length === 0) return undefined
+  const sorted = values.toSorted((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1] + sorted[mid]) / 2
+    : sorted[mid]
+}
+
+/**
+ * The two triage durations an audit entry can contribute, or undefined when the
+ * entry isn't a triaged row or carries no usable fired timestamp:
+ *  - toReviewMs: fired → triage, for any reviewed (approved OR dismissed) entry.
+ *  - toEnactMs:  fired → enact, only for an enacted approval (`at` is the enact
+ *    instant for those). Undefined otherwise.
+ */
+function entryTriageDurations(entry: AuditEntry): {
+  toReviewMs?: number
+  toEnactMs?: number
+} {
+  if (entry.kind === "cleared") return {}
+  const toReviewMs = entryDurationMs(entry.firedAt, entry.at)
+  const toEnactMs =
+    entry.kind === "approved" && entry.enacted ? toReviewMs : undefined
+  return { toReviewMs, toEnactMs }
+}
+
+/**
+ * #45: human-readable elapsed time for the governance view and its export — the
+ * two largest non-zero units, e.g. "1d 4h", "3h 20m", "45m", "30s". Pure, so the
+ * workbench prose and the CSV format identically. A sub-second span reads "0s".
+ */
+export function formatDuration(ms: number): string {
+  const totalSec = Math.max(0, Math.round(ms / 1000))
+  const days = Math.floor(totalSec / 86400)
+  const hours = Math.floor((totalSec % 86400) / 3600)
+  const minutes = Math.floor((totalSec % 3600) / 60)
+  const seconds = totalSec % 60
+  const parts: [number, string][] = [
+    [days, "d"],
+    [hours, "h"],
+    [minutes, "m"],
+    [seconds, "s"],
+  ]
+  const nonzero = parts.filter(([value]) => value > 0)
+  if (nonzero.length === 0) return "0s"
+  return nonzero
+    .slice(0, 2)
+    .map(([value, unit]) => `${value}${unit}`)
+    .join(" ")
+}
+
+/**
+ * #45: overall time-to-review and time-to-enact across a set of audit entries.
+ * Review counts every reviewed alert (approved + dismissed) that carried a fired
+ * timestamp; enact counts only enacted approvals. Callers pass the already
+ * date-filtered entries so the medians scope to the selected window.
+ */
+export function buildDurationStats(entries: AuditEntry[]): OutcomeDurationStats {
+  const reviewSamples: number[] = []
+  const enactSamples: number[] = []
+  for (const entry of entries) {
+    const { toReviewMs, toEnactMs } = entryTriageDurations(entry)
+    if (toReviewMs !== undefined) reviewSamples.push(toReviewMs)
+    if (toEnactMs !== undefined) enactSamples.push(toEnactMs)
+  }
+  return {
+    review: { count: reviewSamples.length, medianMs: median(reviewSamples) },
+    enact: { count: enactSamples.length, medianMs: median(enactSamples) },
+  }
+}
+
 export function buildGovernanceMetrics(
   entries: AuditEntry[],
 ): GovernanceRuleMetric[] {
   const metrics = new Map<string, GovernanceRuleMetric>()
+  // #45: per-rule triage-duration samples, collected alongside the counts and
+  // reduced to medians once every entry has been seen.
+  const reviewSamples = new Map<string, number[]>()
+  const enactSamples = new Map<string, number[]>()
 
   for (const entry of entries) {
     const key = ruleKey(entry)
@@ -114,8 +230,30 @@ export function buildGovernanceMetrics(
       metric.lastActivityAt = entry.at
     }
 
+    // #45: carry the citation from a flagged entry — prefer the most recent, but
+    // backfill whenever it's still unset so an older flagged row still supplies
+    // one even if the newest entry in the group was a cleared record.
+    if (entry.kind !== "cleared" && entry.citation) {
+      if (metric.citation === undefined || entry.at === metric.lastActivityAt) {
+        metric.citation = entry.citation
+      }
+    }
+
     metric.evaluated += 1
     if (isAgentAnomaly(entry)) metric.agentAnomalies += 1
+
+    // #45: bank this row's fired→review / fired→enact spans for the rule median.
+    const { toReviewMs, toEnactMs } = entryTriageDurations(entry)
+    if (toReviewMs !== undefined) {
+      const bucket = reviewSamples.get(key) ?? []
+      bucket.push(toReviewMs)
+      reviewSamples.set(key, bucket)
+    }
+    if (toEnactMs !== undefined) {
+      const bucket = enactSamples.get(key) ?? []
+      bucket.push(toEnactMs)
+      enactSamples.set(key, bucket)
+    }
 
     if (entry.kind === "cleared") {
       metric.cleared += 1
@@ -136,6 +274,15 @@ export function buildGovernanceMetrics(
     } else {
       metric.falseAlarms += 1
     }
+  }
+
+  // Reduce the collected samples to per-rule medians. Left undefined when a rule
+  // has no measurable sample, so the field simply doesn't render.
+  for (const metric of metrics.values()) {
+    const reviewMedian = median(reviewSamples.get(metric.key) ?? [])
+    if (reviewMedian !== undefined) metric.medianTimeToReviewMs = reviewMedian
+    const enactMedian = median(enactSamples.get(metric.key) ?? [])
+    if (enactMedian !== undefined) metric.medianTimeToEnactMs = enactMedian
   }
 
   return [...metrics.values()].toSorted(mostRecentFirst)

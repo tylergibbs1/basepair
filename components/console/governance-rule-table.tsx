@@ -69,7 +69,7 @@ export function GovernanceRuleTable({
     <section aria-labelledby="governance-rules-label" className="grid gap-2">
       <h2
         id="governance-rules-label"
-        className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+        className="text-xs font-medium text-muted-foreground"
       >
         Rule-level metrics
       </h2>

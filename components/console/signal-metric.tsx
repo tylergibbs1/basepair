@@ -105,7 +105,7 @@ export function SignalMetric({
       >
         {STATS.map((s) => (
           <div key={s.key} aria-hidden className="grid gap-0.5">
-            <dt className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <dt className="text-xs font-medium text-muted-foreground capitalize">
               {s.label}
             </dt>
             <dd

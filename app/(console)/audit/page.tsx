@@ -60,7 +60,7 @@ function GovernanceSummary({
     <section aria-labelledby="governance-label" className="grid gap-2">
       <h2
         id="governance-label"
-        className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+        className="text-xs font-medium text-muted-foreground"
       >
         Governance watchlist
       </h2>

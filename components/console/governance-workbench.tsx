@@ -96,7 +96,7 @@ function DurationSummary({
     <section aria-labelledby="governance-timing-label" className="grid gap-2">
       <h2
         id="governance-timing-label"
-        className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+        className="text-xs font-medium text-muted-foreground"
       >
         Time to outcome
       </h2>

@@ -70,7 +70,7 @@ export function GovernanceConfigDraft({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3
           id="governance-config-label"
-          className="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+          className="text-xs font-medium text-muted-foreground"
         >
           Watchlist thresholds
         </h3>

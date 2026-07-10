@@ -1,6 +1,8 @@
+/// <reference types="react/canary" />
 "use client"
 
 import * as React from "react"
+import { ViewTransition } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Popover } from "@base-ui/react/popover"
@@ -20,6 +22,7 @@ import { VerificationChip } from "@/components/ui/verification-chip"
 import { Source, SourceContent, SourceTrigger } from "@/components/ui/source"
 import { EnactConfirmDialog } from "@/components/console/enact-confirm-dialog"
 import { DismissMenu } from "@/components/console/dismiss-menu"
+import { ViewTransitionStyles } from "@/components/console/view-transition-styles"
 import { useAlerts } from "@/components/console/alerts-provider"
 import {
   citationSourceLabel,
@@ -590,6 +593,9 @@ export function AlertDetailPage({ id }: { id: string }) {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-6 lg:px-8">
+      {/* Global ::view-transition CSS, rendered on both route roots (here and
+          the queue) so the queue <-> detail morph is tuned in either direction. */}
+      <ViewTransitionStyles />
       <Button
         variant="ghost"
         size="sm"
@@ -614,14 +620,27 @@ export function AlertDetailPage({ id }: { id: string }) {
               <div className="flex flex-wrap items-center gap-2">
                 {/* Severity reads as an instruction: the chip carries the action
                     verb (avoid/modify/monitor) after the severity label, which
-                    still leads. */}
-                <SeverityChip
-                  severity={alert.severity}
-                  action={severityActionVerb(
-                    alert.severity,
-                    alert.recommendedAlternative,
-                  )}
-                />
+                    still leads.
+
+                    This is the destination of the shared-element morph: the
+                    same `alert-severity-<id>` name as the queue row's chip, so
+                    the browser flies that pill from the row up into this header
+                    on navigation (and back). Only this header chip carries the
+                    name — the Step-3 CPIC-rule chip below stays unnamed so the
+                    name is unique on the page. */}
+                <ViewTransition
+                  name={`alert-severity-${alert.id}`}
+                  share="morph"
+                  default="none"
+                >
+                  <SeverityChip
+                    severity={alert.severity}
+                    action={severityActionVerb(
+                      alert.severity,
+                      alert.recommendedAlternative,
+                    )}
+                  />
+                </ViewTransition>
                 <VerificationChip verified={alert.verification.verified} />
               </div>
               <div className="grid gap-0.5">

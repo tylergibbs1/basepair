@@ -1,6 +1,12 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 
+import {
+  Reveal,
+  RevealGroup,
+  RevealItem,
+} from "@/components/marketing/reveal"
+
 export const metadata: Metadata = {
   title: "Basepair, medication safety review for pharmacists",
   description:
@@ -40,21 +46,25 @@ export default function WelcomePage() {
       {/* Hero — editorial statement, then the real product */}
       <section className="mx-auto max-w-6xl px-6 pt-16 pb-16 sm:pt-20">
         <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
-          <div className="max-w-xl">
-            <h1 className="font-serif text-5xl leading-[1.04] tracking-[-0.02em] text-balance text-foreground sm:text-6xl">
-              Catch the interaction before it reaches the patient.
-            </h1>
-            <p className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty">
-              Basepair reviews every order for drug and pharmacogenomic risk,
-              shows its reasoning, and logs the decision. Signal, not noise.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-5">
+          <RevealGroup trigger="load" delayChildren={0.1} className="max-w-xl">
+            <RevealItem>
+              <h1 className="font-serif text-5xl leading-[1.04] tracking-[-0.02em] text-balance text-foreground sm:text-6xl">
+                Catch the interaction before it reaches the patient.
+              </h1>
+            </RevealItem>
+            <RevealItem>
+              <p className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty">
+                Basepair reviews every order for drug and pharmacogenomic risk,
+                shows its reasoning, and logs the decision. Signal, not noise.
+              </p>
+            </RevealItem>
+            <RevealItem className="mt-8 flex flex-wrap items-center gap-5">
               <Link
                 href="/"
                 className="group inline-flex h-11 items-center gap-2 rounded-md bg-navy px-5 text-sm font-medium text-white transition-colors hover:bg-navy-press"
               >
                 Open the console
-                <span className="transition-transform group-hover:translate-x-0.5">
+                <span className="transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5">
                   &rarr;
                 </span>
               </Link>
@@ -64,8 +74,8 @@ export default function WelcomePage() {
               >
                 See how it works &rarr;
               </Link>
-            </div>
-          </div>
+            </RevealItem>
+          </RevealGroup>
           <div className="order-first lg:order-none">
             <img
               src="/art/sketch-hero.png"
@@ -77,7 +87,7 @@ export default function WelcomePage() {
         </div>
 
         {/* Product shot — the credibility anchor */}
-        <div
+        <Reveal
           className={`mt-14 overflow-hidden rounded-2xl border border-border bg-white sm:mt-16 ${SOFT_SHADOW}`}
         >
           <img
@@ -87,12 +97,12 @@ export default function WelcomePage() {
             width={2000}
             height={1250}
           />
-        </div>
+        </Reveal>
       </section>
 
       {/* Evidence — a single filled statement card */}
       <section id="evidence" className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
-        <div className="rounded-2xl bg-muted p-10 sm:p-14">
+        <Reveal className="rounded-2xl bg-muted p-10 sm:p-14">
           <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
             <p className="font-serif text-3xl leading-[1.15] tracking-[-0.01em] text-balance text-foreground sm:text-[40px]">
               3 of every 4 pharmacogenomic flags aren&rsquo;t clinically
@@ -109,19 +119,19 @@ export default function WelcomePage() {
               </p>
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* How it works — three filled cards */}
       <section id="how" className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
-        <div className="max-w-2xl">
+        <Reveal className="max-w-2xl">
           <h2 className="font-serif text-4xl leading-[1.12] tracking-[-0.02em] text-balance text-foreground sm:text-5xl">
             It shows its work, the way a pharmacist would.
           </h2>
-        </div>
-        <div className="mt-12 grid gap-5 md:grid-cols-3">
+        </Reveal>
+        <RevealGroup className="mt-12 grid gap-5 md:grid-cols-3">
           {STEPS.map((step) => (
-            <div
+            <RevealItem
               key={step.n}
               className="flex flex-col rounded-xl border border-border bg-white p-8"
             >
@@ -135,15 +145,15 @@ export default function WelcomePage() {
               <p className="mt-8 border-t border-border/70 pt-4 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 Step {step.n}
               </p>
-            </div>
+            </RevealItem>
           ))}
-        </div>
+        </RevealGroup>
       </section>
 
       {/* Auditable — text + the real audit screen */}
       <section className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
-          <div className="max-w-md">
+        <RevealGroup className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+          <RevealItem className="max-w-md">
             <h2 className="font-serif text-4xl leading-[1.12] tracking-[-0.02em] text-balance text-foreground sm:text-5xl">
               Every decision leaves a trail.
             </h2>
@@ -158,8 +168,8 @@ export default function WelcomePage() {
                 often recommendations become orders.
               </p>
             </div>
-          </div>
-          <div
+          </RevealItem>
+          <RevealItem
             className={`overflow-hidden rounded-2xl border border-border bg-white ${SOFT_SHADOW}`}
           >
             <img
@@ -169,13 +179,13 @@ export default function WelcomePage() {
               width={2000}
               height={1250}
             />
-          </div>
-        </div>
+          </RevealItem>
+        </RevealGroup>
       </section>
 
       {/* Close — navy CTA card with the bloom as a quiet accent */}
       <section className="mx-auto max-w-6xl px-6 pb-24 pt-4">
-        <div className="relative overflow-hidden rounded-3xl bg-navy px-8 py-20 sm:px-16">
+        <Reveal className="relative overflow-hidden rounded-3xl bg-navy px-8 py-20 sm:px-16">
           <div className="relative z-10 max-w-xl">
             <h2 className="font-serif text-4xl leading-[1.08] tracking-[-0.02em] text-balance text-white sm:text-5xl">
               Bring the signal to your pharmacy.
@@ -188,12 +198,12 @@ export default function WelcomePage() {
               className="group mt-8 inline-flex h-11 items-center gap-2 rounded-md bg-white px-6 text-sm font-medium text-navy transition-opacity hover:opacity-90"
             >
               Open the console
-              <span className="transition-transform group-hover:translate-x-0.5">
+              <span className="transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5">
                 &rarr;
               </span>
             </Link>
           </div>
-        </div>
+        </Reveal>
       </section>
     </main>
   )

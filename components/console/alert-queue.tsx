@@ -1,6 +1,8 @@
+/// <reference types="react/canary" />
 "use client"
 
 import * as React from "react"
+import { ViewTransition } from "react"
 import {
   ChevronDown,
   ChevronRight,
@@ -218,14 +220,29 @@ function AlertRow({
         <div className="flex flex-col items-start gap-1">
           {/* Severity as an instruction: the chip carries the action verb
               (avoid/modify/monitor) after the label. The row's aria-label still
-              announces the severity itself first (see SEVERITY_LABEL). */}
-          <SeverityChip
-            severity={alert.severity}
-            action={severityActionVerb(
-              alert.severity,
-              alert.recommendedAlternative,
-            )}
-          />
+              announces the severity itself first (see SEVERITY_LABEL).
+
+              The chip is the shared element for the queue -> detail view
+              transition: a unique, stable name per alert pairs this pill with
+              the identical one in the detail header, so on navigation the
+              browser morphs it from row to header instead of a hard cut.
+              share="morph" + default="none" means ONLY the navigated alert's
+              chip moves (its match mounts on the detail page); the other rows'
+              chips have no match, so they stay part of the page crossfade rather
+              than each animating out on their own. */}
+          <ViewTransition
+            name={`alert-severity-${alert.id}`}
+            share="morph"
+            default="none"
+          >
+            <SeverityChip
+              severity={alert.severity}
+              action={severityActionVerb(
+                alert.severity,
+                alert.recommendedAlternative,
+              )}
+            />
+          </ViewTransition>
           {!alert.verification.verified && <VerificationChip verified={false} />}
         </div>
       </TableCell>

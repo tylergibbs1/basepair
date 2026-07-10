@@ -371,11 +371,10 @@ function FeedItem({
             <AnimatePresence initial={false}>
               {open && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.16, ease: "easeOut" }}
-                  className="overflow-hidden"
                 >
                   <div className="mt-1.5 grid gap-1.5 border-l border-border pl-3">
                     {substeps.map((s, i) => (
@@ -799,30 +798,19 @@ export function NewOrderDialog({
             onClick={submitOrder}
             disabled={busy || !patientRef || !drug?.trim()}
           >
-            {phase === "placing" ? (
-              <>
-                <Loader2Icon aria-hidden className="animate-spin" />
-                Placing Order…
-              </>
-            ) : phase === "genetics" ? (
-              <>
-                <Loader2Icon aria-hidden className="animate-spin" />
-                Evaluating Genetics…
-              </>
-            ) : phase === "verifying" ? (
-              <>
-                <Loader2Icon aria-hidden className="animate-spin" />
-                Verifying Guideline…
-              </>
-            ) : phase === "flagged" ? (
-              "Alert Flagged"
-            ) : phase === "cleared" ? (
-              "No Alert"
-            ) : phase === "timeout" ? (
-              "Check The Queue"
-            ) : (
-              "Place Order"
-            )}
+            {phase === "placing"
+              ? "Placing Order…"
+              : phase === "genetics"
+                ? "Evaluating Genetics…"
+                : phase === "verifying"
+                  ? "Verifying Guideline…"
+                  : phase === "flagged"
+                    ? "Alert Flagged"
+                    : phase === "cleared"
+                      ? "No Alert"
+                      : phase === "timeout"
+                        ? "Check The Queue"
+                        : "Place Order"}
           </Button>
         </DialogFooter>
       </DialogContent>

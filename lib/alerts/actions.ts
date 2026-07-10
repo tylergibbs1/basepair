@@ -1,8 +1,10 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { headers } from "next/headers"
 import { tasks, wait } from "@trigger.dev/sdk"
 
+import { auth } from "@/lib/auth"
 import { createMedplumClient, defaultTenantId } from "@/lib/medplum/client"
 import {
   buildMedicationRequest,
@@ -144,8 +146,21 @@ async function setTaskStatus(
   revalidatePath("/")
 }
 
+/**
+ * Every mutation here runs on behalf of a signed-in pharmacist. Server actions
+ * are public POST endpoints — the (console) layout guards the *pages*, but not a
+ * direct action call — so each action re-checks the session before touching
+ * Medplum (mirrors app/(console)/audit/actions.ts). Throws "Unauthorized" for an
+ * unauthenticated caller, before any read or write.
+ */
+async function requireSession(): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) throw new Error("Unauthorized")
+}
+
 /** Approve an alert, the pharmacist accepted the recommendation. */
 export async function approveAlert(taskId: string): Promise<void> {
+  await requireSession()
   await setTaskStatus(taskId, "completed", "approve")
 }
 
@@ -164,6 +179,7 @@ export async function dismissAlert(
   taskId: string,
   reason: DismissReasonInput,
 ): Promise<void> {
+  await requireSession()
   const known = dismissReasonByCode(reason.code)
   const note = reason.note?.trim() || undefined
   await setTaskStatus(taskId, "cancelled", "dismiss", {
@@ -184,6 +200,7 @@ export async function dismissAlert(
  * (a stale reason on a reopened alert would be a lie waiting to happen).
  */
 export async function reopenAlert(taskId: string): Promise<void> {
+  await requireSession()
   await setTaskStatus(taskId, "requested", "reopen")
 }
 
@@ -206,6 +223,7 @@ export async function enactAlert(
   taskId: string,
   choice: RecommendedAlternative,
 ): Promise<void> {
+  await requireSession()
   const medplum = await createMedplumClient()
   const task = await medplum.readResource("Task", taskId)
 
@@ -315,6 +333,7 @@ export async function enactAlert(
  * new ones.
  */
 export async function unenactAlert(taskId: string): Promise<void> {
+  await requireSession()
   const medplum = await createMedplumClient()
   const task = await medplum.readResource("Task", taskId)
   const key = orderKeyOf(task)
@@ -384,6 +403,7 @@ export async function placeOrder(
   drug: string,
   orderedBy: string,
 ): Promise<PlaceOrderResult> {
+  await requireSession()
   const medplum = await createMedplumClient()
   const patient: Reference<Patient> = { reference: patientRef }
 

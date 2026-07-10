@@ -1,43 +1,42 @@
 /**
- * The CPIC decision as an agent loop — the agent is the decision-maker.
+ * The CPIC decision — the deterministic engine is the decision-maker.
  *
- * The model drives resolve→lookup through cpicTools (a real multi-step
- * ToolLoopAgent) to gather the published CPIC facts, then AUTHORS the final
- * decision itself (applies / severity / recommendation) as structured output.
- * That agent decision is AUTHORITATIVE: it is what the pipeline acts on, even
- * when it diverges from the deterministic engine.
+ * `lookupRule` (lib/cpic-catalog.ts) computes the AUTHORITATIVE clinical decision
+ * (applies / severity / recommendation / citation) from the published CPIC
+ * catalog. That result is what the pipeline ships, in every path below.
  *
- * The deterministic engine (`lookupRule`) still runs, but only as ADVISORY
- * telemetry: we compare the agent's decision against it, tag the DecisionPath
- * (`agent` = agreed, `agent-mismatch` = the agent's authoritative call diverged,
- * `agent-fallback` = the agent produced no usable decision so the engine's result
- * stood in), and log every divergence. The verifier (lib/ai/verify.ts) still
- * grades the agent's recommendation against the rule's implications, so a
- * divergence is surfaced to the pharmacist ("Needs review") rather than silently
- * trusted — visible, not blocked.
+ * The model still runs a real multi-step ToolLoopAgent over cpicTools — but only
+ * as an ADVISORY cross-check and an observability trace (its tool calls power the
+ * live "what Basepair found" feed). We compare the agent's read to the engine and
+ * tag a DecisionPath for the Audit view:
+ *   - `agent`          — the agent agreed with the engine (a trust signal);
+ *   - `agent-mismatch` — the agent diverged; the ENGINE result wins and the
+ *                        divergence is logged (shown as "Engine override");
+ *   - `agent-fallback` — the agent produced no usable read; the engine stands.
  *
- * Grounding: citation and verbatim guideline text are NEVER model-authored. They
- * come from the real CPIC rule the agent looked up (re-run through the engine for
- * the full row). The agent authors the clinical judgment; it does not invent
- * sources. If the agent wants to flag a drug no published rule backs, there is no
- * grounded citation to attach, so that case falls back to the engine and is
- * logged (see below) rather than presenting a fabricated reference.
+ * The agent can NEVER move the published-rule decision. That is both the trust
+ * story ("the correctness bar is a document, not an opinion") and the fix for a
+ * real failure: an agent-authored clear of a rule-backed contraindication
+ * (clopidogrel + CYP2C19 poor metabolizer cleared on a live order — see the
+ * dry-run that motivated this). The engine flags it every time.
  *
- * Returns the authoritative LookupResult plus how it was reached, so the task can
- * surface whether the agent agreed with the engine (a trust signal).
+ * Grounding stays trivial because the engine owns the decision: citation and
+ * verbatim guideline text come straight from the looked-up rule, never the model.
+ *
+ * Returns the authoritative (engine) LookupResult plus how the agent related to
+ * it, so the task can surface whether the agent agreed (a trust signal).
  */
 import { generateText, isStepCount, Output } from "ai";
 import { z } from "zod";
 import { lookupRule, type LookupResult } from "@/lib/cpic-catalog";
-import { cpicTools, toLookupOutput, type CpicLookupOutput } from "@/lib/ai/tools/cpic";
+import { cpicTools, toLookupOutput } from "@/lib/ai/tools/cpic";
 import { resolveModel } from "@/lib/ai/models";
 import type { DecisionPath } from "@/lib/alerts/types";
 
 export type GeneReading = { gene: string; diplotype: string; phenotype: string };
 
 export type CpicDecision = {
-  /** The authoritative rule — the agent's decision (grounded on a real rule's
-   *  provenance), or the engine's result when the agent produced none. */
+  /** The authoritative rule — the deterministic engine's result (`lookupRule`). */
   rule: LookupResult;
   path: DecisionPath;
   /**
@@ -49,11 +48,11 @@ export type CpicDecision = {
 };
 
 /**
- * The decision the agent AUTHORS after using the tools. It carries the clinical
- * judgment only (applies / severity / recommendation) — never the citation or
- * guideline text, which stay grounded to the real looked-up rule. `severity` and
- * `recommendation` are nullable so the model can defer to the tool's published
- * values (null → use the grounded rule's own severity/recommendation).
+ * The agent's advisory read after using the tools — its cross-check of the
+ * published call (applies / severity / recommendation). It never ships: it only
+ * feeds the DecisionPath telemetry (did the agent agree with the engine?). The
+ * nullable severity/recommendation let the agent defer to the tool's published
+ * values.
  */
 const AgentDecisionSchema = z.object({
   applies: z
@@ -86,38 +85,28 @@ const AgentDecisionSchema = z.object({
     ),
 });
 
-/** Same-decision test: applies + which drug + severity + genes must all match. */
-function agrees(a: CpicLookupOutput, b: CpicLookupOutput): boolean {
-  if (a.applies !== b.applies) return false;
-  if (!a.applies || !b.applies) return a.applies === b.applies;
-  return (
-    a.drug === b.drug &&
-    a.severity === b.severity &&
-    a.genes.length === b.genes.length &&
-    a.genes.every((g) => b.genes.includes(g))
-  );
-}
-
 /**
- * Run the CPIC agent loop for one order. `genePhenotypes` is the deterministic
- * gene→phenotype map already resolved from the chart (readGenetics); the model
- * confirms diplotypes via cpicResolvePhenotype, fetches the rule via
- * cpicLookupRule, and then makes the authoritative call.
+ * Run the CPIC evaluation for one order. `genePhenotypes` is the deterministic
+ * gene→phenotype map already resolved from the chart (readGenetics). The engine's
+ * `lookupRule` is the authoritative decision; the agent confirms phenotypes via
+ * cpicResolvePhenotype and fetches the rule via cpicLookupRule to cross-check it
+ * and produce the observability trace, but never authors the shipped call.
  */
 export async function decideWithAgent(
   drug: string,
   readings: GeneReading[],
   genePhenotypes: Record<string, string>,
 ): Promise<CpicDecision> {
-  // Advisory only: the engine's read of the same inputs, for cross-check + the
-  // fallback when the agent produces nothing usable.
+  // AUTHORITATIVE: the deterministic engine's read of the chart is the clinical
+  // decision. It is what ships in every path below.
   const deterministic = lookupRule({ drug, genePhenotypes });
   const detOutput = toLookupOutput(deterministic);
 
-  // The agent now bears the clinical decision, so it runs on the stronger tier
-  // (the "fast" tier was only appropriate while the model merely relayed the
-  // engine's result).
-  const model = resolveModel("opus");
+  // The agent runs only as an advisory cross-check + observability trace (its
+  // tool calls feed the live findings stream), so it uses the cheaper "fast"
+  // tier — it relays and reasons over the published facts, it does not author
+  // the shipped decision.
+  const model = resolveModel("fast");
   const readingLines = readings
     .map(
       (r) =>
@@ -140,11 +129,11 @@ ${readingLines}
 <ordered_drug>${drug}</ordered_drug>
 
 <task>
-You are the decision-maker for this pharmacogenomic order. Use the tools to gather the published CPIC facts, then MAKE THE FINAL CALL.
+Cross-check this pharmacogenomic order against the published CPIC facts. The deterministic engine makes the final call; you report what the published rule says.
 
 1. For each gene with a diplotype, call cpicResolvePhenotype to confirm the phenotype. (The phenotypes above are pre-resolved; confirm, do not override.)
 2. Call cpicLookupRule with the ordered drug and the full { gene: phenotype } map for every gene above, to retrieve the published recommendation, severity, and guideline text.
-3. Decide. Prefer the published recommendation and severity from the tool — leave severity/recommendation null to adopt them verbatim. You MAY diverge when the patient's genetics warrant it, but if you do, set divergenceRationale to one sentence explaining why. Set applies=false only if no change to therapy is warranted.
+3. Report the published call: set applies to whether a rule matched, and severity/recommendation to the tool's published values (leave them null to adopt them verbatim). Do not invent a rule the tool did not return, and do not clear a rule the tool DID return. If your read of the genetics differs from cpicLookupRule, set divergenceRationale to one sentence explaining why.
 </task>`,
   }).catch((err: unknown) => {
     console.error("CPIC agent loop failed; using deterministic result", err);
@@ -164,66 +153,31 @@ You are the decision-maker for this pharmacogenomic order. Use the tools to gath
     })) ?? [];
 
   const decision = result?.output;
+
+  // The ENGINE result ships in every path. The agent's read only sets the
+  // DecisionPath telemetry: did it agree with the authoritative engine?
   if (!decision) {
-    // Model never produced a structured decision (loop error / empty) — never
-    // skip the safety net; the engine's result stands in.
+    // Agent produced no usable read (loop error / empty output).
     return { rule: deterministic, path: "agent-fallback", toolCalls };
   }
 
-  // Grounding source for citation/guideline text: the real rule the agent looked
-  // up, re-run through the engine for the full catalog row (the tool output is a
-  // projected subset). Falls back to the engine's own rule for the ordered inputs.
-  const lastLookup = result?.toolCalls?.findLast(
-    (c) => c.toolName === "cpicLookupRule",
-  );
-  const agentRule = lastLookup
-    ? lookupRule(
-        lastLookup.input as { drug: string; genePhenotypes: Record<string, string> },
-      )
-    : null;
-  const base: Extract<LookupResult, { applies: true }> | null =
-    agentRule?.applies ? agentRule : deterministic.applies ? deterministic : null;
-
-  // Build the authoritative rule FROM the agent's decision.
-  let authoritative: LookupResult;
-  if (!decision.applies) {
-    // The agent cleared it — authoritative even if the engine would have flagged.
-    authoritative = { applies: false, reason: "no-rule" };
-  } else if (base) {
-    // The agent flags: keep the grounded rule's provenance (genes, citation,
-    // guideline text, implications) and let the agent move severity/recommendation.
-    authoritative = {
-      ...base,
-      severity: decision.severity ?? base.severity,
-      recommendation: decision.recommendation ?? base.recommendation,
-    };
-  } else {
-    // The agent wants to flag but no published rule backs it — there is no
-    // grounded citation to attach, and we do not fabricate one. Fall back to the
-    // engine and log; extending the schema to carry an author-attested,
-    // explicitly-unverified citation is the follow-up if this case matters.
-    console.warn(
-      `CPIC agent flagged "${drug}" with no backing published rule; ` +
-        `using deterministic result (no grounded citation to attach). ` +
-        `rationale=${decision.divergenceRationale ?? ""}`,
-    );
-    return { rule: deterministic, path: "agent-fallback", toolCalls };
-  }
-
-  // Telemetry: did the agent's AUTHORITATIVE decision match the engine?
-  const authOutput = toLookupOutput(authoritative);
-  const path: DecisionPath = agrees(authOutput, detOutput)
-    ? "agent"
-    : "agent-mismatch";
+  // Agree = same fire/no-fire call, and (when firing) the same severity. The
+  // engine wins regardless; this only records how the advisory agent related.
+  const agentAgrees =
+    decision.applies === deterministic.applies &&
+    (!decision.applies ||
+      (deterministic.applies &&
+        (decision.severity ?? deterministic.severity) === deterministic.severity));
+  const path: DecisionPath = agentAgrees ? "agent" : "agent-mismatch";
   if (path === "agent-mismatch") {
-    // The agent's call is what ships; the divergence is a signal worth logging
-    // (and the verifier still grades the agent's recommendation downstream).
+    // The engine's call is what ships; the agent's divergence is logged as a
+    // signal (surfaced in the Audit view as "Engine override").
     console.warn(
-      `CPIC agent decision diverged from engine for drug "${drug}" ` +
-        `(agent is authoritative). agent=${JSON.stringify(authOutput)} ` +
+      `CPIC agent diverged from the authoritative engine for drug "${drug}" ` +
+        `(engine wins). agent=${JSON.stringify({ applies: decision.applies, severity: decision.severity })} ` +
         `engine=${JSON.stringify(detOutput)} rationale=${decision.divergenceRationale ?? ""}`,
     );
   }
 
-  return { rule: authoritative, path, toolCalls };
+  return { rule: deterministic, path, toolCalls };
 }

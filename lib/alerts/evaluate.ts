@@ -479,13 +479,11 @@ export async function evaluateAndWrite(
   }
 
   await input.onPhase?.("matching-cpic");
-  // The CPIC decision runs as an agent loop over cpicTools: the model drives
-  // resolve→lookup through the tools and then AUTHORS the decision, which is
-  // authoritative (decideWithAgent grounds its citation on the real looked-up
-  // rule but lets the agent move the call). The deterministic engine runs only as
-  // an advisory cross-check; `path` records whether the agent agreed with it,
-  // surfaced in the Audit view. Keyed on the RxNorm-normalized name; lookupRule
-  // still applies the alias map internally.
+  // The CPIC decision is the deterministic engine's (`lookupRule`); the agent
+  // loop over cpicTools runs alongside only as an advisory cross-check and the
+  // observability trace. `path` records whether the agent agreed with the engine
+  // (surfaced in the Audit view); the engine's rule is what ships. Keyed on the
+  // RxNorm-normalized name; lookupRule still applies the alias map internally.
   const decision = await decideWithAgent(lookupDrug, readings, genePhenotypes);
   const rule = decision.rule;
   await emit({
@@ -498,14 +496,14 @@ export async function evaluateAndWrite(
     label: "Double-checked the match",
     detail:
       decision.path === "agent"
-        ? "Agent's decision matched the published CPIC rule"
+        ? "Agent's read matched the published CPIC rule"
         : decision.path === "agent-mismatch"
-          ? "Agent diverged from the published CPIC rule; flagged for review"
+          ? "Agent diverged from the published rule; the engine's call was kept"
           : "Agent deferred to the published CPIC rule",
     ...(decision.path === "agent-mismatch" ? { tone: "caution" as const } : {}),
     // The agent's actual tool calls (from the ai@7 trace), phrased plainly — the
-    // "what it did" transparency. The agent authors the decision; this is the
-    // advisory cross-check against the engine, showing its work.
+    // "what it did" transparency. The engine authors the decision; this is the
+    // advisory cross-check against it, showing its work.
     ...(decision.toolCalls.length > 0
       ? { substeps: decision.toolCalls.map(describeAgentToolCall) }
       : {}),

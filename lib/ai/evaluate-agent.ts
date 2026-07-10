@@ -152,12 +152,26 @@ Cross-check this pharmacogenomic order against the published CPIC facts. The det
       output: outputByCallId.get(c.toolCallId),
     })) ?? [];
 
-  const decision = result?.output;
+  // `result.output` is a GETTER that THROWS NoOutputGeneratedError (not returns
+  // null) when the loop resolved WITHOUT a final structured-output step — e.g. the
+  // agent spent all of stopWhen:isStepCount(7) on tool calls, or the object
+  // generation truncated (finishReason !== "stop"). ai@7.0.16 sets the resolved
+  // output only on a "stop" finish (dist/index.js:5731) and the getter throws
+  // otherwise (dist/index.js:5872). The generateText().catch above guards promise
+  // *rejection*, not this synchronous getter throw on a resolved promise, so read
+  // it defensively: a missing decision must degrade to the engine-authoritative
+  // fallback below, never throw out of the pipeline (which would write no alert).
+  let decision: z.infer<typeof AgentDecisionSchema> | undefined;
+  try {
+    decision = result?.output;
+  } catch {
+    decision = undefined;
+  }
 
   // The ENGINE result ships in every path. The agent's read only sets the
   // DecisionPath telemetry: did it agree with the authoritative engine?
   if (!decision) {
-    // Agent produced no usable read (loop error / empty output).
+    // Agent produced no usable read (loop error / empty / no structured output).
     return { rule: deterministic, path: "agent-fallback", toolCalls };
   }
 

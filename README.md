@@ -6,7 +6,7 @@ Built for the **Built with Claude: Life Sciences** hackathon (Build track) with 
 
 ## The idea in one paragraph
 
-Some drugs are useless or dangerous for patients with certain genetic variants (for example, clopidogrel does not work in CYP2C19 poor metabolizers). Health systems often have the genetic result on file, but nobody re-checks it when a drug is later prescribed, so preventable adverse events slip through. Basepair watches prescription events, cross-checks the patient's genetics against the published CPIC/DPWG guidelines, and surfaces a verified, cited alert to a pharmacist before the drug reaches the patient. The AI does not make clinical judgments; it parses messy inputs and verifies each alert against the guideline text, so the correctness bar is a published rule, not an opinion.
+Some drugs are useless or dangerous for patients with certain genetic variants (for example, clopidogrel does not work in CYP2C19 poor metabolizers). Health systems often have the genetic result on file, but nobody re-checks it when a drug is later prescribed, so preventable adverse events slip through. Basepair watches prescription events, cross-checks the patient's genetics against the published CPIC/DPWG guidelines, and surfaces a verified, cited alert to a pharmacist before the drug reaches the patient. An AI agent authors each decision from the published CPIC/DPWG facts it looks up, and a separate verifier grades that decision against the guideline text. The agent never authors its own citations, so every alert stays anchored to a published guideline, not an opinion, and a pharmacist signs off before anything reaches the patient.
 
 ## Stack
 

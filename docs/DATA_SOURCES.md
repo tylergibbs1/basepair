@@ -18,7 +18,7 @@ This doc is the researched *superset* of licensing-cleared sources gathered up f
 | **PharmCAT** | **MPL 2.0** (open source) | Yes (per MPL) | **Planned** | Seed diplotypes/phenotypes are currently hand-authored, not PharmCAT-generated. Its example/test cases are meant to seed the **ground-truth eval set** (backs the demo's precision claim) — not yet built. |
 | **Synthea** | **Apache 2.0** | Yes | **Planned** | Demo patients are currently seeded directly via `scripts/seed-medplum.ts`, not Synthea-generated. Intended to generate PHI-free synthetic FHIR patients with PGx Observations attached on top. |
 | **PharmGKB / ClinPGx** | **CC BY-SA 4.0** | Yes, with attribution + share-alike | **Attribution only** | Used as license attribution in `scripts/cpic-ingest.ts` and a citation-host label in `lib/alerts/citation.ts`; CPIC's citation URLs point at clinpgx.org (the merged portal). Not used as the independent enrichment/DPWG-delivery feed described below. |
-| **PharmVar** | Open (academic, freely available) | Yes | **Planned** | Authoritative star-allele definitions (naming correctness) for `parseGenotype` + seed data. Not yet wired. |
+| **PharmVar** | Open (academic, freely available) | Yes | **Planned** | Authoritative star-allele definitions (naming correctness) for genetics parsing (`readGenetics`/`parseGenetics`) + seed data. Not yet wired. |
 | **CDC GeT-RM** | Public (US Government / CDC) | Yes | **Optional** | Consensus PGx genotypes for reference samples → stronger eval truth set. |
 | **DailyMed (SPL)** | **NLM — public domain** | Yes (API + bulk) | **Optional** | FDA structured product labels to quote a drug's actual label PGx section. |
 | **LOINC** | Regenstrief royalty-free license | Yes (attribution; no competing vocabulary) | **Shipped** | Code system for the FHIR Observations — codes 84413-4, 48018-6, 53040-2, LL3856-3 in `lib/medplum/fhir.ts` and `lib/alerts/evaluate.ts`. |
@@ -32,8 +32,8 @@ This doc is the researched *superset* of licensing-cleared sources gathered up f
 
 ### CPIC — the rulebook (primary)
 - **License:** **CC BY-SA 4.0** — as delivered through the ClinPGx/CPIC API (`api.cpicpgx.org`) our pipeline ingests from. (CPIC's *historical* dedication was [CC0 1.0](https://cpicpgx.org/license/); post-2025 ClinPGx merger, data served via the API/downloads carries CC BY-SA 4.0 — see the merger note above.) Redistributable with attribution + share-alike; we attribute CPIC/ClinPGx and keep the derived `data/cpic/*.json` under the same license (`data/cpic/LICENSE.txt`).
-- **Use — load the official DB dump, don't transcribe by hand.** CPIC publishes its entire relational database as a versioned Postgres dump: the diplotype→phenotype and phenotype→recommendation tables, allele functions/frequencies, and guideline prose are all in it. Load the dump into a `cpic` schema and query it, or snapshot the four demo pairs (CYP2C19/clopidogrel, TPMT/thiopurines, DPYD/fluoropyrimidines, SLCO1B1/statins) to `/rules/cpic.json` from those tables. Either way the rules are authoritative and versioned, not hand-typed — which matters for a safety tool. Index the prose in Pinecone for the verifier.
-- **Why it's the backbone:** it fully covers the four demo pairs, and ingesting the authoritative API/dump removes transcription error as a failure mode. Prefer CPIC over DPWG wherever both cover a pair, to keep CPIC the load-bearing decision and DPWG corroborating (both are CC BY-SA 4.0, so the share-alike + attribution obligation applies uniformly — see the merger note above).
+- **Use — ingest the authoritative API, don't transcribe by hand.** `scripts/cpic-ingest.ts` pulls CPIC's relational data from the public ClinPGx PostgREST API (`api.cpicpgx.org/v1`): the diplotype→phenotype and phenotype→recommendation tables, allele functions/frequencies, and guideline prose, into `data/cpic/*.json`. `scripts/cpic-build.ts` compiles those into the runtime catalog `lib/cpic/catalog.json`. The rules are authoritative and attributed, not hand-typed — which matters for a safety tool. The guideline prose is also indexed in Pinecone for the verifier's citation span.
+- **Why it's the backbone:** the built catalog covers **2,115 rules across 22 genes** (well beyond the original four demo pairs), and ingesting the authoritative API removes transcription error as a failure mode. Prefer CPIC over DPWG wherever both cover a pair, to keep CPIC the load-bearing citation and DPWG corroborating (both are CC BY-SA 4.0, so the share-alike + attribution obligation applies uniformly — see the merger note above).
 - **Sources:**
   - DB dump (versioned): `https://files.cpicpgx.org/data/database/cpic_db_dump-v1.59.1.sql.gz` — load via `gzip -dc cpic_db_dump-v1.59.1.sql.gz | psql <db>`. Latest release: https://github.com/cpicpgx/cpic-data/releases
   - REST API (PostgREST): https://api.cpicpgx.org/
@@ -69,7 +69,7 @@ This doc is the researched *superset* of licensing-cleared sources gathered up f
 
 ### PharmVar — allele definitions
 - **License:** Freely available for academic/research use.
-- **Use:** Authoritative star-allele naming so seed diplotypes and `parseGenotype` output match the real world.
+- **Use:** Authoritative star-allele naming so seed diplotypes and parsed genotype output match the real world.
 - **Source:** https://www.pharmvar.org/
 
 ### CDC GeT-RM — optional gold-standard eval
@@ -115,4 +115,4 @@ Raw source snapshots live on the external SSD, **not** in the repo (they're rege
 └── dailymed/  (empty — pull via API for demo pairs only)
 ```
 
-Downloaded 2026-07-07. The committed `/data` dir holds only the distilled, attributed subsets we actually ship (e.g. the four demo pairs), derived from these raws.
+Downloaded 2026-07-07. The committed `/data` dir holds the distilled, attributed extracts we ship (the full CPIC catalog: 2,115 rules across 22 genes, plus DPWG), derived from these raws.

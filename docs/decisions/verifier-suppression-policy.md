@@ -7,6 +7,18 @@
   verifier could not match to guideline text.
 - **Deciders:** Engineering (via issue #25)
 
+> **Amendment (2026-07-10, ref commit b669b3d).** After this decision was accepted, the
+> architecture pivoted: the **agent now authors the authoritative clinical decision** and the
+> deterministic engine runs as an advisory cross-check (see PRD §5 and ARCHITECTURE §3/§7).
+> That inverts the premise several passages below lean on ("the clinical call is made by the
+> deterministic CPIC engine, not the model"). **The decision itself — surface-with-flag, never
+> suppress on a verifier miss — stands, and is if anything reinforced:** the verifier is still a
+> secondary check that must not veto the primary decision, and "needs review" now *also* carries
+> the signal that the agent diverged from the engine (`agent-mismatch`), which is exactly a state
+> the pharmacist should see. Read the engine-authoritative wording below (Rationale §1, §3, Net,
+> and the proposed §7 language) as historical context; current behavior is agent-authored,
+> source-grounded, verified-and-surfaced.
+
 ## Context
 
 `docs/ARCHITECTURE.md` §7 states a "verifier-or-silence" posture: *"An alert that

@@ -6,22 +6,24 @@ import type { PhenotypeConcordanceResult } from "@/lib/pgx/phenotype-concordance
 export type { ContributingGene, RecommendedAlternative }
 
 /**
- * How the CPIC decision was reached in evaluate-order. The rule lookup runs as an
- * agent loop over cpicTools, cross-checked against the deterministic engine:
- * - "agent"          — the agent loop ran and agreed with the rulebook.
- * - "agent-mismatch" — the agent reached a different rule; the deterministic
- *                      engine's result was used instead (and the miss logged).
- * - "agent-fallback" — the agent never returned a lookup; the deterministic
- *                      engine's result was used as the backstop.
- * The decision *content* is always deterministic; this only records the path.
+ * How the CPIC decision was reached in evaluate-order. The decision is AUTHORED by
+ * an agent loop over cpicTools and cross-checked against the deterministic engine:
+ * - "agent"          — the agent's decision agreed with the deterministic rulebook.
+ * - "agent-mismatch" — the agent's authoritative decision diverged from the engine;
+ *                      the agent's call is what shipped (and the divergence logged).
+ * - "agent-fallback" — the agent produced no usable decision (or flagged a drug no
+ *                      published rule backs), so the deterministic engine's result
+ *                      stood in as the backstop.
+ * The agent authors the decision content; this records how it related to the engine.
  */
 export type DecisionPath = "agent" | "agent-mismatch" | "agent-fallback"
 
 /**
  * UI reading of a DecisionPath: a short label plus whether it's an anomaly
- * (mismatch/fallback mean the agent loop did not cleanly confirm the rulebook,
- * so the deterministic backstop carried the decision — worth a calm attention
- * tone, never an alarm). Distinct from `verified`, which is the guideline gate.
+ * (mismatch/fallback mean the agent's decision did not cleanly agree with the
+ * rulebook — mismatch = the agent diverged and its call shipped; fallback = the
+ * engine's result stood in — worth a calm attention tone, never an alarm).
+ * Distinct from `verified`, which is the guideline gate.
  */
 export function decisionProvenance(path: DecisionPath): {
   label: string

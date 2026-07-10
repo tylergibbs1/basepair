@@ -151,7 +151,7 @@ Dedupe is handled by **Trigger.dev idempotency keys** (not Redis). Upstash Redis
 ### Trigger the durable task (dedupe via idempotencyKey)
 ```ts
 import { tasks } from '@trigger.dev/sdk'
-import type { evaluateOrder } from '@/trigger/evaluateOrder'
+import type { evaluateOrder } from '@/trigger/evaluate-order'
 
 // Stable order key (e.g. tenantId + MedicationRequest id) as the idempotencyKey:
 // a redelivered CDS event with the same key will not start a second run.

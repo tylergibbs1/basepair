@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils"
  * The AI trust gate, on its own visual axis so it never reads as a severity.
  *
  * Policy (docs/decisions/verifier-suppression-policy.md): Basepair *surfaces*
- * every deterministically-decided alert and flags the ones the AI verifier could
- * not match to guideline text, rather than suppressing them. The deterministic
- * CPIC engine is authoritative; the verifier is a secondary check, so a verifier
+ * every alert the decision agent flags and badges the ones the AI verifier could
+ * not match to guideline text, rather than suppressing them. The verifier is a
+ * secondary check on the agent's authored decision, not a gate, so a verifier
  * miss must never silently hide a real contraindication. That makes the
  * "needs review" state a first-class, act-on signal the pharmacist has to see.
  *

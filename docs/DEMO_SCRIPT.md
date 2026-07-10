@@ -31,7 +31,7 @@ Principle: **technical terms live on screen, speech stays plain.** The gene ID, 
 
 ### [0:55–1:45] — Why you trust it + close the loop
 
-- **SAY:** "Now, why trust it? Because it shows you everything. The genotype, the phenotype, the exact rule it matched. And then this: the real guideline, word for word, with the one sentence it's citing lit up right there. Not a summary. The source. And notice, the AI never makes the call. It just finds the citation and checks it. The rule decides. So the instruction is simple. Don't use clopidogrel, switch to prasugrel. One click. It writes the switch and tells the prescriber, right back in the chart."
+- **SAY:** "Now, why trust it? Because it shows you everything. The genotype, the phenotype, the exact rule it matched. And then this: the real guideline, word for word, with the one sentence it's citing lit up right there. Not a summary. The source. And notice: the agent makes the call, but it can't invent its evidence. It decides from the exact rule it pulled up, that guideline, then checks its own recommendation against that text and lights up the sentence. And nothing reaches the patient until you sign off. So the instruction is simple. Don't use clopidogrel, switch to prasugrel. One click. It writes the switch and tells the prescriber, right back in the chart."
 - **DO:** Click the flagged row → alert detail. Scroll the **reasoning trace**. Point at the **highlighted guideline** span; click **"Why this sentence"** to flash the verdict popover. Then click **Approve & Switch to Prasugrel** → confirm the patient dialog → confirm.
 
 ### [1:45–2:30] — The money shot (suppression)
@@ -67,7 +67,7 @@ Principle: **technical terms live on screen, speech stays plain.** The gene ID, 
 A few Linear design principles are baked into the script. Knowing *why* helps you deliver them with conviction:
 
 - **Workbench, not a chatbox.** "Not an AI chatbox; the console they actually work in." The AI lives inside the pharmacist's real workflow with review and approval surfaces — it isn't a prompt box bolted on. This is a genuine differentiator from most hackathon AI demos.
-- **A human stays accountable.** "It never makes the clinical call — the published rule does." The alert stays a person's decision; the AI only parses and verifies. Say this plainly — judges reward the discipline.
+- **A human stays accountable.** "The agent makes the call, but only from the published rule it looked up, and a person signs off." The agent authors the decision, never invents its own citation, and every alert waits for the pharmacist's approval. Say the discipline plainly — judges reward it.
 - **Opinionated: one good way.** "Basepair takes a position on what deserves your attention" / "the queue holds only what needs a person." An opinionated tool that says *no* to noise is a feature, not a gap.
 - **Speed as design: no spinners.** In Beat 2 you're watching the work happen, not a loading bar. Don't apologize for the few seconds — narrate them. The streaming feed *is* the calm-but-fast feel.
 - **Reversible = confident.** The one-click approve is safe because it's undoable. If a judge asks "what if you're wrong," the answer is: every action is reversible and fully audited.

@@ -32,8 +32,9 @@ import type { DecisionPath } from "@/lib/alerts/types";
 
 /**
  * The shared evaluate-and-write core: given a patient + a single drug, read the
- * patient's genetics, make the deterministic CPIC decision (from the
- * authoritative catalog, lib/cpic-catalog.ts), AI-verify a real hit, and write
+ * patient's genetics, author the CPIC decision via the agent loop
+ * (lib/ai/evaluate-agent.ts — grounded on the catalog, lib/cpic-catalog.ts, and
+ * cross-checked by the deterministic engine), AI-verify a real hit, and write
  * the DetectedIssue (+ pharmacist Task on a flag) back to Medplum.
  *
  * This is deliberately the ONE place the clinical logic lives; any new entry

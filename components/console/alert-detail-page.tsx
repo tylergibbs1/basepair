@@ -437,8 +437,8 @@ function HighlightedGuideline({
  * A prominent, plain-language account of what the "needs review" flag means, so
  * the state is unmistakable and actionable rather than a bare badge. Only shown
  * when the AI verifier did not match the recommendation to guideline text. It
- * does NOT undercut the alert: the deterministic CPIC engine still made the call
- * (rendered above), the verifier is a secondary check that could not confirm it.
+ * does NOT undercut the alert: it is anchored to the CPIC rule (rendered above),
+ * and the verifier is a secondary check on the wording that could not confirm it.
  */
 function NeedsReviewNote() {
   return (
@@ -450,7 +450,7 @@ function NeedsReviewNote() {
       <p className="max-w-prose text-pretty text-sm leading-relaxed text-sev-caution-fg">
         The AI verifier could not match this recommendation to a supporting
         sentence in the guideline text, so it needs your review. The alert still
-        stands: the CPIC rule below made the call, and the verifier is only a
+        stands: it is anchored to the CPIC rule below, and the verifier is only a
         secondary check. Read the guideline yourself before you approve or
         dismiss.
       </p>

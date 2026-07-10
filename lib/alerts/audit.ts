@@ -296,118 +296,132 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
     loadFhirAuditIndex(medplum),
   ])
 
-  const entries: AuditEntry[] = []
+  // Resolve each row's patient (and the task's DetectedIssue) in parallel rather
+  // than awaiting one Medplum read per iteration — the reads are independent, so
+  // a page of N records costs one round-trip's latency, not N. A row that fails
+  // its reads or its validity checks resolves to null and is filtered out (the
+  // same skip the `continue`s expressed before).
+  const clearedEntries = await Promise.all(
+    clearedIssues.map(async (issue): Promise<AuditEntry | null> => {
+      if (!issue.id || !issue.patient) return null
+      const pgx = parsePgxAlert(issue)
+      if (!pgx || !isCleared(pgx)) return null
 
-  for (const issue of clearedIssues) {
-    if (!issue.id || !issue.patient) continue
-    const pgx = parsePgxAlert(issue)
-    if (!pgx || !isCleared(pgx)) continue
+      let patient: Patient
+      try {
+        patient = (await medplum.readReference(issue.patient)) as Patient
+      } catch {
+        return null
+      }
 
-    let patient: Patient
-    try {
-      patient = (await medplum.readReference(issue.patient)) as Patient
-    } catch {
-      continue
-    }
+      // The genes Basepair actually read while evaluating the order. Show the
+      // first as a representative in the Gene/Phenotype column.
+      const [gene, phenotype] = Object.entries(pgx.genePhenotypes)[0] ?? []
 
-    // The genes Basepair actually read while evaluating the order. Show the
-    // first as a representative in the Gene/Phenotype column.
-    const [gene, phenotype] = Object.entries(pgx.genePhenotypes)[0] ?? []
+      // Cross-check against the FHIR trail: authoritative timestamp + ids.
+      const fhir = fhirRefsFor(
+        fhirIndex,
+        `DetectedIssue/${issue.id}`,
+        "evaluation-cleared",
+        resourceTimestamp(issue),
+      )
 
-    // Cross-check against the FHIR trail: authoritative timestamp + ids.
-    const fhir = fhirRefsFor(
-      fhirIndex,
-      `DetectedIssue/${issue.id}`,
-      "evaluation-cleared",
-      resourceTimestamp(issue),
-    )
+      return {
+        kind: "cleared",
+        id: issue.id,
+        patientName: patientName(patient),
+        drug: auditDrugLabel(pgx.drug),
+        gene,
+        phenotype,
+        reason: pgx.reason,
+        decisionPath: pgx.decisionPath,
+        at: fhir.at,
+        provenanceId: fhir.provenanceId,
+        auditEventId: fhir.auditEventId,
+      }
+    }),
+  )
 
-    entries.push({
-      kind: "cleared",
-      id: issue.id,
-      patientName: patientName(patient),
-      drug: auditDrugLabel(pgx.drug),
-      gene,
-      phenotype,
-      reason: pgx.reason,
-      decisionPath: pgx.decisionPath,
-      at: fhir.at,
-      provenanceId: fhir.provenanceId,
-      auditEventId: fhir.auditEventId,
-    })
-  }
+  const triagedEntries = await Promise.all(
+    triagedTasks.map(async (task): Promise<AuditEntry | null> => {
+      if (!task.id || !task.for || !task.focus) return null
+      if (task.status !== "completed" && task.status !== "cancelled") return null
 
-  for (const task of triagedTasks) {
-    if (!task.id || !task.for || !task.focus) continue
-    if (task.status !== "completed" && task.status !== "cancelled") continue
+      let patient: Patient
+      let issue: DetectedIssue
+      try {
+        // The patient and the DetectedIssue are independent reads — together.
+        ;[patient, issue] = (await Promise.all([
+          medplum.readReference(task.for),
+          medplum.readReference(task.focus),
+        ])) as [Patient, DetectedIssue]
+      } catch {
+        return null
+      }
 
-    let patient: Patient
-    let issue: DetectedIssue
-    try {
-      patient = (await medplum.readReference(task.for)) as Patient
-      issue = (await medplum.readReference(task.focus)) as DetectedIssue
-    } catch {
-      continue
-    }
+      const pgx = parsePgxAlert(issue)
+      // Only flagged alerts carry the fields the audit row needs; skip anything
+      // else (a cleared focus would be a data anomaly).
+      if (!pgx || isCleared(pgx)) return null
 
-    const pgx = parsePgxAlert(issue)
-    // Only flagged alerts carry the fields the audit row needs; skip anything
-    // else (a cleared focus would be a data anomaly).
-    if (!pgx || isCleared(pgx)) continue
+      const enacted = task.status === "completed" ? isEnacted(task) : undefined
+      const dismissReason =
+        task.status === "cancelled" ? readDismissReason(task) : null
+      // #46: thread the concordance QA the same way phenotype/decisionPath are —
+      // straight off the parsed payload. Read permissively so this compiles and
+      // lights up automatically once the write path persists it (the payload type
+      // in lib/alerts/pgx.ts doesn't declare it yet); undefined otherwise.
+      const phenotypeConcordance = (
+        pgx as { phenotypeConcordance?: AuditEntryPhenotypeConcordance }
+      ).phenotypeConcordance
+      // The transition this row records: an enacted approve wrote back via "enact",
+      // a plain approve via "approve", a decline via "dismiss".
+      const lifecycle: AuditLifecycle =
+        task.status === "cancelled" ? "dismiss" : enacted ? "enact" : "approve"
+      const fhir = fhirRefsFor(
+        fhirIndex,
+        `Task/${task.id}`,
+        lifecycle,
+        task.lastModified ?? resourceTimestamp(task),
+      )
 
-    const enacted = task.status === "completed" ? isEnacted(task) : undefined
-    const dismissReason =
-      task.status === "cancelled" ? readDismissReason(task) : null
-    // #46: thread the concordance QA the same way phenotype/decisionPath are —
-    // straight off the parsed payload. Read permissively so this compiles and
-    // lights up automatically once the write path persists it (the payload type
-    // in lib/alerts/pgx.ts doesn't declare it yet); undefined otherwise.
-    const phenotypeConcordance = (
-      pgx as { phenotypeConcordance?: AuditEntryPhenotypeConcordance }
-    ).phenotypeConcordance
-    // The transition this row records: an enacted approve wrote back via "enact",
-    // a plain approve via "approve", a decline via "dismiss".
-    const lifecycle: AuditLifecycle =
-      task.status === "cancelled" ? "dismiss" : enacted ? "enact" : "approve"
-    const fhir = fhirRefsFor(
-      fhirIndex,
-      `Task/${task.id}`,
-      lifecycle,
-      task.lastModified ?? resourceTimestamp(task),
-    )
+      return {
+        kind: task.status === "completed" ? "approved" : "dismissed",
+        id: task.id,
+        patientName: patientName(patient),
+        drug: auditDrugLabel(pgx.drug),
+        gene: pgx.gene,
+        phenotype: pgx.phenotype,
+        severity: pgx.severity,
+        decisionPath: pgx.decisionPath,
+        enacted,
+        // #45: the fired instant (Task authored) and the guideline citation, so the
+        // governance view can measure time-to-review/enact and cite the source per
+        // rule. Both degrade to undefined when the record lacks them.
+        firedAt: task.authoredOn,
+        citation: pgx.citation,
+        dismissReason: dismissReason
+          ? {
+              label: dismissReason.label,
+              kind: dismissReason.kind,
+              note: dismissReason.note,
+            }
+          : undefined,
+        phenotypeConcordance,
+        // #48 follow-up: localAction stays undefined — the plan is computed at
+        // render time (planLocalAction on the detail page), never persisted, so
+        // there's no mapping on the record to thread. Recording it would need a
+        // new write-back, which is out of scope here.
+        at: fhir.at,
+        provenanceId: fhir.provenanceId,
+        auditEventId: fhir.auditEventId,
+      }
+    }),
+  )
 
-    entries.push({
-      kind: task.status === "completed" ? "approved" : "dismissed",
-      id: task.id,
-      patientName: patientName(patient),
-      drug: auditDrugLabel(pgx.drug),
-      gene: pgx.gene,
-      phenotype: pgx.phenotype,
-      severity: pgx.severity,
-      decisionPath: pgx.decisionPath,
-      enacted,
-      // #45: the fired instant (Task authored) and the guideline citation, so the
-      // governance view can measure time-to-review/enact and cite the source per
-      // rule. Both degrade to undefined when the record lacks them.
-      firedAt: task.authoredOn,
-      citation: pgx.citation,
-      dismissReason: dismissReason
-        ? {
-            label: dismissReason.label,
-            kind: dismissReason.kind,
-            note: dismissReason.note,
-          }
-        : undefined,
-      phenotypeConcordance,
-      // #48 follow-up: localAction stays undefined — the plan is computed at
-      // render time (planLocalAction on the detail page), never persisted, so
-      // there's no mapping on the record to thread. Recording it would need a
-      // new write-back, which is out of scope here.
-      at: fhir.at,
-      provenanceId: fhir.provenanceId,
-      auditEventId: fhir.auditEventId,
-    })
-  }
+  const entries = [...clearedEntries, ...triagedEntries].filter(
+    (entry): entry is AuditEntry => entry !== null,
+  )
 
   return entries
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())

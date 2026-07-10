@@ -371,11 +371,10 @@ function FeedItem({
             <AnimatePresence initial={false}>
               {open && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.16, ease: "easeOut" }}
-                  className="overflow-hidden"
                 >
                   <div className="mt-1.5 grid gap-1.5 border-l border-border pl-3">
                     {substeps.map((s, i) => (

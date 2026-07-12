@@ -108,7 +108,7 @@ export type Phase =
  * notable result (neutral, not a claimed severity — we don't know it here);
  * cleared greens; a lost-connection timeout points at the queue.
  */
-export function ResolvedOutcome({ phase }: { phase: Phase }) {
+function ResolvedOutcome({ phase }: { phase: Phase }) {
   const resolved =
     phase === "flagged" || phase === "cleared" || phase === "timeout"
 
@@ -205,7 +205,7 @@ const EVAL_STEPS = 2
  * running. Dots stay neutral except where a finding IS a status (the verify
  * verdict, a cross-check disagreement), which follows its `tone`.
  */
-export function EvaluationFeed({
+function EvaluationFeed({
   events,
   phase,
 }: {
@@ -408,7 +408,7 @@ function FeedItem({
  * refreshes the queue so the new alert lands, toasts the result, then schedules
  * the close.
  */
-export function OrderEvaluation({
+function OrderEvaluation({
   runId,
   accessToken,
   drug,

@@ -31,19 +31,18 @@ import {
 function readDismissReason(
   task: Task,
 ): { code: string; label: string; kind: DismissReasonKind; note?: string } | null {
-  const code = task.statusReason?.coding?.find(
-    (c) => c.system === DISMISS_REASON_SYSTEM,
-  )?.code
-  if (!code) return null
-  const known = dismissReasonByCode(code)
+  const reason = task.statusReason
+  const coding = reason?.coding?.find((c) => c.system === DISMISS_REASON_SYSTEM)
+  if (!coding?.code) return null
+  const known = dismissReasonByCode(coding.code)
   return {
-    code,
+    code: coding.code,
     // Prefer the taxonomy label; fall back to the persisted display or the raw
     // code so an unknown/retired code still reads as something.
-    label: known?.label ?? task.statusReason?.coding?.[0]?.display ?? code,
+    label: known?.label ?? coding.display ?? coding.code,
     // An unknown code is read conservatively as a false alarm (see getSignalStats).
     kind: known?.kind ?? "false-alarm",
-    note: task.statusReason?.text?.trim() || undefined,
+    note: reason?.text?.trim() || undefined,
   }
 }
 

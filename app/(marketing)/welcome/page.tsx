@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Image from "next/image"
 import Link from "next/link"
 
 import {
@@ -6,6 +7,9 @@ import {
   RevealGroup,
   RevealItem,
 } from "@/components/marketing/reveal"
+import auditImage from "@/public/art/console-audit.webp"
+import queueImage from "@/public/art/console-queue.webp"
+import heroImage from "@/public/art/sketch-hero.png"
 
 export const metadata: Metadata = {
   title: "Basepair, medication safety review for pharmacists",
@@ -77,8 +81,8 @@ export default function WelcomePage() {
             </RevealItem>
           </RevealGroup>
           <div className="order-first lg:order-none">
-            <img
-              src="/art/sketch-hero.png"
+            <Image
+              src={heroImage}
               alt=""
               aria-hidden="true"
               className="mx-auto w-full max-w-xs sm:max-w-sm"
@@ -90,12 +94,10 @@ export default function WelcomePage() {
         <Reveal
           className={`mt-14 overflow-hidden rounded-2xl border border-border bg-white sm:mt-16 ${SOFT_SHADOW}`}
         >
-          <img
-            src="/art/console-queue.webp"
+          <Image
+            src={queueImage}
             alt="The Basepair pharmacist console showing a triaged queue of medication-order alerts, each with severity, patient, drug, genotype and phenotype."
             className="w-full"
-            width={2000}
-            height={1250}
           />
         </Reveal>
       </section>
@@ -172,12 +174,10 @@ export default function WelcomePage() {
           <RevealItem
             className={`overflow-hidden rounded-2xl border border-border bg-white ${SOFT_SHADOW}`}
           >
-            <img
-              src="/art/console-audit.webp"
+            <Image
+              src={auditImage}
               alt="The Basepair audit view, showing the trail of evaluated orders and enactment over time."
               className="w-full"
-              width={2000}
-              height={1250}
             />
           </RevealItem>
         </RevealGroup>

@@ -46,3 +46,7 @@ next-env.d.ts
 
 # Agent worktrees / local scratch
 .claude/
+
+# Autonomous refactor experiment logs
+results.tsv
+run.log

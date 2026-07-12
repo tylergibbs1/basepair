@@ -55,7 +55,7 @@ export async function saveGovernanceThresholds(
   const medplum = await createMedplumClient()
   const existing = await findConfig()
   const next: Basic = {
-    ...(existing ?? {}),
+    ...existing,
     resourceType: "Basic",
     identifier: [{ system: IDENTIFIER_SYSTEM, value: tenantKey() }],
     code: {

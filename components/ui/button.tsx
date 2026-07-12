@@ -25,12 +25,13 @@ const buttonVariants = cva(
       size: {
         default:
           "h-10 gap-1.5 px-3.5 has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5",
-        xs: "h-6 gap-1 px-2.5 text-xs has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-8 gap-1 px-3 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+        xs: "relative h-6 gap-1 px-2.5 text-xs after:absolute after:-inset-2 after:content-[''] has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 [&_svg:not([class*='size-'])]:size-3",
+        sm: "relative h-8 gap-1 px-3 after:absolute after:-inset-1 after:content-[''] has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         lg: "h-12 gap-1.5 px-5 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",
         icon: "size-10",
-        "icon-xs": "size-6 [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-8",
+        "icon-xs":
+          "relative size-6 after:absolute after:-inset-2 after:content-[''] [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm": "relative size-8 after:absolute after:-inset-1 after:content-['']",
         "icon-lg": "size-10",
       },
     },

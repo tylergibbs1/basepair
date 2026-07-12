@@ -133,7 +133,9 @@ export function DrugCombobox({
         <div
           id={listId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-sm border border-input bg-popover p-1 shadow-md"
+          // Menus take the md radius (12px); p-1.5 keeps the 6px-radius items
+          // concentric inside it.
+          className="absolute z-50 mt-1 max-h-64 w-full overflow-auto rounded-md border border-input bg-popover p-1.5 shadow-popover"
         >
           {!value.trim() && (
             <p className="px-2 py-1 text-xs text-muted-foreground">

@@ -53,7 +53,7 @@ export function ConsoleTopbar({
           <div className="relative w-full max-w-xs">
             <Search
               aria-hidden
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2 text-muted-foreground"
             />
             <Input
               ref={searchInputRef}
@@ -62,7 +62,7 @@ export function ConsoleTopbar({
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search alerts…"
               aria-label="Search alerts"
-              className="h-8 pr-8 pl-9"
+              className="h-8 pe-8 ps-9"
             />
             {/* Teach the `/` shortcut in place; hide it once typing starts so it
                 never sits behind the query text. */}

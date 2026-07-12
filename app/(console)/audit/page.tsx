@@ -82,7 +82,7 @@ function GovernanceSummary({
                 {item.metric.drug}
                 {item.metric.gene ? ` · ${item.metric.gene}` : ""}
               </GovernanceRuleLink>
-              <span className="rounded-sm bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground">
+              <span className="rounded-sm bg-background px-1.5 py-0.5 text-2xs text-muted-foreground">
                 {item.severity}
               </span>
             </div>

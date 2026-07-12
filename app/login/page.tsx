@@ -43,7 +43,7 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-svh items-center justify-center bg-background px-4 py-10">
-      <div className="w-full max-w-sm rounded-lg border bg-popover p-6 shadow-sm">
+      <div className="w-full max-w-sm rounded-lg border bg-popover p-6 shadow-raised">
         <div className="grid gap-1">
           <h1 className="text-lg font-semibold text-foreground">Basepair</h1>
           <p className="text-sm text-muted-foreground">

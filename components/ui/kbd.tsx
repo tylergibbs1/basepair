@@ -27,7 +27,7 @@ export function Kbd({
   return (
     <kbd
       className={cn(
-        "inline-flex h-5 min-w-5 items-center justify-center rounded-[4px] border border-border bg-background px-1 font-mono text-[11px] leading-none font-medium text-muted-foreground tabular-nums",
+        "inline-flex h-5 min-w-5 items-center justify-center rounded-[4px] border border-border bg-background px-1 font-mono text-2xs leading-none font-medium text-muted-foreground tabular-nums",
         className
       )}
       {...props}
@@ -67,7 +67,7 @@ export function KbdGroup({
         // Tokens within one shortcut never repeat, so the token is a stable key.
         <React.Fragment key={k}>
           {chord && i > 0 && (
-            <span className="text-[10px] text-muted-foreground">then</span>
+            <span className="text-2xs text-muted-foreground">then</span>
           )}
           <KeyToken token={k} />
         </React.Fragment>

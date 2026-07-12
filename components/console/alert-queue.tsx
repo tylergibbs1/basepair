@@ -49,7 +49,7 @@ const SEVERITY_LABEL: Record<Alert["severity"], string> = {
  */
 function SweepTag() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-sm border bg-secondary px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+    <span className="inline-flex items-center gap-1 rounded-sm border bg-secondary px-1.5 py-0.5 text-2xs font-medium text-muted-foreground">
       <Radar aria-hidden className="size-3" />
       Sweep
     </span>
@@ -140,7 +140,7 @@ function SortableHead({
       <button
         type="button"
         onClick={() => setSort(column)}
-        className="group/sort inline-flex h-12 w-full items-center gap-1 px-3 text-left font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        className="group/sort inline-flex h-12 w-full items-center gap-1 px-3 text-start font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
       >
         {label}
         {active ? (
@@ -273,7 +273,7 @@ function AlertRow({
             // count is already in the row's accessible name, so hide it here.
             <span
               aria-hidden
-              className="rounded-sm bg-secondary px-1 py-0.5 font-sans text-[10px] font-medium text-muted-foreground tabular-nums"
+              className="rounded-sm bg-secondary px-1 py-0.5 font-sans text-2xs font-medium text-muted-foreground tabular-nums"
             >
               +{extraGenes} gene{extraGenes === 1 ? "" : "s"}
             </span>

@@ -114,7 +114,7 @@ function DecisionProvenance({ path }: { path?: DecisionPath }) {
     <span
       title={PROVENANCE_TITLE[path]}
       className={cn(
-        "inline-flex items-center gap-1 text-[11px]",
+        "inline-flex items-center gap-1 text-2xs",
         anomaly ? "text-caution-fg" : "text-muted-foreground",
       )}
     >
@@ -224,7 +224,10 @@ function OutcomeToggle({
         // Square sm-radius console control — a toggle, never a pill. Curated
         // transition (color/bg/border/transform — never `all`) so the press
         // dip and the on/off tint interrupt each other smoothly.
-        "inline-flex h-8 items-center gap-1.5 rounded-sm border px-2.5 text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,transform] active:scale-[0.96] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        // The after: pseudo stretches the 32px control to the 40px desktop hit
+        // floor vertically only — neighbors sit gap-1.5 (6px) apart, so a
+        // horizontal extension would overlap adjacent hit areas.
+        "relative after:absolute after:content-[''] after:inset-x-0 after:-inset-y-1 inline-flex h-8 items-center gap-1.5 rounded-sm border px-2.5 text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,transform] active:scale-[0.96] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         active
           ? activeClassName
           : "border-border bg-background text-muted-foreground hover:bg-hover hover:text-foreground"
@@ -270,7 +273,7 @@ function SortableHead({
       <button
         type="button"
         onClick={() => onSort(column)}
-        className="group/sort inline-flex h-12 w-full items-center gap-1 px-3 text-left font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        className="group/sort inline-flex h-12 w-full items-center gap-1 px-3 text-start font-medium whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
       >
         {label}
         {active ? (
@@ -430,7 +433,7 @@ export function AuditTable({ entries }: { entries: AuditEntry[] }) {
         <div className="relative ml-auto w-full max-w-xs">
           <Search
             aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2 text-muted-foreground"
           />
           <Input
             type="search"
@@ -438,7 +441,7 @@ export function AuditTable({ entries }: { entries: AuditEntry[] }) {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search records…"
             aria-label="Search audit records"
-            className="h-8 pl-9"
+            className="h-8 ps-9"
           />
         </div>
       </div>

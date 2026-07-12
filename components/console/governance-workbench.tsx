@@ -68,7 +68,10 @@ function RangeControl({
             aria-pressed={active}
             onClick={() => onChange(option.value)}
             className={cn(
-              "inline-flex h-8 items-center rounded-sm border px-2.5 text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,transform] outline-none active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              // The after: pseudo stretches the 32px control to the 40px
+              // desktop hit floor vertically only — neighbors sit gap-1 apart,
+              // so a horizontal extension would overlap adjacent hit areas.
+              "relative after:absolute after:content-[''] after:inset-x-0 after:-inset-y-1 inline-flex h-8 items-center rounded-sm border px-2.5 text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,transform] outline-none active:scale-[0.96] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               active
                 ? "border-border bg-secondary text-foreground"
                 : "border-border bg-background text-muted-foreground hover:bg-hover hover:text-foreground",

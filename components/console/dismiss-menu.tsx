@@ -96,7 +96,12 @@ export function DismissMenu({
           sideOffset={6}
           className="isolate z-50"
         >
-          <Menu.Popup className="w-72 origin-(--transform-origin) rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/5 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95">
+          {/* p-1.5 keeps the menu concentric: 6px item radius + 6px pad = the
+              12px popup radius. Open/close is a base-ui transition (the
+              sheet.tsx pattern — data-starting-style / data-ending-style), so
+              a close mid-open reverses smoothly instead of restarting a
+              keyframe; exit runs one notch quicker than enter. */}
+          <Menu.Popup className="w-72 origin-(--transform-origin) rounded-md bg-popover p-1.5 text-popover-foreground shadow-popover ring-1 ring-foreground/5 outline-none transition duration-100 data-ending-style:duration-75 data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0">
             {noteMode ? (
               <div className="grid gap-2 p-1.5">
                 <button

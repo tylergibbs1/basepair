@@ -63,7 +63,7 @@ function StepSkeleton({
   return (
     <li className="flex gap-3">
       <div className="flex flex-col items-center">
-        <span className="flex size-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-medium tabular-nums text-muted-foreground">
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-full border text-2xs font-medium tabular-nums text-muted-foreground">
           {n}
         </span>
         {!last && <span aria-hidden className="w-px flex-1 bg-border" />}

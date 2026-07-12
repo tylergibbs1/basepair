@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 // reserved for status (the product screenshots carry the live severity palette).
 
 const SOFT_SHADOW =
-  "shadow-[0_30px_80px_-32px_rgba(23,60,99,0.35)]"
+  "shadow-[0_30px_80px_-32px_oklch(0.351_0.08_252.2/0.35)]"
 
 const STEPS = [
   {
@@ -52,7 +52,7 @@ export default function WelcomePage() {
         <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
           <RevealGroup trigger="load" delayChildren={0.1} className="max-w-xl">
             <RevealItem>
-              <h1 className="font-serif text-5xl leading-[1.04] tracking-[-0.02em] text-balance text-foreground sm:text-6xl">
+              <h1 className="font-serif text-display-lg text-balance text-foreground sm:text-display-xl">
                 Catch the interaction before it reaches the patient.
               </h1>
             </RevealItem>
@@ -65,7 +65,7 @@ export default function WelcomePage() {
             <RevealItem className="mt-8 flex flex-wrap items-center gap-5">
               <Link
                 href="/"
-                className="group inline-flex h-11 items-center gap-2 rounded-md bg-navy px-5 text-sm font-medium text-white transition-colors hover:bg-navy-press"
+                className="group inline-flex h-11 items-center gap-2 rounded-md bg-navy px-5 text-sm font-medium text-white transition-[color,background-color,transform] hover:bg-navy-press active:scale-[0.96]"
               >
                 Open the console
                 <span className="transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5">
@@ -92,7 +92,7 @@ export default function WelcomePage() {
 
         {/* Product shot — the credibility anchor */}
         <Reveal
-          className={`mt-14 overflow-hidden rounded-2xl border border-border bg-white sm:mt-16 ${SOFT_SHADOW}`}
+          className={`mt-14 overflow-hidden rounded-2xl outline outline-black/10 -outline-offset-1 bg-white sm:mt-16 ${SOFT_SHADOW}`}
         >
           <Image
             src={queueImage}
@@ -106,7 +106,7 @@ export default function WelcomePage() {
       <section id="evidence" className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
         <Reveal className="rounded-2xl bg-muted p-10 sm:p-14">
           <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
-            <p className="font-serif text-3xl leading-[1.15] tracking-[-0.01em] text-balance text-foreground sm:text-[40px]">
+            <p className="font-serif text-display-sm text-balance text-foreground sm:text-display-md">
               3 of every 4 pharmacogenomic flags aren&rsquo;t clinically
               relevant.
             </p>
@@ -116,7 +116,7 @@ export default function WelcomePage() {
                 24% clinically relevant. Basepair does the triage. The queue
                 holds only orders that need a person.
               </p>
-              <p className="mt-6 border-t border-border/70 pt-4 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="mt-6 border-t border-border/70 pt-4 text-xs font-medium uppercase tracking-caps text-muted-foreground">
                 Source: Bright et al., 2020
               </p>
             </div>
@@ -141,10 +141,10 @@ export default function WelcomePage() {
               <h3 className="mt-6 text-lg font-semibold tracking-[-0.01em] text-foreground">
                 {step.title}
               </h3>
-              <p className="mt-3 flex-1 text-[15px] leading-relaxed text-muted-foreground text-pretty">
+              <p className="mt-3 flex-1 text-base leading-relaxed text-muted-foreground text-pretty">
                 {step.body}
               </p>
-              <p className="mt-8 border-t border-border/70 pt-4 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+              <p className="mt-8 border-t border-border/70 pt-4 text-xs font-medium uppercase tracking-caps text-muted-foreground">
                 Step {step.n}
               </p>
             </RevealItem>
@@ -172,7 +172,7 @@ export default function WelcomePage() {
             </div>
           </RevealItem>
           <RevealItem
-            className={`overflow-hidden rounded-2xl border border-border bg-white ${SOFT_SHADOW}`}
+            className={`overflow-hidden rounded-2xl outline outline-black/10 -outline-offset-1 bg-white ${SOFT_SHADOW}`}
           >
             <Image
               src={auditImage}
@@ -195,7 +195,7 @@ export default function WelcomePage() {
             </p>
             <Link
               href="/"
-              className="group mt-8 inline-flex h-11 items-center gap-2 rounded-md bg-white px-6 text-sm font-medium text-navy transition-opacity hover:opacity-90"
+              className="group mt-8 inline-flex h-11 items-center gap-2 rounded-md bg-white px-6 text-sm font-medium text-navy transition-[opacity,transform] hover:opacity-90 active:scale-[0.96]"
             >
               Open the console
               <span className="transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5">

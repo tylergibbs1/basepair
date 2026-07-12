@@ -185,7 +185,7 @@ function PhenotypeConcordanceCallout({ alert }: { alert: Alert }) {
           <ShieldAlert aria-hidden className="size-3.5" />
           Phenotype concordance
         </h3>
-        <span className="rounded-sm bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground">
+        <span className="rounded-sm bg-background px-1.5 py-0.5 text-2xs text-muted-foreground">
           {severity.replaceAll("-", " ")}
         </span>
       </div>
@@ -264,11 +264,11 @@ function LocalActionSummary({ plan }: { plan: LocalActionPlan }) {
             >
               <dt className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
                 {candidate.drug}
-                <span className="rounded-sm bg-background px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                <span className="rounded-sm bg-background px-1.5 py-0.5 text-2xs text-muted-foreground">
                   {candidate.status}
                 </span>
                 {candidate.contraindicated && (
-                  <span className="rounded-sm bg-sev-caution-bg px-1.5 py-0.5 text-[11px] text-sev-caution-fg">
+                  <span className="rounded-sm bg-sev-caution-bg px-1.5 py-0.5 text-2xs text-sev-caution-fg">
                     needs review
                   </span>
                 )}
@@ -322,7 +322,7 @@ function ContributingGenes({ alert }: { alert: Alert }) {
               {driving && multi && (
                 // A quiet squared tag, not a severity pill: names the driver
                 // without competing with the header's severity chip.
-                <span className="rounded-sm border bg-secondary px-1 py-0.5 text-[10px] font-medium text-muted-foreground">
+                <span className="rounded-sm border bg-secondary px-1 py-0.5 text-2xs font-medium text-muted-foreground">
                   Driving
                 </span>
               )}
@@ -407,7 +407,12 @@ function HighlightedGuideline({
             sideOffset={6}
             className="isolate z-50"
           >
-            <Popover.Popup className="w-80 origin-(--transform-origin) rounded-md border bg-popover p-3 text-popover-foreground shadow-lg ring-1 ring-foreground/5 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95">
+            {/* Transition-based open/close (the sheet.tsx pattern): base-ui's
+                data-starting-style / data-ending-style drive an interruptible
+                CSS transition — a popup closed mid-open reverses smoothly
+                instead of restarting a keyframe. Exit runs one notch quicker
+                than enter. */}
+            <Popover.Popup className="w-80 origin-(--transform-origin) rounded-md border bg-popover p-3 text-popover-foreground shadow-popover ring-1 ring-foreground/5 outline-none transition duration-150 data-ending-style:duration-100 data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0">
               <div className="grid gap-2">
                 <p className="text-xs font-medium text-muted-foreground">
                   Why this sentence is marked
@@ -485,7 +490,7 @@ function Step({
       <div className="flex flex-col items-center">
         <span
           className={cn(
-            "flex size-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-medium tabular-nums",
+            "flex size-5 shrink-0 items-center justify-center rounded-full border text-2xs font-medium tabular-nums",
             complete
               ? "border-success-br bg-success-bg text-success-fg"
               : "text-muted-foreground",

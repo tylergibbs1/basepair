@@ -88,7 +88,7 @@ export function SourceTrigger({
           aria-hidden
           width={14}
           height={14}
-          className="size-3.5 shrink-0 rounded-full"
+          className="size-3.5 shrink-0 rounded-full outline outline-black/10 -outline-offset-1"
         />
       )}
       <span className="truncate font-normal">{labelToShow}</span>
@@ -112,7 +112,7 @@ export function SourceContent({
       <PreviewCardPrimitive.Positioner side="top" sideOffset={6} className="isolate z-50">
         <PreviewCardPrimitive.Popup
           className={cn(
-            "w-80 origin-(--transform-origin) overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/5 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "w-80 origin-(--transform-origin) overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-popover ring-1 ring-foreground/5 transition-[opacity,scale] duration-150 outline-none data-ending-style:duration-100 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0",
             className
           )}
         >
@@ -130,7 +130,7 @@ export function SourceContent({
                 aria-hidden
                 width={16}
                 height={16}
-                className="size-4 shrink-0 rounded-full"
+                className="size-4 shrink-0 rounded-full outline outline-black/10 -outline-offset-1"
               />
               <div className="truncate text-sm text-navy">
                 {domain.replace("www.", "")}

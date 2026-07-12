@@ -57,9 +57,14 @@ export function CommandMenu() {
     <DialogPrimitive.Root open={paletteOpen} onOpenChange={setPaletteOpen}>
       <DialogPrimitive.Portal>
         <DialogOverlay />
+        {/* Open/close is a base-ui transition (the sheet.tsx pattern —
+            data-starting-style / data-ending-style), so Esc mid-open reverses
+            smoothly instead of restarting a keyframe. Enter zooms in from 95%;
+            exit fades while drifting up 4px, one notch quicker. The translate-y
+            utilities compose with the -translate-x-1/2 centering. */}
         <DialogPrimitive.Popup
           data-slot="command-menu"
-          className="fixed top-[18%] left-1/2 z-50 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 overflow-hidden rounded-md bg-popover text-popover-foreground shadow-[0_1px_1px_rgba(0,0,0,0.02),0_4px_8px_-4px_rgba(0,0,0,0.04),0_16px_24px_-8px_rgba(0,0,0,0.06)] ring-1 ring-foreground/5 duration-100 outline-none sm:max-w-lg data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-top-1"
+          className="fixed top-[18%] left-1/2 z-50 w-full max-w-[calc(100%-2rem)] -translate-x-1/2 overflow-hidden rounded-md bg-popover text-popover-foreground shadow-popover ring-1 ring-foreground/5 outline-none sm:max-w-lg transition duration-100 data-ending-style:duration-75 data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:-translate-y-1 data-ending-style:opacity-0"
         >
           <DialogPrimitive.Title className="sr-only">
             Command palette

@@ -45,6 +45,10 @@ export function AppSidebar() {
   const { data: session } = useSession()
 
   const name = session?.user?.name || "Pharmacist"
+  const email = session?.user?.email
+  // Both footer lines truncate, so the sign-out tooltip/label carries the full
+  // name AND email — truncation must never be the only place a value lives.
+  const signOutLabel = `Sign out (${name}${email ? `, ${email}` : ""})`
   const initials =
     name
       .split(/\s+/)
@@ -115,9 +119,9 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              tooltip={`Sign out (${name})`}
+              tooltip={signOutLabel}
               onClick={handleSignOut}
-              render={<button type="button" aria-label={`Sign out (${name})`} />}
+              render={<button type="button" aria-label={signOutLabel} />}
             >
               <span
                 aria-hidden
@@ -128,7 +132,7 @@ export function AppSidebar() {
               <span className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate text-sm font-medium">{name}</span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {session?.user?.email ?? "Pharmacist"}
+                  {email ?? "Pharmacist"}
                 </span>
               </span>
               <LogOut

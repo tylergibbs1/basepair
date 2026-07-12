@@ -37,7 +37,7 @@ export default function MarketingLayout({
             </Link>
             <Link
               href="/"
-              className="ml-1 inline-flex h-9 items-center rounded-md bg-navy px-4 text-sm font-medium text-white transition-colors hover:bg-navy-press"
+              className="ml-1 inline-flex h-9 items-center rounded-md bg-navy px-4 text-sm font-medium text-white transition-[color,background-color,transform] hover:bg-navy-press active:scale-[0.96]"
             >
               Open the console
             </Link>

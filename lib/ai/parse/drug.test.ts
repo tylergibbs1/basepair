@@ -83,6 +83,43 @@ describe("normalizeDrug", () => {
     expect(r.drugClass).toBe("Platelet aggregation inhibitors excl. heparin");
   });
 
+  test("prefers the exact ingredient over an unrelated combination class", async () => {
+    const { fetchImpl } = rxnavFetch({
+      rxcui: { idGroup: { rxnormId: ["723"] } },
+      byRxcui: {
+        rxclassDrugInfoList: {
+          rxclassDrugInfo: [
+            {
+              minConcept: {
+                rxcui: "2262025",
+                name: "amoxicillin / omeprazole / rifabutin",
+                tty: "MIN",
+              },
+              rxclassMinConceptItem: {
+                className: "Combinations for eradication of Helicobacter pylori",
+              },
+            },
+            {
+              minConcept: { rxcui: "723", name: "amoxicillin", tty: "IN" },
+              rxclassMinConceptItem: {
+                className: "Penicillins with extended spectrum",
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const result = await normalizeDrug("amoxicillin", {
+      cache: freshCache(),
+      fetchImpl,
+    });
+
+    expect(result.name).toBe("amoxicillin");
+    expect(result.rxcui).toBe("723");
+    expect(result.drugClass).toBe("Penicillins with extended spectrum");
+  });
+
   test("abbreviation resolves (5-FU → fluorouracil)", async () => {
     const { fetchImpl } = rxnavFetch({
       rxcui: { idGroup: { rxnormId: ["4492"] } },

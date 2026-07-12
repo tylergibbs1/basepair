@@ -102,7 +102,7 @@ class RedisTerminologyCache implements TerminologyCache {
     const redis = getRedis();
     if (!redis) return this.fallback.get(key);
     try {
-      const hit = await redis.get<NormalizedDrug>(terminologyKey("rxcui", key));
+      const hit = await redis.get<NormalizedDrug>(terminologyKey("rxcui-v2", key));
       return hit ?? undefined;
     } catch {
       return this.fallback.get(key);
@@ -112,7 +112,7 @@ class RedisTerminologyCache implements TerminologyCache {
     const redis = getRedis();
     if (!redis) return this.fallback.set(key, value);
     try {
-      await redis.set(terminologyKey("rxcui", key), value, {
+      await redis.set(terminologyKey("rxcui-v2", key), value, {
         ex: DEFAULT_TERMINOLOGY_TTL_SECONDS,
       });
     } catch {
@@ -136,7 +136,7 @@ type RxcuiResponse = { idGroup?: { rxnormId?: string[] } };
 type RxClassResponse = {
   rxclassDrugInfoList?: {
     rxclassDrugInfo?: {
-      minConcept?: { rxcui?: string; name?: string };
+      minConcept?: { rxcui?: string; name?: string; tty?: string };
       rxclassMinConceptItem?: { className?: string };
     }[];
   };
@@ -166,7 +166,11 @@ async function resolveViaRxNav(
   );
   if (!classRes.ok) throw new Error(`byRxcui.json HTTP ${classRes.status}`);
   const classJson = (await classRes.json()) as RxClassResponse;
-  const info = classJson.rxclassDrugInfoList?.rxclassDrugInfo?.[0];
+  const infos = classJson.rxclassDrugInfoList?.rxclassDrugInfo ?? [];
+  const info =
+    infos.find((item) => item.minConcept?.rxcui === rxcui) ??
+    infos.find((item) => item.minConcept?.tty === "IN") ??
+    infos[0];
 
   // Prefer the ingredient RxNav normalized to (brand/product → ingredient), so
   // the CPIC lookup keys on the canonical name and code.

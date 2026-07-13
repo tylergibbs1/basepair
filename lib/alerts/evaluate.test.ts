@@ -16,6 +16,7 @@ import {
   drivingGeneConcordance,
   genePhenotypesForDecision,
   readGenetics,
+  type GeneReading,
 } from "./evaluate"
 import {
   buildGenotypeObservation,
@@ -117,6 +118,36 @@ describe("safe genetics selection", () => {
 
     expect(genePhenotypesForDecision("clopidogrel", readings)).toEqual({
       CYP2C19: "Poor Metabolizer",
+    })
+  })
+
+  test("multi-gene rule: a conflict on one gene escalates the whole combination to the most severe actionable interpretation", () => {
+    // Azathioprine is a two-gene (TPMT + NUDT15) rule. The baseline
+    // {TPMT: Normal, NUDT15: Normal} matches no rule, but the coded TPMT value
+    // disagrees with the diplotype-derived one. The combinatorial path must
+    // evaluate {TPMT: Poor, NUDT15: Normal} — the critical thiopurine rule — and
+    // keep it over the clear baseline.
+    const readings: GeneReading[] = [
+      {
+        gene: "TPMT",
+        diplotype: "*1/*1",
+        phenotype: "Normal Metabolizer",
+        derivedPhenotype: "Normal Metabolizer",
+        sourcePhenotype: "Poor Metabolizer",
+        phenotypeSource: "coded",
+      },
+      {
+        gene: "NUDT15",
+        diplotype: "*1/*1",
+        phenotype: "Normal Metabolizer",
+        derivedPhenotype: "Normal Metabolizer",
+        phenotypeSource: "derived-from-diplotype",
+      },
+    ]
+
+    expect(genePhenotypesForDecision("azathioprine", readings)).toEqual({
+      TPMT: "Poor Metabolizer",
+      NUDT15: "Normal Metabolizer",
     })
   })
 

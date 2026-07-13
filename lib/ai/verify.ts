@@ -44,7 +44,7 @@ import { z } from "zod";
 
 import { resolveModel, modelLabel } from "@/lib/ai/models";
 
-export const VerificationSchema = z.object({
+const VerificationSchema = z.object({
   citedSentence: z
     .string()
     .describe(
@@ -66,11 +66,11 @@ export const VerificationSchema = z.object({
       "one or two plain-language sentences explaining WHY the evidence does or does not justify the recommendation, written for a pharmacist",
     ),
 });
-export type Verification = z.infer<typeof VerificationSchema>;
+type Verification = z.infer<typeof VerificationSchema>;
 
-export type VerifiedResult = Verification & { model: string };
+type VerifiedResult = Verification & { model: string };
 
-export type VerifyInput = {
+type VerifyInput = {
   gene: string;
   diplotype: string;
   phenotype: string;

@@ -19,7 +19,7 @@ import { Redis } from "@upstash/redis"
 let client: Redis | null | undefined
 let warned = false
 
-export function isUpstashConfigured(): boolean {
+function isUpstashConfigured(): boolean {
   return Boolean(
     process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
   )

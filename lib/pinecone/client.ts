@@ -38,7 +38,7 @@ export const PINECONE_CONFIG = {
 let client: Pinecone | null | undefined
 let warned = false
 
-export function isPineconeConfigured(): boolean {
+function isPineconeConfigured(): boolean {
   return Boolean(process.env.PINECONE_API_KEY)
 }
 

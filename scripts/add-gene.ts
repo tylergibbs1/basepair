@@ -1,4 +1,4 @@
-import type { Patient, Reference, Observation } from "@medplum/fhirtypes";
+import type { Patient, Reference } from "@medplum/fhirtypes";
 import { createMedplumClient } from "../lib/medplum/client";
 import { buildGenotypeObservation, buildPhenotypeObservation } from "../lib/medplum/fhir";
 

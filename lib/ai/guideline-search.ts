@@ -25,7 +25,7 @@ import { getPinecone, PINECONE_CONFIG } from "@/lib/pinecone/client"
 
 const MIN_SCORE = Number(process.env.PINECONE_GUIDELINE_MIN_SCORE) || 0.5
 
-export type GuidelineHit = {
+type GuidelineHit = {
   /** The retrieved guideline passage (verbatim, from the record's text field). */
   text: string
   /** Rule key of the matched passage — the caller matches this to the current rule. */
@@ -37,7 +37,7 @@ export type GuidelineHit = {
   score: number
 }
 
-export type GuidelineQuery = {
+type GuidelineQuery = {
   drug: string
   gene: string
   phenotype: string
@@ -104,7 +104,7 @@ export async function searchGuideline(
   }
 }
 
-export type GuidelinePassage = {
+type GuidelinePassage = {
   text: string
   citation: string | null
   url: string | null

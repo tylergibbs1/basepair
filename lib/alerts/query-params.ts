@@ -8,17 +8,17 @@ import { sortAlerts, type Alert } from "@/lib/alerts/types"
 
 /** The three clinical severities a pharmacist can filter the queue by. Kept as a
  *  const tuple so it drives both the nuqs literal parser and the TS union. */
-export const SEVERITY_VALUES = ["critical", "caution", "info"] as const
+const SEVERITY_VALUES = ["critical", "caution", "info"] as const
 /** Columns the queue can sort on. `severity` is the default clinical ranking. */
-export const SORT_COLUMNS = ["severity", "patient", "drug", "fired"] as const
-export const SORT_DIRECTIONS = ["asc", "desc"] as const
+const SORT_COLUMNS = ["severity", "patient", "drug", "fired"] as const
+const SORT_DIRECTIONS = ["asc", "desc"] as const
 
 export type SeverityFilter = (typeof SEVERITY_VALUES)[number]
 export type SortColumn = (typeof SORT_COLUMNS)[number]
 export type SortDirection = (typeof SORT_DIRECTIONS)[number]
 
 /** The four URL-persisted filter values, resolved from search params. */
-export interface AlertFilterValues {
+interface AlertFilterValues {
   q: string
   severity: SeverityFilter[]
   sort: SortColumn

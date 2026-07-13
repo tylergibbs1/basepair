@@ -151,7 +151,7 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
 export const CHORD_WINDOW_MS = 1000
 
 /** Ordered groups for the cheatsheet, so the sheet's layout is deterministic. */
-export const SHORTCUT_GROUP_ORDER: readonly ShortcutGroup[] = [
+const SHORTCUT_GROUP_ORDER: readonly ShortcutGroup[] = [
   "General",
   "Go to",
   "Queue",

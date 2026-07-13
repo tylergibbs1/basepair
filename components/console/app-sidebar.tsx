@@ -94,7 +94,11 @@ export function AppSidebar() {
                         render={
                           <Link
                             href={item.href}
-                            aria-label={item.title}
+                            aria-label={
+                              item.title === "Alerts" && openCount > 0
+                                ? `${item.title}, ${openCount} open`
+                                : item.title
+                            }
                             aria-current={active ? "page" : undefined}
                           />
                         }

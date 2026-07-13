@@ -27,6 +27,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SeverityChip } from "@/components/ui/severity-chip"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { decisionProvenance, formatFiredAt } from "@/lib/alerts/types"
 import type { DecisionPath } from "@/lib/alerts/types"
 import type { AuditEntry } from "@/lib/alerts/audit"
@@ -111,16 +116,25 @@ function DecisionProvenance({ path }: { path?: DecisionPath }) {
   if (!path) return null
   const { label, anomaly } = decisionProvenance(path)
   return (
-    <span
-      title={PROVENANCE_TITLE[path]}
-      className={cn(
-        "inline-flex items-center gap-1 text-2xs",
-        anomaly ? "text-caution-fg" : "text-muted-foreground",
-      )}
-    >
-      <Bot aria-hidden className="size-3" />
-      {label}
-    </span>
+    <Tooltip>
+      <TooltipTrigger
+        // Focusable text (not a control) so the provenance explanation surfaces
+        // on hover and keyboard focus alike; base-ui wires the aria-describedby.
+        tabIndex={0}
+        render={
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-sm text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              anomaly ? "text-sev-caution-fg" : "text-muted-foreground",
+            )}
+          />
+        }
+      >
+        <Bot aria-hidden className="size-3" />
+        {label}
+      </TooltipTrigger>
+      <TooltipContent>{PROVENANCE_TITLE[path]}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -154,12 +168,25 @@ function Detail({ entry }: { entry: AuditEntry }) {
     return (
       <div className="flex flex-col items-start gap-1">
         <SeverityChip severity={entry.severity} />
-        <span
-          className="text-xs text-muted-foreground text-pretty"
-          title={note}
-        >
-          {note ? `${label}: ${note}` : label}
-        </span>
+        {note ? (
+          <Tooltip>
+            <TooltipTrigger
+              // Focusable note so the full override reason reads on hover and
+              // keyboard focus even when the line wraps or is truncated.
+              tabIndex={0}
+              render={
+                <span className="rounded-sm text-xs text-muted-foreground text-pretty outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background" />
+              }
+            >
+              {`${label}: ${note}`}
+            </TooltipTrigger>
+            <TooltipContent>{note}</TooltipContent>
+          </Tooltip>
+        ) : (
+          <span className="text-xs text-muted-foreground text-pretty">
+            {label}
+          </span>
+        )}
       </div>
     )
   }
@@ -227,7 +254,7 @@ function OutcomeToggle({
         // The after: pseudo stretches the 32px control to the 40px desktop hit
         // floor vertically only — neighbors sit gap-1.5 (6px) apart, so a
         // horizontal extension would overlap adjacent hit areas.
-        "relative after:absolute after:content-[''] after:inset-x-0 after:-inset-y-1 inline-flex h-8 items-center gap-1.5 rounded-sm border px-2.5 text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,transform] active:scale-[0.96] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "relative after:absolute after:content-[''] after:inset-x-0 after:-inset-y-1 inline-flex h-8 items-center gap-1.5 rounded-sm border px-2.5 text-sm font-medium whitespace-nowrap transition-[color,background-color,border-color,transform] active:scale-[0.96] motion-reduce:transition-none motion-reduce:active:scale-100 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         active
           ? activeClassName
           : "border-border bg-background text-muted-foreground hover:bg-hover hover:text-foreground"
@@ -288,7 +315,7 @@ function SortableHead({
         ) : (
           <ChevronsUpDown
             aria-hidden
-            className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover/sort:opacity-60"
+            className="size-3.5 text-muted-foreground opacity-0 transition-opacity motion-reduce:transition-none group-hover/sort:opacity-60"
           />
         )}
       </button>
@@ -352,6 +379,16 @@ export function AuditTable({ entries }: { entries: AuditEntry[] }) {
     () => applyAuditFilters(entries, filters),
     [entries, filters]
   )
+
+  // Give "/" a keyboard path on this route: the topbar fires a global
+  // `basepair:focus-search` (its own search is queue-only here), and the trail's
+  // search box answers it.
+  const searchInputRef = React.useRef<HTMLInputElement>(null)
+  React.useEffect(() => {
+    const focusSearch = () => searchInputRef.current?.focus()
+    window.addEventListener("basepair:focus-search", focusSearch)
+    return () => window.removeEventListener("basepair:focus-search", focusSearch)
+  }, [])
 
   const setQuery = React.useCallback(
     (next: string) => {
@@ -436,6 +473,7 @@ export function AuditTable({ entries }: { entries: AuditEntry[] }) {
             className="pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2 text-muted-foreground"
           />
           <Input
+            ref={searchInputRef}
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -494,7 +532,10 @@ export function AuditTable({ entries }: { entries: AuditEntry[] }) {
           </TableHeader>
           <TableBody>
             {filtered.map((entry) => (
-              <TableRow key={`${entry.kind}-${entry.id}`}>
+              <TableRow
+                key={`${entry.kind}-${entry.id}`}
+                className="motion-reduce:transition-none"
+              >
                 <TableCell>
                   <div className="grid gap-1">
                     <OutcomeChip entry={entry} />

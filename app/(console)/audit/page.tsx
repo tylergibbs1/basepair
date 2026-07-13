@@ -4,6 +4,11 @@ import { Inbox } from "lucide-react"
 import { AuditTable } from "@/components/console/audit-table"
 import { GovernanceWorkbench } from "@/components/console/governance-workbench"
 import { GovernanceRuleLink } from "@/components/console/governance-rule-link"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { getAuditEntries, getSignalStats } from "@/lib/alerts/audit"
 import { getGovernanceThresholds } from "@/lib/alerts/governance-config"
 import {
@@ -73,16 +78,26 @@ function GovernanceSummary({
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               {/* Link-back (issue #47): clicking a noisy rule filters the audit
-                  table below to that rule's rows via the free-text `q` param. */}
-              <GovernanceRuleLink
-                drug={item.metric.drug}
-                gene={item.metric.gene}
-                className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
-                title={`Show audit records for ${item.metric.drug}${item.metric.gene ? ` and ${item.metric.gene}` : ""}`}
-              >
-                {item.metric.drug}
-                {item.metric.gene ? ` · ${item.metric.gene}` : ""}
-              </GovernanceRuleLink>
+                  table below to that rule's rows via the free-text `q` param.
+                  The what-this-does hint moves from a native title to the
+                  keyboard-accessible Tooltip; the trigger wraps the link (its
+                  navigation is owned elsewhere) so the hint surfaces on hover
+                  and when the link takes keyboard focus. */}
+              <Tooltip>
+                <TooltipTrigger render={<span className="inline-flex" />}>
+                  <GovernanceRuleLink
+                    drug={item.metric.drug}
+                    gene={item.metric.gene}
+                    className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                  >
+                    {item.metric.drug}
+                    {item.metric.gene ? ` · ${item.metric.gene}` : ""}
+                  </GovernanceRuleLink>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {`Show audit records for ${item.metric.drug}${item.metric.gene ? ` and ${item.metric.gene}` : ""}`}
+                </TooltipContent>
+              </Tooltip>
               <span className="rounded-sm bg-background px-1.5 py-0.5 text-2xs text-muted-foreground">
                 {item.severity}
               </span>
@@ -162,7 +177,8 @@ export default async function AuditPage() {
             >
               {signalStats.falseAlarms}
             </span>{" "}
-            false {signalStats.falseAlarms === 1 ? "alarm" : "alarms"}.
+            false {signalStats.falseAlarms === 1 ? "alarm" : "alarms"} (target:
+            0).
           </p>
         )}
         {/* Enactment rate: of the alerts a pharmacist approved, how many closed

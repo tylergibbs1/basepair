@@ -13,6 +13,7 @@ import {
   SearchX,
 } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 import {
@@ -27,7 +28,11 @@ import { Button } from "@/components/ui/button"
 import { SeverityChip, severityActionVerb } from "@/components/ui/severity-chip"
 import { VerificationChip } from "@/components/ui/verification-chip"
 import { spring } from "@/lib/springs"
-import { formatFiredAt, type Alert } from "@/lib/alerts/types"
+import {
+  formatFiredAt,
+  formatFiredAtAbsolute,
+  type Alert,
+} from "@/lib/alerts/types"
 import type { SortColumn } from "@/lib/alerts/query-params"
 import { useAlerts } from "@/components/console/alerts-provider"
 import { useCommand } from "@/components/console/command-provider"
@@ -191,27 +196,29 @@ function AlertRow({
   return (
     <motion.tr
       layout
-      id={`alert-row-${alert.id}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: spring.moderate.exit }}
       transition={spring.moderate}
       data-slot="table-row"
-      tabIndex={0}
-      role="button"
-      aria-label={`${SEVERITY_LABEL[alert.severity]} alert${alert.foundBy === "sweep" ? ", found by population sweep" : ""}${alert.verification.verified ? "" : ", needs review: the AI verifier could not confirm it against the guideline"}: ${alert.drug} for ${alert.patientName}, ${alert.gene} ${alert.diplotype}${geneAffordance}. Open details.`}
-      onClick={() => router.push(href)}
-      onFocus={() => onFocusRow(alert.id)}
       onMouseEnter={() => router.prefetch(href)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault()
-          router.push(href)
-        }
-      }}
-      className="cursor-pointer border-b transition-colors hover:bg-hover active:bg-active focus-visible:bg-hover focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset outline-none [&:last-child]:border-0"
+      className="relative cursor-pointer border-b transition-colors hover:bg-hover active:bg-active has-[a:focus-visible]:bg-hover [&:last-child]:border-0"
     >
       <TableCell>
+        {/* The whole row is a real anchor: a <Link> stretched over the row (the
+            positioned <tr> is its containing block) so cmd/ctrl+click and
+            middle-click open the detail in a new tab and right-click "copy link"
+            works. Kept off the <tr> — a role=button there would detach the cells
+            from the row/column semantics the scope=col headers + aria-sort rely
+            on — so the tr stays an implicit row. The link carries the row's
+            accessible name and the focus ring; the j/k cursor targets it by id. */}
+        <Link
+          id={`alert-row-${alert.id}`}
+          href={href}
+          aria-label={`${SEVERITY_LABEL[alert.severity]} alert${alert.foundBy === "sweep" ? ", found by population sweep" : ""}${alert.verification.verified ? "" : ", needs review: the AI verifier could not confirm it against the guideline"}: ${alert.drug} for ${alert.patientName}, ${alert.gene} ${alert.diplotype}${geneAffordance}. Open details.`}
+          onFocus={() => onFocusRow(alert.id)}
+          className="absolute inset-0 z-10 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        />
         {/* Severity is the loud act-on status; the needs-review flag sits under
             it on its own (shield) axis so an unverified alert is unmistakable at
             a scan, not something the pharmacist only discovers on the detail
@@ -286,7 +293,15 @@ function AlertRow({
         className="text-muted-foreground tabular-nums"
         suppressHydrationWarning
       >
-        {formatFiredAt(alert.firedAt)}
+        {/* Relative time reads at a glance; the exact fired time is one hover
+            away. Raised above the row's stretched link so the native tooltip
+            surfaces (the overlay would otherwise swallow the hover). */}
+        <span
+          className="relative z-20"
+          title={formatFiredAtAbsolute(alert.firedAt)}
+        >
+          {formatFiredAt(alert.firedAt)}
+        </span>
       </TableCell>
       <TableCell className="w-8 pr-4 text-right">
         <ChevronRight

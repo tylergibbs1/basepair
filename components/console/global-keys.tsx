@@ -125,6 +125,7 @@ export function GlobalKeys() {
           event.preventDefault()
           if (match.id === "goto-alerts") router.push("/")
           else if (match.id === "goto-audit") router.push("/audit")
+          else if (match.id === "goto-coverage") router.push("/coverage")
           return
         }
         // No chord matched — fall through and treat this key on its own.
@@ -173,18 +174,22 @@ export function GlobalKeys() {
         fn(id)
       }
 
-      // General (any route).
-      if (key === "/") {
+      // General (any route). Behaviour derives from the registry — each branch
+      // matches the event against a binding rather than a hard-coded literal.
+      if (matchesBinding(event, getShortcut("search").binding)) {
         event.preventDefault()
-        cmd.focusSearch()
+        // Queue routes focus the topbar search in place; a route without it
+        // (e.g. /audit) gets a focus request its own search input listens for.
+        if (cmd.searchInputRef.current) cmd.focusSearch()
+        else window.dispatchEvent(new CustomEvent("basepair:focus-search"))
         return
       }
-      if (event.key === "?") {
+      if (matchesBinding(event, getShortcut("help").binding)) {
         event.preventDefault()
         cmd.setCheatsheetOpen(true)
         return
       }
-      if (key === "n") {
+      if (matchesBinding(event, getShortcut("new-order").binding)) {
         event.preventDefault()
         cmd.setNewOrderOpen(true)
         return
@@ -192,17 +197,17 @@ export function GlobalKeys() {
 
       // Queue scope.
       if (pathname === "/") {
-        if (key === "j") {
+        if (matchesBinding(event, getShortcut("queue-down").binding)) {
           event.preventDefault()
           moveCursor(1)
           return
         }
-        if (key === "k") {
+        if (matchesBinding(event, getShortcut("queue-up").binding)) {
           event.preventDefault()
           moveCursor(-1)
           return
         }
-        if (key === "enter") {
+        if (matchesBinding(event, getShortcut("queue-open").binding)) {
           const target = filteredAlerts.find((a) => a.id === cmd.cursorId)
           if (target) {
             event.preventDefault()
@@ -210,12 +215,12 @@ export function GlobalKeys() {
           }
           return
         }
-        if (key === "a") {
+        if (matchesBinding(event, getShortcut("approve").binding)) {
           event.preventDefault()
           actOnCursor(approve)
           return
         }
-        if (key === "x") {
+        if (matchesBinding(event, getShortcut("dismiss").binding)) {
           // Dismiss now requires a reason, so `x` can't complete it from the
           // queue. Open the alert, where the reason menu lives.
           const target = filteredAlerts.find((a) => a.id === cmd.cursorId)
@@ -236,13 +241,20 @@ export function GlobalKeys() {
         // still resolves in the URL, but its keys must not re-fire the mutation
         // (and a spurious toast) on a row that's already gone.
         if (!alerts.some((a) => a.id === id)) return
-        if (key === "a") {
+        if (matchesBinding(event, getShortcut("approve").binding)) {
           event.preventDefault()
           approve(id)
           router.push("/")
           return
         }
-        if (key === "x") {
+        if (matchesBinding(event, getShortcut("enact").binding)) {
+          // Open the enact confirm (the detail page listens for this event) so
+          // the pharmacist confirms patient identity before it writes outward.
+          event.preventDefault()
+          window.dispatchEvent(new CustomEvent("basepair:open-enact"))
+          return
+        }
+        if (matchesBinding(event, getShortcut("dismiss").binding)) {
           // Open the dismiss reason menu (the menu listens for this event) so
           // the pharmacist picks a reason rather than dismissing blind.
           event.preventDefault()

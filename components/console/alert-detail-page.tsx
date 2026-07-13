@@ -78,19 +78,18 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 /**
  * A compact patient-context band (issue #36): the clinical facts a pharmacist
- * checks before acting on a PGx alert — known allergies, renal function, body
- * weight, and how many PGx-relevant drugs are active. NEUTRAL chrome, never
- * clinical color (severity owns that). Each field renders only when Medplum
- * returned it, and the whole band is omitted when nothing is known. An explicit
- * FHIR "no known allergies" record (an empty `allergies` array) reads distinctly
- * from simply-absent allergy data (an omitted field).
+ * checks before acting on a PGx alert — known allergies, renal function, and
+ * body weight. NEUTRAL chrome, never clinical color (severity owns that). Each
+ * field renders only when Medplum returned it, and the whole band is omitted
+ * when nothing is known. An explicit FHIR "no known allergies" record (an empty
+ * `allergies` array) reads distinctly from simply-absent allergy data (an
+ * omitted field). The active-PGx-drug count lives in the facts rail, not here —
+ * carrying it in both places was redundant.
  */
 function PatientContextBand({
   context,
-  pgxDrugCount,
 }: {
   context?: PatientContext
-  pgxDrugCount: number
 }) {
   const items: React.ReactNode[] = []
 
@@ -121,16 +120,6 @@ function PatientContextBand({
       </Field>,
     )
   }
-  if (pgxDrugCount > 1) {
-    // The multi-drug complexity signal, reused here as the band's active-med
-    // fact (the rail still names it against the ordered drug).
-    items.push(
-      <Field key="meds" label="Active PGx drugs">
-        <span className="tabular-nums">{pgxDrugCount}</span>
-      </Field>,
-    )
-  }
-
   if (items.length === 0) return null
 
   return (
@@ -243,7 +232,7 @@ function LocalActionSummary({ plan }: { plan: LocalActionPlan }) {
             className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
           >
             <ClipboardCheck aria-hidden className="size-3.5" />
-            Local actionability
+            Local alternatives
           </h3>
           <p className="text-sm text-pretty text-foreground">
             {plan.rationale}
@@ -397,7 +386,9 @@ function HighlightedGuideline({
         {span}
       </mark>
       <Popover.Root>
-        <Popover.Trigger className="ml-1.5 inline-flex h-5 items-center gap-1 rounded-full bg-secondary px-2 align-[2px] text-xs text-muted-foreground transition-colors hover:bg-hover hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        {/* h-6 (24px) keeps the inline trigger at the minimum hit target; the
+            pill's own tight padding keeps its visual weight compact. */}
+        <Popover.Trigger className="ml-1.5 inline-flex h-6 items-center gap-1 rounded-full bg-secondary px-2 align-[2px] text-xs text-muted-foreground transition-colors hover:bg-hover hover:text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Sparkles aria-hidden className="size-3" />
           Why this sentence
         </Popover.Trigger>
@@ -596,6 +587,19 @@ export function AlertDetailPage({ id }: { id: string }) {
       : `Notify ${alert.orderedBy} of the recommendation for ${alert.drug}.`
     : ""
 
+  // Enact keyboard shortcut (contract: window "basepair:open-enact"): opens the
+  // same wrong-patient confirm the Enact button does, guarded by that button's
+  // own render condition (the alert is present and still in the queue). Open
+  // only — the dialog's Confirm stays non-autofocused, so nothing writes outward
+  // without a deliberate click.
+  const enactAvailable = Boolean(alert) && inQueue
+  React.useEffect(() => {
+    if (!enactAvailable) return
+    const open = () => setEnactOpen(true)
+    window.addEventListener("basepair:open-enact", open)
+    return () => window.removeEventListener("basepair:open-enact", open)
+  }, [enactAvailable])
+
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-6 lg:px-8">
       {/* Global ::view-transition CSS, rendered on both route roots (here and
@@ -706,10 +710,7 @@ export function AlertDetailPage({ id }: { id: string }) {
           {/* Patient-context band (#36): the clinical facts to check before
               acting, sat between identity and the decision surface. Neutral
               chrome; renders only what the chart returned. */}
-          <PatientContextBand
-            context={alert.patientContext}
-            pgxDrugCount={alert.pgxDrugCount}
-          />
+          <PatientContextBand context={alert.patientContext} />
           {localAction && <LocalActionSummary plan={localAction} />}
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
@@ -812,7 +813,13 @@ export function AlertDetailPage({ id }: { id: string }) {
                       return (
                         <cite className="mt-1.5 flex not-italic">
                           <Source href={sourceUrl}>
-                            <SourceTrigger label={sourceLabel} showFavicon />
+                            {/* h-6 lifts the inline source link to the 24px
+                              minimum hit target (overrides its h-5 default). */}
+                          <SourceTrigger
+                            label={sourceLabel}
+                            showFavicon
+                            className="h-6"
+                          />
                             <SourceContent
                               title={alert.citation}
                               description={`Open the cited guideline source on ${sourceLabel}.`}

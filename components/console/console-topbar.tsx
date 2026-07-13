@@ -50,7 +50,11 @@ export function ConsoleTopbar({
       </div>
       <div className="ml-auto flex items-center gap-2">
         {onQueue && (
-          <div className="relative w-full max-w-xs">
+          // A <label> wraps the field so the whole 40px-tall box focuses the
+          // input: the input keeps its 32px visual to match the topbar controls,
+          // while the label lifts the hit target to the 40px floor the severity
+          // toggles reach. Icon and Kbd center on the label.
+          <label className="relative flex h-10 w-full max-w-xs items-center">
             <Search
               aria-hidden
               className="pointer-events-none absolute top-1/2 start-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -71,7 +75,7 @@ export function ConsoleTopbar({
                 <Kbd>/</Kbd>
               </div>
             )}
-          </div>
+          </label>
         )}
         {/* Same jump-anywhere action reachable by click or ⌘K — the palette is a
             mirror of the console, not a hidden feature. The ⌘K kbd is the whole

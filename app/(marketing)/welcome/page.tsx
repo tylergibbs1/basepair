@@ -65,7 +65,7 @@ export default function WelcomePage() {
             <RevealItem className="mt-8 flex flex-wrap items-center gap-5">
               <Link
                 href="/"
-                className="group inline-flex h-11 items-center gap-2 rounded-md bg-navy px-5 text-sm font-medium text-white transition-[color,background-color,transform] hover:bg-navy-press active:scale-[0.96]"
+                className="group inline-flex h-11 items-center gap-2 rounded-md bg-navy px-5 text-sm font-medium text-white transition-[color,background-color,transform] hover:bg-navy-press active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy"
               >
                 Open the console
                 <span className="transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5">
@@ -74,13 +74,13 @@ export default function WelcomePage() {
               </Link>
               <Link
                 href="#how"
-                className="text-sm font-medium text-navy transition-colors hover:text-navy-press"
+                className="rounded-sm text-sm font-medium text-navy transition-colors hover:text-navy-press focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy"
               >
                 See how it works &rarr;
               </Link>
             </RevealItem>
           </RevealGroup>
-          <div className="order-first lg:order-none">
+          <div>
             <Image
               src={heroImage}
               alt=""
@@ -144,9 +144,6 @@ export default function WelcomePage() {
               <p className="mt-3 flex-1 text-base leading-relaxed text-muted-foreground text-pretty">
                 {step.body}
               </p>
-              <p className="mt-8 border-t border-border/70 pt-4 text-xs font-medium uppercase tracking-caps text-muted-foreground">
-                Step {step.n}
-              </p>
             </RevealItem>
           ))}
         </RevealGroup>
@@ -195,7 +192,7 @@ export default function WelcomePage() {
             </p>
             <Link
               href="/"
-              className="group mt-8 inline-flex h-11 items-center gap-2 rounded-md bg-white px-6 text-sm font-medium text-navy transition-[opacity,transform] hover:opacity-90 active:scale-[0.96]"
+              className="group mt-8 inline-flex h-11 items-center gap-2 rounded-md bg-white px-6 text-sm font-medium text-navy transition-[opacity,transform] hover:opacity-90 active:scale-[0.96] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               Open the console
               <span className="transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5">

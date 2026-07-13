@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Download } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -124,10 +125,12 @@ export function GovernanceExportButton({
     const link = document.createElement("a")
     link.href = url
     const date = new Date().toISOString().slice(0, 10)
-    link.download = `governance-summary-${date}.csv`
+    const filename = `governance-summary-${date}.csv`
+    link.download = filename
     link.click()
     // Release the object URL once the click has been dispatched.
     URL.revokeObjectURL(url)
+    toast.success(`Exported ${filename}`)
   }, [metrics, watchlist])
 
   return (

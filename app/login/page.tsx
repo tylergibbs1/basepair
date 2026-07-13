@@ -19,6 +19,14 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState("")
   const [submitting, setSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const emailRef = React.useRef<HTMLInputElement>(null)
+
+  // Land the cursor in the email field on load — this page's only purpose is to
+  // type credentials. Done programmatically rather than via autoFocus so it
+  // doesn't trip jsx-a11y/no-autofocus.
+  React.useEffect(() => {
+    emailRef.current?.focus()
+  }, [])
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -27,18 +35,34 @@ export default function LoginPage() {
     setSubmitting(true)
     setError(null)
 
-    const { error: signInError } = await signIn.email({ email, password })
+    try {
+      const { error: signInError } = await signIn.email({ email, password })
 
-    if (signInError) {
-      setError(signInError.message ?? "Invalid email or password")
+      if (signInError) {
+        // Only genuine auth/credential rejections get the credential copy.
+        // Network, server, and rate-limit failures get an honest fallback so
+        // we never blame the user for our own outage.
+        const isCredentialError =
+          signInError.status === 401 || signInError.status === 403
+        setError(
+          isCredentialError
+            ? "Invalid email or password"
+            : "Something went wrong on our end. Try again."
+        )
+        return
+      }
+
+      // Success — land on the console and refresh so the new session is picked
+      // up by the server components.
+      router.push("/")
+      router.refresh()
+    } catch {
+      // An unexpected throw (thrown fetch, aborted request) must never leave the
+      // button stuck on "Signing in…".
+      setError("Something went wrong on our end. Try again.")
+    } finally {
       setSubmitting(false)
-      return
     }
-
-    // Success — land on the console and refresh so the new session is picked up
-    // by the server components.
-    router.push("/")
-    router.refresh()
   }
 
   return (
@@ -57,6 +81,7 @@ export default function LoginPage() {
               Email
             </label>
             <Input
+              ref={emailRef}
               id="email"
               type="email"
               autoComplete="email"

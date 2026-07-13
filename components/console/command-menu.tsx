@@ -9,6 +9,7 @@ import {
   PillIcon,
   ScrollText,
   Search,
+  ShieldCheck,
 } from "lucide-react"
 
 import {
@@ -131,6 +132,16 @@ export function CommandMenu() {
                   Audit
                   <CommandShortcut>
                     <KbdGroup keys={getShortcut("goto-audit").keys} chord />
+                  </CommandShortcut>
+                </CommandItem>
+                <CommandItem
+                  keywords={["formulary", "insurance", "plan"]}
+                  onSelect={() => run(() => router.push("/coverage"))}
+                >
+                  <ShieldCheck aria-hidden />
+                  Coverage
+                  <CommandShortcut>
+                    <KbdGroup keys={getShortcut("goto-coverage").keys} chord />
                   </CommandShortcut>
                 </CommandItem>
               </CommandGroup>

@@ -15,12 +15,15 @@ export type ShortcutId =
   | "help"
   | "search"
   | "new-order"
+  | "toggle-sidebar"
   | "goto-alerts"
   | "goto-audit"
+  | "goto-coverage"
   | "queue-down"
   | "queue-up"
   | "queue-open"
   | "approve"
+  | "enact"
   | "dismiss"
 
 export type ShortcutGroup = "General" | "Go to" | "Queue" | "Alert"
@@ -90,6 +93,14 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     scope: "global",
   },
   {
+    id: "toggle-sidebar",
+    keys: [MOD_TOKEN, "B"],
+    binding: { key: "b", mod: true },
+    label: "Toggle sidebar",
+    group: "General",
+    scope: "global",
+  },
+  {
     id: "goto-alerts",
     keys: ["G", "A"],
     binding: { key: "a", chordPrefix: "g" },
@@ -102,6 +113,14 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     keys: ["G", "U"],
     binding: { key: "u", chordPrefix: "g" },
     label: "Go to Audit",
+    group: "Go to",
+    scope: "global",
+  },
+  {
+    id: "goto-coverage",
+    keys: ["G", "C"],
+    binding: { key: "c", chordPrefix: "g" },
+    label: "Go to Coverage",
     group: "Go to",
     scope: "global",
   },
@@ -134,6 +153,14 @@ export const SHORTCUTS: readonly ShortcutDef[] = [
     keys: ["A"],
     binding: { key: "a" },
     label: "Approve alert",
+    group: "Alert",
+    scope: "alert",
+  },
+  {
+    id: "enact",
+    keys: ["E"],
+    binding: { key: "e" },
+    label: "Enact recommendation",
     group: "Alert",
     scope: "alert",
   },

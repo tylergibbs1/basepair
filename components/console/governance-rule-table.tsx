@@ -16,11 +16,11 @@ import {
  * The link-back that makes every metric traceable (issue #47 acceptance: "Every
  * metric links back to underlying audit/provenance records"). A rule is
  * drug|gene|phenotype; the audit table's free-text `q` filter matches on drug,
- * so a Link that sets `?q=<drug>` narrows the table below to that rule's rows —
+ * so a link that sets `?q=<drug>` narrows the table below to that rule's rows —
  * one click from a noisy-rule number to the exact records behind it.
  *
- * href object form confirmed for the App Router in Context7's next/link docs
- * (v16.2.9; project is 16.2.6).
+ * GovernanceRuleLink is a client leaf that pushes the route via useRouter, so
+ * the jump is a client transition rather than a full document reload.
  */
 function RuleLink({ metric }: { metric: GovernanceRuleMetric }) {
   return (

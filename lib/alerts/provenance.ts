@@ -1,5 +1,12 @@
-import type { MedplumClient } from "@medplum/core";
-import type { Observation, Patient, Reference, Resource } from "@medplum/fhirtypes";
+import type { MedplumClient } from "@medplum/core"
+import type {
+  AuditEvent,
+  Observation,
+  Patient,
+  Provenance,
+  Reference,
+  Resource,
+} from "@medplum/fhirtypes"
 
 import {
   buildAuditEvent,
@@ -11,19 +18,18 @@ import {
   type AuditEntityInput,
   type AuditLifecycle,
   type ProvenanceEntityInput,
-} from "@/lib/medplum/fhir";
-import type { DecisionPath } from "@/lib/alerts/types";
+} from "@/lib/medplum/fhir"
+import type { DecisionPath } from "@/lib/alerts/types"
 import type {
   PhenotypeConcordanceVerdict,
   PhenotypeConcordanceSeverity,
-} from "@/lib/pgx/phenotype-concordance";
+} from "@/lib/pgx/phenotype-concordance"
 
 /**
  * FHIR-native provenance emission (issue #22). One call writes BOTH the
  * `AuditEvent` (action log) and the `Provenance` (reproduce-the-decision record)
- * for a single alert lifecycle transition, and NEVER throws: audit is a
- * side-channel, so a failed write here is logged but must not break the clinical
- * flow (never fail an approve because an AuditEvent write failed — issue #22).
+ * for a single alert lifecycle transition. The pair is written atomically and a
+ * failure is surfaced so Trigger.dev or the calling server action can retry it.
  *
  * The pure builders live in lib/medplum/fhir.ts (`buildAuditEvent` /
  * `buildProvenance`); this is the thin persistence seam the current synchronous
@@ -36,28 +42,28 @@ import type {
 export const PHARMACIST_AGENT: AuditAgentInput = {
   kind: "pharmacist",
   name: "Reviewing pharmacist",
-};
+}
 
 /** The unattended evaluation engine as an audit agent. */
 export const ENGINE_AGENT: AuditAgentInput = {
   kind: "system",
   name: "Basepair evaluation engine",
-};
+}
 
 export type AlertProvenanceContext = {
-  lifecycle: AuditLifecycle;
+  lifecycle: AuditLifecycle
   /** The recommendation resource(s) this activity produced or updated — the
    *  Provenance targets (DetectedIssue, Task, Communication, substitute order). */
-  targets: Reference<Resource>[];
+  targets: Reference<Resource>[]
   /** Who performed it (ENGINE_AGENT or PHARMACIST_AGENT). */
-  agent: AuditAgentInput;
-  patient?: Reference<Patient>;
+  agent: AuditAgentInput
+  patient?: Reference<Patient>
   /** (a) Source genotype Observation the recommendation was derived from. */
-  genotypeObservation?: Reference<Observation>;
+  genotypeObservation?: Reference<Observation>
   /** (b) Phenotype Observation derived from the genotype (its derivation path). */
-  phenotypeObservation?: Reference<Observation>;
+  phenotypeObservation?: Reference<Observation>
   /** How the phenotype was reached, e.g. "coded" | "derived-from-diplotype". */
-  phenotypeSource?: string;
+  phenotypeSource?: string
   /**
    * #46: when the lab reported a coded phenotype, the concordance between it and
    * the CPIC diplotype-derived phenotype. Recorded so the reproduce-the-decision
@@ -65,22 +71,22 @@ export type AlertProvenanceContext = {
    * plus the mismatch verdict — not just the one we used. Additive/optional.
    */
   phenotypeConcordance?: {
-    sourcePhenotype?: string;
-    derivedPhenotype?: string;
-    verdict: PhenotypeConcordanceVerdict;
-    severity: PhenotypeConcordanceSeverity;
-  };
+    sourcePhenotype?: string
+    derivedPhenotype?: string
+    verdict: PhenotypeConcordanceVerdict
+    severity: PhenotypeConcordanceSeverity
+  }
   /** (c) Matched CPIC rule citation. */
-  citation?: string;
+  citation?: string
   /** (d) Verifier verdict + the sentence it cited. */
-  verifierVerdict?: "pass" | "fail" | "unverified";
-  citedSentence?: string;
-  verifierModel?: string;
-  verifierRationale?: string;
+  verifierVerdict?: "pass" | "fail" | "unverified"
+  citedSentence?: string
+  verifierModel?: string
+  verifierRationale?: string
   /** How the CPIC decision was reached (agent loop vs deterministic backstop). */
-  decisionPath?: DecisionPath;
+  decisionPath?: DecisionPath
   /** Extra structured facts folded into the reproduce-record (drug, gene, …). */
-  extra?: Record<string, unknown>;
+  extra?: Record<string, unknown>
   /**
    * Skip the write if a Provenance for the same primary target already carries
    * this lifecycle. The evaluation path sets this: `evaluateAndWrite` is
@@ -88,8 +94,8 @@ export type AlertProvenanceContext = {
    * duplicate audit record. User actions (approve/dismiss/enact) leave it off —
    * an undo→redo producing a fresh entry is correct history.
    */
-  idempotent?: boolean;
-};
+  idempotent?: boolean
+}
 
 /**
  * Write the AuditEvent + Provenance for one transition. Returns the written ids
@@ -97,30 +103,30 @@ export type AlertProvenanceContext = {
  */
 export async function writeAlertProvenance(
   medplum: MedplumClient,
-  ctx: AlertProvenanceContext,
+  ctx: AlertProvenanceContext
 ): Promise<{ auditEventId?: string; provenanceId?: string }> {
   try {
-    const primaryTarget = ctx.targets[0]?.reference;
+    const primaryTarget = ctx.targets[0]?.reference
     if (ctx.idempotent && primaryTarget) {
       const existing = await medplum.searchResources("Provenance", {
         target: primaryTarget,
         _count: 20,
-      });
+      })
       if (existing.some((p) => provenanceLifecycle(p) === ctx.lifecycle)) {
-        return {};
+        return {}
       }
     }
 
     // --- AuditEvent entities: source Observations, the produced resources, and
     // a tagged key/value bag for the rule + verifier verdict + cited sentence.
-    const auditEntities: AuditEntityInput[] = [];
+    const auditEntities: AuditEntityInput[] = []
     if (ctx.genotypeObservation) {
       auditEntities.push({
         what: ctx.genotypeObservation,
         type: AUDIT_ENTITY_RESOURCE_TYPE,
         role: AUDIT_ENTITY_RESOURCE_ROLE,
         name: "Source genotype",
-      });
+      })
     }
     if (ctx.phenotypeObservation) {
       auditEntities.push({
@@ -128,59 +134,66 @@ export async function writeAlertProvenance(
         type: AUDIT_ENTITY_RESOURCE_TYPE,
         role: AUDIT_ENTITY_RESOURCE_ROLE,
         name: "Phenotype (derived)",
-      });
+      })
     }
     for (const target of ctx.targets) {
       auditEntities.push({
         what: target,
         type: AUDIT_ENTITY_RESOURCE_TYPE,
         role: AUDIT_ENTITY_RESOURCE_ROLE,
-      });
+      })
     }
-    const detail: { type: string; valueString: string }[] = [];
-    if (ctx.citation) detail.push({ type: "cpic-citation", valueString: ctx.citation });
+    const detail: { type: string; valueString: string }[] = []
+    if (ctx.citation)
+      detail.push({ type: "cpic-citation", valueString: ctx.citation })
     if (ctx.verifierVerdict)
-      detail.push({ type: "verifier-verdict", valueString: ctx.verifierVerdict });
+      detail.push({
+        type: "verifier-verdict",
+        valueString: ctx.verifierVerdict,
+      })
     if (ctx.citedSentence)
-      detail.push({ type: "cited-sentence", valueString: ctx.citedSentence });
+      detail.push({ type: "cited-sentence", valueString: ctx.citedSentence })
     if (ctx.phenotypeSource)
-      detail.push({ type: "phenotype-source", valueString: ctx.phenotypeSource });
+      detail.push({
+        type: "phenotype-source",
+        valueString: ctx.phenotypeSource,
+      })
     // #46: preserve both phenotype values + the mismatch verdict on the audit
     // trail, so a source-vs-derived conflict stays reproducible after the fact.
     if (ctx.phenotypeConcordance) {
-      const pc = ctx.phenotypeConcordance;
+      const pc = ctx.phenotypeConcordance
       if (pc.sourcePhenotype)
         detail.push({
           type: "phenotype-source-reported",
           valueString: pc.sourcePhenotype,
-        });
+        })
       if (pc.derivedPhenotype)
         detail.push({
           type: "phenotype-cpic-derived",
           valueString: pc.derivedPhenotype,
-        });
+        })
       detail.push({
         type: "phenotype-concordance-verdict",
         valueString: pc.verdict,
-      });
+      })
     }
     if (ctx.decisionPath)
-      detail.push({ type: "decision-path", valueString: ctx.decisionPath });
+      detail.push({ type: "decision-path", valueString: ctx.decisionPath })
     if (detail.length) {
       auditEntities.push({
         name: "PGx decision",
         description: "Matched CPIC rule and AI verifier verdict",
         detail,
-      });
+      })
     }
 
     // --- Provenance entities: the genotype Observation (source) and phenotype
     // Observation (derivation) the recommendation traces back to.
-    const provEntities: ProvenanceEntityInput[] = [];
+    const provEntities: ProvenanceEntityInput[] = []
     if (ctx.genotypeObservation)
-      provEntities.push({ role: "source", what: ctx.genotypeObservation });
+      provEntities.push({ role: "source", what: ctx.genotypeObservation })
     if (ctx.phenotypeObservation)
-      provEntities.push({ role: "derivation", what: ctx.phenotypeObservation });
+      provEntities.push({ role: "derivation", what: ctx.phenotypeObservation })
 
     // --- The reproduce-the-decision record carried on the Provenance extension.
     const record: Record<string, unknown> = {
@@ -189,7 +202,9 @@ export async function writeAlertProvenance(
       ...(ctx.citedSentence ? { citedSentence: ctx.citedSentence } : {}),
       ...(ctx.verifierVerdict ? { verifierVerdict: ctx.verifierVerdict } : {}),
       ...(ctx.verifierModel ? { verifierModel: ctx.verifierModel } : {}),
-      ...(ctx.verifierRationale ? { verifierRationale: ctx.verifierRationale } : {}),
+      ...(ctx.verifierRationale
+        ? { verifierRationale: ctx.verifierRationale }
+        : {}),
       ...(ctx.phenotypeSource ? { phenotypeSource: ctx.phenotypeSource } : {}),
       // #46: the reproduce-record keeps BOTH phenotypes + the verdict, plus a
       // note of the CPIC derivation used, so neither value is lost to the other.
@@ -203,34 +218,49 @@ export async function writeAlertProvenance(
         : {}),
       ...(ctx.decisionPath ? { decisionPath: ctx.decisionPath } : {}),
       ...ctx.extra,
-    };
+    }
 
-    const recorded = new Date().toISOString();
-    const [audit, prov] = await Promise.all([
-      medplum.createResource(
-        buildAuditEvent({
-          lifecycle: ctx.lifecycle,
-          agent: ctx.agent,
-          patient: ctx.patient,
-          entities: auditEntities,
-          recorded,
-        }),
-      ),
-      medplum.createResource(
-        buildProvenance({
-          lifecycle: ctx.lifecycle,
-          targets: ctx.targets,
-          agent: ctx.agent,
-          entities: provEntities,
-          record,
-          recorded,
-        }),
-      ),
-    ]);
-    return { auditEventId: audit.id, provenanceId: prov.id };
+    const recorded = new Date().toISOString()
+    const auditResource = buildAuditEvent({
+      lifecycle: ctx.lifecycle,
+      agent: ctx.agent,
+      patient: ctx.patient,
+      entities: auditEntities,
+      recorded,
+    })
+    const provenanceResource = buildProvenance({
+      lifecycle: ctx.lifecycle,
+      targets: ctx.targets,
+      agent: ctx.agent,
+      entities: provEntities,
+      record,
+      recorded,
+    })
+    // AuditEvent and Provenance are one logical record. A FHIR transaction makes
+    // the pair atomic: both commit or neither does, avoiding split audit trails.
+    const response = await medplum.executeBatch({
+      resourceType: "Bundle",
+      type: "transaction",
+      entry: [
+        {
+          resource: auditResource,
+          request: { method: "POST", url: "AuditEvent" },
+        },
+        {
+          resource: provenanceResource,
+          request: { method: "POST", url: "Provenance" },
+        },
+      ],
+    })
+    const audit = response.entry?.find(
+      (entry) => entry.resource?.resourceType === "AuditEvent"
+    )?.resource as AuditEvent | undefined
+    const prov = response.entry?.find(
+      (entry) => entry.resource?.resourceType === "Provenance"
+    )?.resource as Provenance | undefined
+    return { auditEventId: audit?.id, provenanceId: prov?.id }
   } catch (err) {
-    // Never break the clinical flow on an audit-write failure (issue #22).
-    console.error("writeAlertProvenance failed (non-fatal)", err);
-    return {};
+    console.error("writeAlertProvenance failed", err)
+    throw err
   }
 }

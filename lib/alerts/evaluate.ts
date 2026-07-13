@@ -4,31 +4,33 @@ import type {
   DetectedIssue,
   Task,
   Reference,
-} from "@medplum/fhirtypes";
-import type { MedplumClient } from "@medplum/core";
+} from "@medplum/fhirtypes"
+import type { MedplumClient } from "@medplum/core"
 
 import {
   resolvePhenotype,
   recommendedAlternative,
   genesForDrug,
+  lookupRule,
   ruleKey,
   type RecommendedAlternative,
-} from "@/lib/cpic-catalog";
+} from "@/lib/cpic-catalog"
 import {
   buildDetectedIssue,
   buildConsideredIssue,
   buildTask,
-} from "@/lib/medplum/fhir";
-import { writeAlertProvenance, ENGINE_AGENT } from "@/lib/alerts/provenance";
-import { citeAndVerify } from "@/lib/ai/verify";
-import { searchGuideline } from "@/lib/ai/guideline-search";
-import { decideWithAgent } from "@/lib/ai/evaluate-agent";
-import { normalizeDrug } from "@/lib/ai/parse/drug";
+  ORDER_ID_SYSTEM,
+} from "@/lib/medplum/fhir"
+import { writeAlertProvenance, ENGINE_AGENT } from "@/lib/alerts/provenance"
+import { citeAndVerify } from "@/lib/ai/verify"
+import { searchGuideline } from "@/lib/ai/guideline-search"
+import { decideWithAgent } from "@/lib/ai/evaluate-agent"
+import { normalizeDrug } from "@/lib/ai/parse/drug"
 import {
   assessPhenotypeConcordance,
   type PhenotypeConcordanceResult,
-} from "@/lib/pgx/phenotype-concordance";
-import type { DecisionPath } from "@/lib/alerts/types";
+} from "@/lib/pgx/phenotype-concordance"
+import type { DecisionPath } from "@/lib/alerts/types"
 
 /**
  * The shared evaluate-and-write core: given a patient + a single drug, read the
@@ -44,9 +46,6 @@ import type { DecisionPath } from "@/lib/alerts/types";
  * (e.g. TPMT + NUDT15 for thiopurines) resolve correctly.
  */
 
-/** Identifier system that keys an alert's resources to its source order/drug. */
-export const ORDER_ID_SYSTEM = "https://basepair.health/fhir/order-id";
-
 /**
  * Distinct identifier system for the considered-and-cleared DetectedIssue's
  * conditional-create key. It MUST differ from ORDER_ID_SYSTEM: both the cleared
@@ -59,7 +58,7 @@ export const ORDER_ID_SYSTEM = "https://basepair.health/fhir/order-id";
  * stays idempotent within itself.
  */
 export const ORDER_ID_CLEARED_SYSTEM =
-  "https://basepair.health/fhir/order-id-cleared";
+  "https://basepair.health/fhir/order-id-cleared"
 
 /**
  * How this evaluation was reached. Only the just-prescribed `order` path
@@ -67,7 +66,7 @@ export const ORDER_ID_CLEARED_SYSTEM =
  * historical `sweep` provenance off stored DetectedIssues, which is why the
  * foundBy/sweptAt fields survive in lib/medplum/fhir.ts.
  */
-export type EvalProvenance = { foundBy: "order"; orderedBy: string };
+export type EvalProvenance = { foundBy: "order"; orderedBy: string }
 
 /**
  * A single resolved finding streamed as the evaluation runs — the console
@@ -78,29 +77,23 @@ export type EvalProvenance = { foundBy: "order"; orderedBy: string };
  * is the one-line evidence.
  */
 export type EvalEvent = {
-  kind:
-    | "genetics"
-    | "phenotype"
-    | "drug"
-    | "cpic"
-    | "cross-check"
-    | "verify";
-  label: string;
-  detail: string;
+  kind: "genetics" | "phenotype" | "drug" | "cpic" | "cross-check" | "verify"
+  label: string
+  detail: string
   /**
    * Status color for the feed, set only where a finding IS a status: the
    * verify verdict, and a cross-check disagreement. Everything else renders
    * neutral — color is reserved for status (docs/DESIGN.md).
    */
-  tone?: "positive" | "caution";
+  tone?: "positive" | "caution"
   /**
    * Optional expandable detail beneath the finding — the concrete work behind
    * it, in plain language: the agent's tool calls + their results (from the
    * ai@7 trace), or the verifier's rationale. Never raw JSON; this is the
    * "what it actually did" transparency, kept human-readable (docs/DESIGN.md).
    */
-  substeps?: { label: string; detail?: string }[];
-};
+  substeps?: { label: string; detail?: string }[]
+}
 
 /**
  * Plain-language summary of one agent tool call for the live feed — reads the
@@ -108,14 +101,14 @@ export type EvalEvent = {
  * output shape is unexpected it degrades to just the friendly step label.
  */
 function describeAgentToolCall(c: {
-  name: string;
-  input: unknown;
-  output?: unknown;
+  name: string
+  input: unknown
+  output?: unknown
 }): { label: string; detail?: string } {
-  const out = (c.output ?? {}) as Record<string, unknown>;
+  const out = (c.output ?? {}) as Record<string, unknown>
   if (c.name === "cpicResolvePhenotype") {
-    const gene = typeof out.gene === "string" ? out.gene : "";
-    const phenotype = typeof out.phenotype === "string" ? out.phenotype : null;
+    const gene = typeof out.gene === "string" ? out.gene : ""
+    const phenotype = typeof out.phenotype === "string" ? out.phenotype : null
     return {
       label: "Confirmed the phenotype",
       detail: phenotype
@@ -123,23 +116,23 @@ function describeAgentToolCall(c: {
         : gene
           ? `${gene}: diplotype not in the CPIC table`
           : undefined,
-    };
+    }
   }
   if (c.name === "cpicLookupRule") {
     if (out.applies === true) {
-      const drug = typeof out.drug === "string" ? out.drug : "";
-      const severity = typeof out.severity === "string" ? out.severity : "";
+      const drug = typeof out.drug === "string" ? out.drug : ""
+      const severity = typeof out.severity === "string" ? out.severity : ""
       return {
         label: "Looked up the published CPIC rule",
         detail: [drug, severity].filter(Boolean).join(" · ") || undefined,
-      };
+      }
     }
     return {
       label: "Looked up the published CPIC rule",
       detail: "No applicable rule",
-    };
+    }
   }
-  return { label: c.name };
+  return { label: c.name }
 }
 
 export type EvaluateAndWriteInput = {
@@ -153,10 +146,10 @@ export type EvaluateAndWriteInput = {
    * tool ever needs FHIR access, give it a contextSchema and pass the client
    * via toolsContext at the generateText call instead of widening this shell.
    */
-  medplum: MedplumClient;
+  medplum: MedplumClient
   /** FHIR reference, e.g. "Patient/<id>". */
-  patientRef: string;
-  drug: string;
+  patientRef: string
+  drug: string
   /**
    * Stable id (the MedicationRequest.id) that keys the DetectedIssue + Task
    * writes idempotently via createResourceIfNoneExist, so a task retry or a
@@ -164,37 +157,37 @@ export type EvaluateAndWriteInput = {
    * patient-drug. Optional: direct/test triggers may omit it, in which case
    * the writes are plain creates.
    */
-  orderId?: string;
-  provenance: EvalProvenance;
+  orderId?: string
+  provenance: EvalProvenance
   /** Optional phase reporter, e.g. evaluate-order streams it as run metadata. */
-  onPhase?: (phase: string) => Promise<void> | void;
+  onPhase?: (phase: string) => Promise<void> | void
   /**
    * Optional per-finding reporter. evaluate-order appends each to the run
    * metadata so the console can stream a live "what Basepair found" feed. Emits
    * a completed fact at each stage; never affects the clinical result.
    */
-  onEvent?: (event: EvalEvent) => Promise<void> | void;
-};
+  onEvent?: (event: EvalEvent) => Promise<void> | void
+}
 
 /** Discriminated result: a flag (with its written resource ids) or a no-alert. */
 export type EvaluateResult =
   | {
-      alert: true;
-      gene: string;
-      diplotype: string;
-      phenotype: string;
-      genes: string[];
-      drug: string;
-      severity: "critical" | "caution" | "info";
-      recommendation: string;
-      recommendedAlternative?: RecommendedAlternative;
-      citation: string;
-      citedSentence: string;
-      verified: boolean;
-      verifierRationale: string;
-      verifierModel: string;
+      alert: true
+      gene: string
+      diplotype: string
+      phenotype: string
+      genes: string[]
+      drug: string
+      severity: "critical" | "caution" | "info"
+      recommendation: string
+      recommendedAlternative?: RecommendedAlternative
+      citation: string
+      citedSentence: string
+      verified: boolean
+      verifierRationale: string
+      verifierModel: string
       /** How the CPIC decision was reached (agent loop vs deterministic backstop). */
-      decisionPath: DecisionPath;
+      decisionPath: DecisionPath
       /**
        * #46: concordance between the lab-reported coded phenotype and the
        * CPIC-derived phenotype for the driving gene. Present ONLY when the lab
@@ -202,26 +195,35 @@ export type EvaluateResult =
        * absent when the phenotype was derived from the diplotype (nothing to
        * compare — we never fabricate a source).
        */
-      phenotypeConcordance?: PhenotypeConcordanceResult;
-      detectedIssueId?: string;
-      taskId?: string;
+      phenotypeConcordance?: PhenotypeConcordanceResult
+      detectedIssueId?: string
+      taskId?: string
     }
   | {
-      alert: false;
-      reason: string;
-      drug: string;
-      genePhenotypes?: Record<string, string>;
+      alert: false
+      reason: string
+      drug: string
+      genePhenotypes?: Record<string, string>
       /** Present once a CPIC decision was made; absent when there's no genotype. */
-      decisionPath?: DecisionPath;
-      detectedIssueId?: string;
-    };
+      decisionPath?: DecisionPath
+      detectedIssueId?: string
+    }
 
-type GeneReading = { gene: string; diplotype: string; phenotype: string };
+export type GeneReading = {
+  gene: string
+  diplotype: string
+  /** Phenotype selected for the decision. Derived is the baseline when available. */
+  phenotype: string
+  /** Literal phenotype reported by the lab, when present. */
+  sourcePhenotype?: string
+  /** Phenotype independently derived from the diplotype, when resolvable. */
+  derivedPhenotype?: string
+  phenotypeSource: "coded" | "derived-from-diplotype"
+}
 
 const geneOf = (o: Observation): string | undefined =>
-  o.component
-    ?.find((c) => c.code?.coding?.some((x) => x.code === "48018-6"))
-    ?.valueCodeableConcept?.coding?.[0]?.display;
+  o.component?.find((c) => c.code?.coding?.some((x) => x.code === "48018-6"))
+    ?.valueCodeableConcept?.coding?.[0]?.display
 
 /**
  * The genotype + phenotype Observation references for a gene, for FHIR-native
@@ -231,31 +233,42 @@ const geneOf = (o: Observation): string | undefined =>
  */
 function sourceObservations(
   obs: Observation[],
-  gene: string,
+  gene: string
 ): {
-  genotype?: Reference<Observation>;
-  phenotype?: Reference<Observation>;
-  phenotypeSource: "coded" | "derived-from-diplotype";
+  genotype?: Reference<Observation>
+  phenotype?: Reference<Observation>
+  phenotypeSource: "coded" | "derived-from-diplotype"
 } {
-  let genotype: Reference<Observation> | undefined;
-  let phenotype: Reference<Observation> | undefined;
+  let genotype: Reference<Observation> | undefined
+  let phenotype: Reference<Observation> | undefined
+  let genotypeObservation: Observation | undefined
+  let phenotypeObservation: Observation | undefined
   for (const o of obs) {
-    if (!o.id) continue;
-    const codes = o.code?.coding?.map((c) => c.code) ?? [];
+    if (!o.id) continue
+    if (o.status && !ACCEPTED_OBSERVATION_STATUSES.has(o.status)) continue
+    const codes = o.code?.coding?.map((c) => c.code) ?? []
     if (
       codes.includes("84413-4") &&
       (o.valueCodeableConcept?.text ?? "").startsWith(`${gene} `)
     ) {
-      genotype = { reference: `Observation/${o.id}` };
+      const selected = newerObservation(genotypeObservation, o)
+      if (selected === o) {
+        genotypeObservation = o
+        genotype = { reference: `Observation/${o.id}` }
+      }
     } else if (codes.includes("53040-2") && geneOf(o) === gene) {
-      phenotype = { reference: `Observation/${o.id}` };
+      const selected = newerObservation(phenotypeObservation, o)
+      if (selected === o) {
+        phenotypeObservation = o
+        phenotype = { reference: `Observation/${o.id}` }
+      }
     }
   }
   return {
     genotype,
     phenotype,
     phenotypeSource: phenotype ? "coded" : "derived-from-diplotype",
-  };
+  }
 }
 
 /**
@@ -263,12 +276,37 @@ function sourceObservations(
  * Phenotype comes from a coded phenotype Observation (LOINC 53040-2) when
  * present, else it's resolved from the diplotype via the CPIC diplotype table.
  */
+const ACCEPTED_OBSERVATION_STATUSES = new Set(["final", "amended", "corrected"])
+
+function observationTime(o: Observation): number {
+  const raw = o.effectiveDateTime ?? o.issued ?? o.meta?.lastUpdated
+  const parsed = raw ? Date.parse(raw) : Number.NaN
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
+function newerObservation(
+  a: Observation | undefined,
+  b: Observation
+): Observation {
+  if (!a) return b
+  const byTime = observationTime(b) - observationTime(a)
+  if (byTime !== 0) return byTime > 0 ? b : a
+  return (b.id ?? "").localeCompare(a.id ?? "") > 0 ? b : a
+}
+
 export function readGenetics(obs: Observation[]): GeneReading[] {
-  const diplotypeByGene: Record<string, string> = {};
-  const phenotypeByGene: Record<string, string> = {};
+  const genotypeByGene = new Map<
+    string,
+    { observation: Observation; diplotype: string }
+  >()
+  const phenotypeByGene = new Map<
+    string,
+    { observation: Observation; phenotype: string }
+  >()
 
   for (const o of obs) {
-    const codes = o.code?.coding?.map((c) => c.code) ?? [];
+    if (o.status && !ACCEPTED_OBSERVATION_STATUSES.has(o.status)) continue
+    const codes = o.code?.coding?.map((c) => c.code) ?? []
     if (codes.includes("84413-4")) {
       // Genotype: valueCodeableConcept.text = "CYP2C19 *2/*2". Widened for the
       // PharmCAT ingest path (lib/pharmcat) to be more tolerant WITHOUT changing
@@ -280,40 +318,117 @@ export function readGenetics(obs: Observation[]): GeneReading[] {
       // Split off the gene (first whitespace-delimited token), squeeze all
       // whitespace out of the remaining diplotype, then drop a redundant
       // gene-symbol prefix on each allele.
-      const text = (o.valueCodeableConcept?.text ?? "").trim();
-      const sp = text.indexOf(" ");
+      const text = (o.valueCodeableConcept?.text ?? "").trim()
+      const sp = text.indexOf(" ")
       if (sp > 0) {
-        const gene = text.slice(0, sp);
+        const gene = text.slice(0, sp)
         const dip = text
           .slice(sp + 1)
           .replace(/\s+/g, "")
           .split("/")
           .map((a) => (a.startsWith(gene) ? a.slice(gene.length) : a))
-          .join("/");
-        if (gene && dip) diplotypeByGene[gene] = dip;
+          .join("/")
+        if (gene && dip) {
+          const current = genotypeByGene.get(gene)
+          const selected = newerObservation(current?.observation, o)
+          if (selected === o)
+            genotypeByGene.set(gene, { observation: o, diplotype: dip })
+        }
       }
     } else if (codes.includes("53040-2")) {
       // Phenotype: gene from the gene-studied component, value = phenotype.
-      const gene = geneOf(o);
+      const gene = geneOf(o)
       const pheno =
         o.valueCodeableConcept?.text ??
-        o.valueCodeableConcept?.coding?.[0]?.display;
-      if (gene && pheno) phenotypeByGene[gene] = pheno;
+        o.valueCodeableConcept?.coding?.[0]?.display
+      if (gene && pheno) {
+        const current = phenotypeByGene.get(gene)
+        const selected = newerObservation(current?.observation, o)
+        if (selected === o)
+          phenotypeByGene.set(gene, { observation: o, phenotype: pheno })
+      }
     }
   }
 
-  const genes = new Set([
-    ...Object.keys(diplotypeByGene),
-    ...Object.keys(phenotypeByGene),
-  ]);
-  const readings: GeneReading[] = [];
+  const genes = new Set([...genotypeByGene.keys(), ...phenotypeByGene.keys()])
+  const readings: GeneReading[] = []
   for (const gene of genes) {
-    const diplotype = diplotypeByGene[gene] ?? "";
-    const phenotype =
-      phenotypeByGene[gene] ?? resolvePhenotype(gene, diplotype) ?? "";
-    if (phenotype) readings.push({ gene, diplotype, phenotype });
+    const diplotype = genotypeByGene.get(gene)?.diplotype ?? ""
+    const sourcePhenotype = phenotypeByGene.get(gene)?.phenotype
+    const derivedPhenotype = diplotype
+      ? (resolvePhenotype(gene, diplotype) ?? undefined)
+      : undefined
+    // The diplotype-derived value is the baseline because it is independently
+    // reproducible from the authoritative allele table. The decision selector
+    // below still evaluates the coded alternative and keeps any more-severe rule.
+    const phenotype = derivedPhenotype ?? sourcePhenotype ?? ""
+    if (phenotype) {
+      readings.push({
+        gene,
+        diplotype,
+        phenotype,
+        sourcePhenotype,
+        derivedPhenotype,
+        phenotypeSource: sourcePhenotype ? "coded" : "derived-from-diplotype",
+      })
+    }
   }
-  return readings;
+  return readings
+}
+
+const DECISION_SEVERITY = { critical: 0, caution: 1, info: 2 } as const
+
+/**
+ * Build the phenotype map used by the rule engine. When coded and independently
+ * derived phenotypes conflict, evaluate every relevant combination and retain
+ * the most severe actionable interpretation. A conflict can therefore escalate
+ * to pharmacist review, but can never turn an actionable diplotype into a clear.
+ */
+export function genePhenotypesForDecision(
+  drug: string,
+  readings: GeneReading[]
+): Record<string, string> {
+  const baseline = Object.fromEntries(
+    readings.map((r) => [r.gene, r.phenotype])
+  )
+  const relevant = new Set(genesForDrug(drug))
+  const variants = readings
+    .filter((r) => relevant.has(r.gene))
+    .map((r) => ({
+      gene: r.gene,
+      values: [
+        ...new Set(
+          [r.derivedPhenotype, r.sourcePhenotype, r.phenotype].filter(
+            (value): value is string => Boolean(value)
+          )
+        ),
+      ],
+    }))
+
+  let candidates: Record<string, string>[] = [baseline]
+  for (const variant of variants) {
+    candidates = candidates.flatMap((candidate) =>
+      variant.values.map((value) => ({ ...candidate, [variant.gene]: value }))
+    )
+    if (candidates.length > 256) {
+      throw new Error(
+        "Too many conflicting PGx phenotype combinations to evaluate safely."
+      )
+    }
+  }
+
+  let selected = baseline
+  let selectedRank = Number.POSITIVE_INFINITY
+  for (const candidate of candidates) {
+    const result = lookupRule({ drug, genePhenotypes: candidate })
+    if (!result.applies) continue
+    const rank = DECISION_SEVERITY[result.severity]
+    if (rank < selectedRank) {
+      selected = candidate
+      selectedRank = rank
+    }
+  }
+  return selected
 }
 
 /**
@@ -326,41 +441,41 @@ export function readGenetics(obs: Observation[]): GeneReading[] {
  * fabricate one. Pure so the wiring is unit-testable without Medplum I/O.
  */
 export function drivingGeneConcordance(input: {
-  gene: string;
-  diplotype: string;
+  gene: string
+  diplotype: string
   /** The phenotype used for the driving gene — the lab's coded text when
    *  phenotypeSource is "coded", which is exactly the source to compare. */
-  phenotype: string;
-  phenotypeSource: "coded" | "derived-from-diplotype";
+  phenotype: string
+  phenotypeSource: "coded" | "derived-from-diplotype"
   /** The CPIC-normalized drug the rule keyed on, so the assessor can decide
    *  whether a mismatch actually changes the recommendation. */
-  drug: string;
+  drug: string
 }): PhenotypeConcordanceResult | undefined {
-  if (input.phenotypeSource !== "coded") return undefined;
+  if (input.phenotypeSource !== "coded") return undefined
   return assessPhenotypeConcordance({
     gene: input.gene,
     diplotype: input.diplotype,
     sourcePhenotype: input.phenotype,
     drug: input.drug,
-  });
+  })
 }
 
 /** The gene actually driving the alert, the abnormal one, not a co-tested normal gene. */
 export function primaryGene(
   genes: string[],
-  readings: GeneReading[],
+  readings: GeneReading[]
 ): GeneReading {
-  const isNormal = (p: string) => /normal|indeterminate/i.test(p);
-  const inRule = readings.filter((r) => genes.includes(r.gene));
-  const abnormal = inRule.filter((r) => !isNormal(r.phenotype));
+  const isNormal = (p: string) => /normal|indeterminate/i.test(p)
+  const inRule = readings.filter((r) => genes.includes(r.gene))
+  const abnormal = inRule.filter((r) => !isNormal(r.phenotype))
   const poorFirst = abnormal.sort((a, b) =>
     /poor|no function/i.test(b.phenotype)
       ? 1
       : /poor|no function/i.test(a.phenotype)
         ? -1
-        : 0,
-  );
-  return poorFirst[0] ?? inRule[0] ?? readings[0];
+        : 0
+  )
+  return poorFirst[0] ?? inRule[0] ?? readings[0]
 }
 
 /**
@@ -372,13 +487,14 @@ export function primaryGene(
  */
 function relevantReading(
   readings: GeneReading[],
-  relevantGenes: string[],
+  relevantGenes: string[]
 ): GeneReading | undefined {
-  const present = readings.filter((r) => relevantGenes.includes(r.gene));
-  if (present.length === 0) return undefined;
+  const present = readings.filter((r) => relevantGenes.includes(r.gene))
+  if (present.length === 0) return undefined
   return (
-    present.find((r) => !/normal|indeterminate/i.test(r.phenotype)) ?? present[0]
-  );
+    present.find((r) => !/normal|indeterminate/i.test(r.phenotype)) ??
+    present[0]
+  )
 }
 
 /**
@@ -388,34 +504,36 @@ function relevantReading(
  * the existing resource instead of duplicating the alert.
  */
 export async function evaluateAndWrite(
-  input: EvaluateAndWriteInput,
+  input: EvaluateAndWriteInput
 ): Promise<EvaluateResult> {
-  const { medplum, patientRef, drug, orderId, provenance } = input;
-  const emit = (event: EvalEvent) => input.onEvent?.(event);
+  const { medplum, patientRef, drug, orderId, provenance } = input
+  const emit = (event: EvalEvent) => input.onEvent?.(event)
 
-  await input.onPhase?.("reading-genetics");
+  await input.onPhase?.("reading-genetics")
 
   const observations = await medplum.searchResources(
     "Observation",
-    `subject=${patientRef}`,
-  );
+    `subject=${patientRef}`
+  )
 
-  const readings = readGenetics(observations);
+  const readings = readGenetics(observations)
   if (readings.length === 0) {
-    return { alert: false, reason: "no genotype on file", drug };
+    return { alert: false, reason: "no genotype on file", drug }
   }
 
-  const genePhenotypes: Record<string, string> = {};
-  for (const r of readings) genePhenotypes[r.gene] = r.phenotype;
-
-  await input.onPhase?.("normalizing-drug");
+  await input.onPhase?.("normalizing-drug")
   // Resolve the raw order string to a canonical RxNorm identifier + ATC class
   // via the NLM RxNorm/RxClass API, so the CPIC lookup keys on a normalized
   // name (brand → ingredient, e.g. "Plavix" → "clopidogrel") rather than the
   // messy order text. normalizeDrug never throws: on any RxNav outage it degrades
   // to the offline static alias map + raw string, so the evaluation continues.
-  const normalized = await normalizeDrug(drug);
-  const lookupDrug = normalized.name;
+  const normalized = await normalizeDrug(drug)
+  const lookupDrug = normalized.name
+  const genePhenotypes = genePhenotypesForDecision(lookupDrug, readings)
+  const decisionReadings = readings.map((reading) => ({
+    ...reading,
+    phenotype: genePhenotypes[reading.gene] ?? reading.phenotype,
+  }))
 
   // Feed findings must be about the gene THIS drug keys on, not the patient's
   // most-abnormal gene, which may be unrelated (e.g. SLCO1B1 for a clopidogrel
@@ -423,30 +541,30 @@ export async function evaluateAndWrite(
   // reading; when the drug's gene isn't on the chart, say so instead of
   // surfacing an unrelated abnormal gene. Done after normalize so we know the
   // canonical drug the catalog keys on.
-  const drugGenes = genesForDrug(lookupDrug);
-  const forDrug = relevantReading(readings, drugGenes);
+  const drugGenes = genesForDrug(lookupDrug)
+  const forDrug = relevantReading(decisionReadings, drugGenes)
   if (forDrug) {
     await emit({
       kind: "genetics",
       label: "Read genetics",
       detail: `${forDrug.gene} ${forDrug.diplotype}`.trim(),
-    });
+    })
     await emit({
       kind: "phenotype",
       label: "Phenotype",
       detail: forDrug.phenotype,
-    });
+    })
   } else if (drugGenes.length > 0) {
     await emit({
       kind: "genetics",
       label: "Read genetics",
       detail: `${drugGenes.join(", ")} not on file`,
-    });
+    })
     await emit({
       kind: "phenotype",
       label: "Phenotype",
       detail: "The gene this drug depends on was not tested",
-    });
+    })
   }
 
   // Authoritative-only drug resolution (RxNav or a curated alias). An unresolved
@@ -458,7 +576,7 @@ export async function evaluateAndWrite(
       label: "Couldn't identify the drug",
       detail: `"${drug}" isn't a recognized medication — not checked against the guidelines`,
       tone: "caution",
-    });
+    })
   } else {
     await emit({
       kind: "drug",
@@ -475,22 +593,26 @@ export async function evaluateAndWrite(
           detail: normalized.drugClass ?? undefined,
         },
       ],
-    });
+    })
   }
 
-  await input.onPhase?.("matching-cpic");
+  await input.onPhase?.("matching-cpic")
   // The CPIC decision is the deterministic engine's (`lookupRule`); the agent
   // loop over cpicTools runs alongside only as an advisory cross-check and the
   // observability trace. `path` records whether the agent agreed with the engine
   // (surfaced in the Audit view); the engine's rule is what ships. Keyed on the
   // RxNorm-normalized name; lookupRule still applies the alias map internally.
-  const decision = await decideWithAgent(lookupDrug, readings, genePhenotypes);
-  const rule = decision.rule;
+  const decision = await decideWithAgent(
+    lookupDrug,
+    decisionReadings,
+    genePhenotypes
+  )
+  const rule = decision.rule
   await emit({
     kind: "cpic",
     label: rule.applies ? "Matched CPIC guidance" : "CPIC guidance",
     detail: rule.applies ? rule.recommendation : "No applicable rule",
-  });
+  })
   await emit({
     kind: "cross-check",
     label: "Double-checked the match",
@@ -507,25 +629,23 @@ export async function evaluateAndWrite(
     ...(decision.toolCalls.length > 0
       ? { substeps: decision.toolCalls.map(describeAgentToolCall) }
       : {}),
-  });
+  })
 
-  const patient: Reference<Patient> = { reference: patientRef };
+  const patient: Reference<Patient> = { reference: patientRef }
   const orderTag = orderId
     ? [{ system: ORDER_ID_SYSTEM, value: orderId }]
-    : undefined;
-  const orderQuery = orderId
-    ? `identifier=${ORDER_ID_SYSTEM}|${orderId}`
-    : null;
+    : undefined
+  const orderQuery = orderId ? `identifier=${ORDER_ID_SYSTEM}|${orderId}` : null
   // Cleared records live under their own identifier system so their
   // conditional-create query can never alias the flagged write's (see
   // ORDER_ID_CLEARED_SYSTEM). Used for BOTH the cleared conditional-create query
   // and the cleared resource's identifier.
   const clearedTag = orderId
     ? [{ system: ORDER_ID_CLEARED_SYSTEM, value: orderId }]
-    : undefined;
+    : undefined
   const clearedQuery = orderId
     ? `identifier=${ORDER_ID_CLEARED_SYSTEM}|${orderId}`
-    : null;
+    : null
 
   if (!rule.applies) {
     // Considered-and-cleared: a lightweight, Task-less DetectedIssue so the
@@ -539,10 +659,10 @@ export async function evaluateAndWrite(
         decisionPath: decision.path,
       }),
       ...(clearedTag ? { identifier: clearedTag } : {}),
-    };
+    }
     const clearedIssue = clearedQuery
       ? await medplum.createResourceIfNoneExist(clearedResource, clearedQuery)
-      : await medplum.createResource(clearedResource);
+      : await medplum.createResource(clearedResource)
 
     // FHIR-native provenance for the considered-and-cleared decision (#22).
     // Best-effort: never blocks the clinical result.
@@ -554,7 +674,7 @@ export async function evaluateAndWrite(
       decisionPath: decision.path,
       extra: { drug, reason: rule.reason, genePhenotypes },
       idempotent: true,
-    });
+    })
 
     return {
       alert: false,
@@ -563,20 +683,20 @@ export async function evaluateAndWrite(
       drug,
       decisionPath: decision.path,
       detectedIssueId: clearedIssue.id,
-    };
+    }
   }
 
-  const primary = primaryGene(rule.genes, readings);
+  const primary = primaryGene(rule.genes, decisionReadings)
 
   // Every gene the rule keyed on, in rule order, with the reading we have for
   // each — the full contributing set the console renders (driving gene
   // emphasized). A co-tested normal gene stays in here as context.
   const contributingGenes = rule.genes
-    .map((g) => readings.find((r) => r.gene === g))
+    .map((g) => decisionReadings.find((r) => r.gene === g))
     .filter((r): r is GeneReading => r !== undefined)
-    .map(({ gene, diplotype, phenotype }) => ({ gene, diplotype, phenotype }));
+    .map(({ gene, diplotype, phenotype }) => ({ gene, diplotype, phenotype }))
 
-  await input.onPhase?.("verifying");
+  await input.onPhase?.("verifying")
   // Guideline vector search (#28): retrieve a citable passage for this rule from
   // the Pinecone guideline corpus. We only adopt it as the citation source when
   // it belongs to the SAME rule (ruleKey match) — that keeps the verifier's
@@ -588,13 +708,13 @@ export async function evaluateAndWrite(
   const retrieved = await searchGuideline({
     drug: rule.drug,
     gene: primary.gene,
-    phenotype: primary.phenotype,
+    phenotype: primary.sourcePhenotype ?? primary.phenotype,
     recommendation: rule.recommendation,
-  });
+  })
   const guidelineText =
     retrieved && retrieved.ruleKey === ruleKey(rule)
       ? retrieved.text
-      : rule.guidelineText;
+      : rule.guidelineText
 
   // AI trust gate: the deterministic engine already made the call; the model
   // picks the verbatim supporting sentence (from the full guidelineText) and
@@ -614,14 +734,14 @@ export async function evaluateAndWrite(
     guidelineText,
     evidenceText: rule.implications,
   }).catch((err) => {
-    console.error("citeAndVerify failed; emitting unverified alert", err);
-    return null;
-  });
+    console.error("citeAndVerify failed; emitting unverified alert", err)
+    return null
+  })
 
   const citedSentence =
     verification?.citedSentence?.trim() ||
     guidelineText.match(/^[^.]*\./)?.[0]?.trim() ||
-    guidelineText;
+    guidelineText
   await emit({
     kind: "verify",
     label:
@@ -646,16 +766,21 @@ export async function evaluateAndWrite(
           ],
         }
       : {}),
-  });
+  })
 
-  const src = sourceObservations(observations, primary.gene);
+  const src = sourceObservations(observations, primary.gene)
   const phenotypeConcordance = drivingGeneConcordance({
     gene: primary.gene,
     diplotype: primary.diplotype,
-    phenotype: primary.phenotype,
+    // The lab's CODED phenotype is the independent source to compare against the
+    // diplotype-derived one. `primary.phenotype` is the decision phenotype
+    // (derived-preferred, possibly overridden by the severity selector), so
+    // passing it would compare the derived value against itself and always match.
+    // Mirrors the searchGuideline call above.
+    phenotype: primary.sourcePhenotype ?? primary.phenotype,
     phenotypeSource: src.phenotypeSource,
     drug: rule.drug,
-  });
+  })
 
   // Write the alert as a DetectedIssue + a pharmacist Task. Both writes are
   // idempotent on the order id (when present): a retry that re-enters here
@@ -684,21 +809,21 @@ export async function evaluateAndWrite(
       decisionPath: decision.path,
     }),
     ...(orderTag ? { identifier: orderTag } : {}),
-  };
+  }
   const detectedIssue = orderQuery
     ? await medplum.createResourceIfNoneExist(issueResource, orderQuery)
-    : await medplum.createResource(issueResource);
+    : await medplum.createResource(issueResource)
 
   const issueRef: Reference<DetectedIssue> = {
     reference: `DetectedIssue/${detectedIssue.id}`,
-  };
+  }
   const taskResource: Task = {
     ...buildTask(patient, issueRef, rule.drug, new Date().toISOString()),
     ...(orderTag ? { identifier: orderTag } : {}),
-  };
+  }
   const pharmacistTask = orderQuery
     ? await medplum.createResourceIfNoneExist(taskResource, orderQuery)
-    : await medplum.createResource(taskResource);
+    : await medplum.createResource(taskResource)
 
   // A flag now stands for this order. If an earlier order-time evaluation wrote
   // a considered-and-cleared DetectedIssue for the same order (under the
@@ -711,15 +836,15 @@ export async function evaluateAndWrite(
   if (clearedQuery) {
     const staleCleared = await medplum.searchResources(
       "DetectedIssue",
-      clearedQuery,
-    );
+      clearedQuery
+    )
     await Promise.all(
       staleCleared
         .filter((c) => c.status !== "entered-in-error")
         .map((c) =>
-          medplum.updateResource({ ...c, status: "entered-in-error" }),
-        ),
-    );
+          medplum.updateResource({ ...c, status: "entered-in-error" })
+        )
+    )
   }
 
   // FHIR-native provenance for the flag (#22): links the recommendation
@@ -766,7 +891,7 @@ export async function evaluateAndWrite(
       foundBy: provenance.foundBy,
     },
     idempotent: true,
-  });
+  })
 
   return {
     alert: true,
@@ -787,5 +912,5 @@ export async function evaluateAndWrite(
     phenotypeConcordance,
     detectedIssueId: detectedIssue.id,
     taskId: pharmacistTask.id,
-  };
+  }
 }

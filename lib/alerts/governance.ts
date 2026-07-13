@@ -94,7 +94,7 @@ function isAgentAnomaly(entry: AuditEntry): boolean {
 
 function mostRecentFirst(
   a: { lastActivityAt: string; key: string },
-  b: { lastActivityAt: string; key: string },
+  b: { lastActivityAt: string; key: string }
 ): number {
   const byActivity = Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt)
   if (byActivity !== 0) return byActivity
@@ -108,7 +108,10 @@ function mostRecentFirst(
  * rather than clamping keeps a garbage row out of the median entirely, so the
  * metric degrades gracefully instead of reporting a fake "0" or a wild outlier.
  */
-function entryDurationMs(from: string | undefined, to: string): number | undefined {
+function entryDurationMs(
+  from: string | undefined,
+  to: string
+): number | undefined {
   if (!from) return undefined
   const start = Date.parse(from)
   const end = Date.parse(to)
@@ -178,7 +181,9 @@ export function formatDuration(ms: number): string {
  * timestamp; enact counts only enacted approvals. Callers pass the already
  * date-filtered entries so the medians scope to the selected window.
  */
-export function buildDurationStats(entries: AuditEntry[]): OutcomeDurationStats {
+export function buildDurationStats(
+  entries: AuditEntry[]
+): OutcomeDurationStats {
   const reviewSamples: number[] = []
   const enactSamples: number[] = []
   for (const entry of entries) {
@@ -193,7 +198,7 @@ export function buildDurationStats(entries: AuditEntry[]): OutcomeDurationStats 
 }
 
 export function buildGovernanceMetrics(
-  entries: AuditEntry[],
+  entries: AuditEntry[]
 ): GovernanceRuleMetric[] {
   const metrics = new Map<string, GovernanceRuleMetric>()
   // #45: per-rule triage-duration samples, collected alongside the counts and
@@ -271,7 +276,7 @@ export function buildGovernanceMetrics(
     metric.dismissed += 1
     if (entry.dismissReason?.kind === "override") {
       metric.overrides += 1
-    } else {
+    } else if (entry.dismissReason?.kind !== "system") {
       metric.falseAlarms += 1
     }
   }
@@ -306,7 +311,7 @@ export type InterruptionSplit = {
 
 /** Prescriber-interruption vs pharmacist-only split for a single rule. */
 export function ruleInterruptionSplit(
-  metric: GovernanceRuleMetric,
+  metric: GovernanceRuleMetric
 ): InterruptionSplit {
   return {
     prescriberInterruptions: metric.enacted,
@@ -317,7 +322,7 @@ export function ruleInterruptionSplit(
 
 /** Overall prescriber-interruption vs pharmacist-only split across all rules. */
 export function aggregateInterruptionSplit(
-  metrics: GovernanceRuleMetric[],
+  metrics: GovernanceRuleMetric[]
 ): InterruptionSplit {
   return metrics.reduce<InterruptionSplit>(
     (acc, metric) => {
@@ -326,13 +331,13 @@ export function aggregateInterruptionSplit(
       acc.pharmacistOnly += split.pharmacistOnly
       return acc
     },
-    { prescriberInterruptions: 0, pharmacistOnly: 0 },
+    { prescriberInterruptions: 0, pharmacistOnly: 0 }
   )
 }
 
 export function buildNoisyRuleWatchlist(
   metrics: GovernanceRuleMetric[],
-  options: GovernanceWatchlistOptions = {},
+  options: GovernanceWatchlistOptions = {}
 ): GovernanceWatchlistItem[] {
   const minReviewed = options.minReviewed ?? DEFAULT_MIN_REVIEWED
   const falseAlarmRateThreshold =
@@ -351,7 +356,7 @@ export function buildNoisyRuleWatchlist(
         const falseAlarmRate = metric.falseAlarms / reviewed
         if (falseAlarmRate >= falseAlarmRateThreshold) {
           reasons.push(
-            `High false-alarm rate (${metric.falseAlarms}/${reviewed})`,
+            `High false-alarm rate (${metric.falseAlarms}/${reviewed})`
           )
         }
 

@@ -20,7 +20,7 @@
 /** FHIR coding system for the dismiss reason (Task.statusReason). */
 export const DISMISS_REASON_SYSTEM = "https://basepair.health/dismiss-reason"
 
-export type DismissReasonKind = "false-alarm" | "override"
+export type DismissReasonKind = "false-alarm" | "override" | "system"
 
 export type DismissReason = {
   code: string
@@ -42,15 +42,32 @@ export const DISMISS_REASONS: DismissReason[] = [
     label: "Prescriber aware, benefit outweighs risk",
     kind: "override",
   },
-  { code: "already-adjusted", label: "Therapy already adjusted", kind: "override" },
-  { code: "disputed", label: "Phenotype or result disputed", kind: "false-alarm" },
+  {
+    code: "already-adjusted",
+    label: "Therapy already adjusted",
+    kind: "override",
+  },
+  {
+    code: "disputed",
+    label: "Phenotype or result disputed",
+    kind: "false-alarm",
+  },
   { code: "duplicate", label: "Duplicate alert", kind: "false-alarm" },
   { code: "other", label: "Other", kind: "override", requiresNote: true },
 ]
+
+/** Machine-authored terminal reason; never offered as a pharmacist choice. */
+export const REVIEW_TIMEOUT_REASON: DismissReason = {
+  code: "review-timeout",
+  label: "Review window expired",
+  kind: "system",
+}
 
 /** Look a reason up by code. `undefined` for an unknown/legacy code — callers
  *  decide the conservative fallback (e.g. the metric reads a codeless dismissal
  *  as a false alarm). */
 export function dismissReasonByCode(code: string): DismissReason | undefined {
-  return DISMISS_REASONS.find((r) => r.code === code)
+  return [...DISMISS_REASONS, REVIEW_TIMEOUT_REASON].find(
+    (r) => r.code === code
+  )
 }

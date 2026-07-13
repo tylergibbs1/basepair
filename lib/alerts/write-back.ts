@@ -1,27 +1,32 @@
-import type { MedplumClient } from "@medplum/core";
+import type { MedplumClient } from "@medplum/core"
 import type {
   Communication,
   DetectedIssue,
   Reference,
   Resource,
   Task,
-} from "@medplum/fhirtypes";
+} from "@medplum/fhirtypes"
 
 import {
   buildCommunication,
   COMMUNICATION_ORDER_SYSTEM,
   ORDER_ID_SYSTEM,
   WAIT_TOKEN_SYSTEM,
-} from "@/lib/medplum/fhir";
-import type { AuditAgentInput, AuditLifecycle } from "@/lib/medplum/fhir";
-import { parsePgxAlert, isCleared } from "@/lib/alerts/pgx";
-import { formatDose } from "@/lib/format/dose";
+} from "@/lib/medplum/fhir"
+import type { AuditAgentInput, AuditLifecycle } from "@/lib/medplum/fhir"
+import { parsePgxAlert, isCleared, isEnacted } from "@/lib/alerts/pgx"
+import { formatDose } from "@/lib/format/dose"
+import { ifMatch } from "@/lib/medplum/concurrency"
+import {
+  DISMISS_REASON_SYSTEM,
+  REVIEW_TIMEOUT_REASON,
+} from "@/lib/alerts/dismiss-reasons"
 import {
   writeAlertProvenance,
   PHARMACIST_AGENT,
   ENGINE_AGENT,
   type AlertProvenanceContext,
-} from "@/lib/alerts/provenance";
+} from "@/lib/alerts/provenance"
 
 /**
  * Resume-side write-back for the durable HITL approval loop (issue #21).
@@ -53,10 +58,12 @@ import {
  * receives from `wait.forToken<ApprovalDecision>`.
  */
 export type ApprovalDecision = {
-  approved: boolean;
-  /** Display name of the pharmacist who acted (best-effort until real auth). */
-  actor?: string;
-};
+  approved: boolean
+  /** Display name of the authenticated pharmacist who acted. */
+  actor: string
+  /** Task version persisted before the token was completed. */
+  taskVersion: string
+}
 
 /**
  * The order id an alert's Task is keyed on (the source MedicationRequest id).
@@ -67,14 +74,14 @@ export type ApprovalDecision = {
  */
 export function orderKeyOf(task: Task): string {
   const orderId = task.identifier?.find(
-    (i) => i.system === ORDER_ID_SYSTEM,
-  )?.value;
-  return orderId ?? task.id ?? "";
+    (i) => i.system === ORDER_ID_SYSTEM
+  )?.value
+  return orderId ?? task.id ?? ""
 }
 
 /** The Trigger.dev wait-token id stamped on the Task, if the durable path created one. */
 export function findWaitTokenId(task: Task): string | undefined {
-  return task.identifier?.find((i) => i.system === WAIT_TOKEN_SYSTEM)?.value;
+  return task.identifier?.find((i) => i.system === WAIT_TOKEN_SYSTEM)?.value
 }
 
 /**
@@ -86,15 +93,16 @@ export function findWaitTokenId(task: Task): string | undefined {
 export async function stampWaitToken(
   medplum: MedplumClient,
   taskId: string,
-  tokenId: string,
-): Promise<void> {
-  const task = await medplum.readResource("Task", taskId);
-  if (findWaitTokenId(task) === tokenId) return;
+  tokenId: string
+): Promise<Task> {
+  const task = await medplum.readResource("Task", taskId)
+  if (task.status === "completed" || task.status === "cancelled") return task
+  if (findWaitTokenId(task) === tokenId) return task
   const identifier = [
     ...(task.identifier ?? []).filter((i) => i.system !== WAIT_TOKEN_SYSTEM),
     { system: WAIT_TOKEN_SYSTEM, value: tokenId },
-  ];
-  await medplum.updateResource({ ...task, identifier });
+  ]
+  return medplum.updateResource({ ...task, identifier }, ifMatch(task))
 }
 
 /**
@@ -107,32 +115,67 @@ export async function stampWaitToken(
  * the Task, the resume converges instead of overwriting.
  */
 export async function writeBackDecision(input: {
-  medplum: MedplumClient;
-  taskId: string;
-  decision: ApprovalDecision;
+  medplum: MedplumClient
+  taskId: string
+  decision: ApprovalDecision
 }): Promise<void> {
-  const { medplum, taskId, decision } = input;
-  const task = await medplum.readResource("Task", taskId);
+  const { medplum, taskId, decision } = input
+  const task = await medplum.readResource("Task", taskId)
+  const expectedStatus = decision.approved ? "completed" : "cancelled"
+  if (
+    task.status !== expectedStatus ||
+    task.meta?.versionId !== decision.taskVersion
+  ) {
+    // The decision was undone or superseded after token completion. A resumed
+    // task must never overwrite the newer human-authored state.
+    return
+  }
+  // Enactment already wrote its Communication/substitute order and its own
+  // versioned "enact" provenance before completing the token.
+  if (decision.approved && isEnacted(task)) return
 
   if (decision.approved) {
-    const commRef = await writeApprovalCommunication(medplum, task);
-    if (task.status === "requested") {
-      await medplum.updateResource({ ...task, status: "completed" });
+    const commRef = await writeApprovalCommunication(medplum, task)
+    // Close the read→write race with Undo: if the Task changed while the
+    // Communication was being created, retract that Communication immediately.
+    const latest = await medplum.readResource("Task", taskId)
+    if (
+      latest.status !== "completed" ||
+      latest.meta?.versionId !== decision.taskVersion
+    ) {
+      if (commRef?.reference) {
+        const communication = (await medplum.readReference(
+          commRef
+        )) as Communication
+        if (communication.status !== "entered-in-error") {
+          await medplum.updateResource(
+            { ...communication, status: "entered-in-error" },
+            ifMatch(communication)
+          )
+        }
+      }
+      return
     }
     // Issue #22: emit AuditEvent + Provenance from the durable run (mirrors the
     // synchronous recordTriageProvenance in lib/alerts/actions.ts). The approval
     // was a pharmacist decision; targets are the Task, its focus DetectedIssue,
     // and the prescriber Communication written above.
-    await recordResumeProvenance(medplum, task, "approve", PHARMACIST_AGENT, {
-      extraTargets: commRef ? [commRef] : [],
-    });
+    await recordResumeProvenance(
+      medplum,
+      task,
+      "approve",
+      { ...PHARMACIST_AGENT, name: decision.actor },
+      {
+        extraTargets: commRef ? [commRef] : [],
+      }
+    )
   } else {
-    if (task.status === "requested") {
-      await medplum.updateResource({ ...task, status: "cancelled" });
-    }
     // Issue #22: a pharmacist rejection. Targets are the Task and its focus
     // DetectedIssue (no Communication is written on the rejected branch).
-    await recordResumeProvenance(medplum, task, "dismiss", PHARMACIST_AGENT);
+    await recordResumeProvenance(medplum, task, "dismiss", {
+      ...PHARMACIST_AGENT,
+      name: decision.actor,
+    })
   }
 }
 
@@ -144,22 +187,37 @@ export async function writeBackDecision(input: {
  * never claw back a decision.
  */
 export async function writeBackTimeout(input: {
-  medplum: MedplumClient;
-  taskId: string;
+  medplum: MedplumClient
+  taskId: string
 }): Promise<boolean> {
-  const { medplum, taskId } = input;
-  const task = await medplum.readResource("Task", taskId);
-  if (task.status !== "requested") return false;
-  await medplum.updateResource({ ...task, status: "cancelled" });
+  const { medplum, taskId } = input
+  const task = await medplum.readResource("Task", taskId)
+  if (task.status !== "requested") return false
+  const savedTask = await medplum.updateResource(
+    {
+      ...task,
+      status: "cancelled",
+      statusReason: {
+        coding: [
+          {
+            system: DISMISS_REASON_SYSTEM,
+            code: REVIEW_TIMEOUT_REASON.code,
+            display: REVIEW_TIMEOUT_REASON.label,
+          },
+        ],
+      },
+    },
+    ifMatch(task)
+  )
   // Issue #22: emit AuditEvent + Provenance for the timeout cancellation. This
   // is a system action (the waitpoint expired unattended), so the agent is the
   // ENGINE_AGENT. The AuditLifecycle union has no "timeout" member, so the
   // closest-matching terminal transition — "dismiss" — is used; the timeout
   // origin is recorded in the reproduce-record via `extra`.
-  await recordResumeProvenance(medplum, task, "dismiss", ENGINE_AGENT, {
+  await recordResumeProvenance(medplum, savedTask, "dismiss", ENGINE_AGENT, {
     extra: { timeout: true },
-  });
-  return true;
+  })
+  return true
 }
 
 /**
@@ -171,17 +229,17 @@ export async function writeBackTimeout(input: {
  */
 async function writeApprovalCommunication(
   medplum: MedplumClient,
-  task: Task,
+  task: Task
 ): Promise<Reference<Communication> | undefined> {
-  const issueRef = task.focus as Reference<DetectedIssue> | undefined;
-  if (!issueRef?.reference) return undefined;
-  const issue = (await medplum.readReference(issueRef)) as DetectedIssue;
-  const pgx = parsePgxAlert(issue);
-  if (!pgx || isCleared(pgx)) return undefined;
-  const patient = issue.patient;
-  if (!patient) return undefined;
+  const issueRef = task.focus as Reference<DetectedIssue> | undefined
+  if (!issueRef?.reference) return undefined
+  const issue = (await medplum.readReference(issueRef)) as DetectedIssue
+  const pgx = parsePgxAlert(issue)
+  if (!pgx || isCleared(pgx)) return undefined
+  const patient = issue.patient
+  if (!patient) return undefined
 
-  const key = orderKeyOf(task);
+  const key = orderKeyOf(task)
   const communication: Communication = {
     ...buildCommunication(
       patient,
@@ -193,18 +251,18 @@ async function writeApprovalCommunication(
         recommendation: formatDose(pgx.recommendation),
         orderedBy: pgx.orderedBy,
         action: `Recommendation approved for ${pgx.drug}`,
-      },
+      }
     ),
     identifier: [{ system: COMMUNICATION_ORDER_SYSTEM, value: key }],
-  };
+  }
   const saved = await medplum.createResourceIfNoneExist(
     communication,
-    `identifier=${COMMUNICATION_ORDER_SYSTEM}|${key}`,
-  );
+    `identifier=${COMMUNICATION_ORDER_SYSTEM}|${key}`
+  )
   if (saved.status !== "completed") {
-    await medplum.updateResource({ ...saved, status: "completed" });
+    await medplum.updateResource({ ...saved, status: "completed" })
   }
-  return saved.id ? { reference: `Communication/${saved.id}` } : undefined;
+  return saved.id ? { reference: `Communication/${saved.id}` } : undefined
 }
 
 /**
@@ -225,47 +283,49 @@ async function recordResumeProvenance(
   lifecycle: AuditLifecycle,
   agent: AuditAgentInput,
   opts: {
-    extraTargets?: Reference<Resource>[];
-    extra?: Record<string, unknown>;
-  } = {},
+    extraTargets?: Reference<Resource>[]
+    extra?: Record<string, unknown>
+  } = {}
 ): Promise<void> {
-  try {
-    const ctx: AlertProvenanceContext = {
-      lifecycle,
-      agent,
-      targets: [
-        { reference: `Task/${task.id}` },
-        ...(task.focus?.reference ? [{ reference: task.focus.reference }] : []),
-        ...(opts.extraTargets ?? []),
-      ],
-    };
-    const issueRef = task.focus as Reference<DetectedIssue> | undefined;
-    if (issueRef?.reference) {
-      const issue = (await medplum.readReference(issueRef)) as DetectedIssue;
-      ctx.patient = issue.patient;
-      const pgx = parsePgxAlert(issue);
-      if (pgx && !isCleared(pgx)) {
-        ctx.citation = pgx.citation;
-        ctx.citedSentence = pgx.citedSentence;
-        ctx.verifierVerdict = pgx.verified ? "pass" : "fail";
-        ctx.verifierModel = pgx.verifierModel;
-        ctx.verifierRationale = pgx.verifierRationale;
-        ctx.decisionPath = pgx.decisionPath;
-        ctx.extra = {
-          drug: pgx.drug,
-          gene: pgx.gene,
-          phenotype: pgx.phenotype,
-          severity: pgx.severity,
-          ...opts.extra,
-        };
-      } else if (opts.extra) {
-        ctx.extra = { ...opts.extra };
+  const taskRef = `Task/${task.id}`
+  const versionedTaskRef = task.meta?.versionId
+    ? `${taskRef}/_history/${task.meta.versionId}`
+    : taskRef
+  const ctx: AlertProvenanceContext = {
+    lifecycle,
+    agent,
+    targets: [
+      { reference: versionedTaskRef },
+      ...(versionedTaskRef === taskRef ? [] : [{ reference: taskRef }]),
+      ...(task.focus?.reference ? [{ reference: task.focus.reference }] : []),
+      ...(opts.extraTargets ?? []),
+    ],
+    idempotent: true,
+  }
+  const issueRef = task.focus as Reference<DetectedIssue> | undefined
+  if (issueRef?.reference) {
+    const issue = (await medplum.readReference(issueRef)) as DetectedIssue
+    ctx.patient = issue.patient
+    const pgx = parsePgxAlert(issue)
+    if (pgx && !isCleared(pgx)) {
+      ctx.citation = pgx.citation
+      ctx.citedSentence = pgx.citedSentence
+      ctx.verifierVerdict = pgx.verified ? "pass" : "fail"
+      ctx.verifierModel = pgx.verifierModel
+      ctx.verifierRationale = pgx.verifierRationale
+      ctx.decisionPath = pgx.decisionPath
+      ctx.extra = {
+        drug: pgx.drug,
+        gene: pgx.gene,
+        phenotype: pgx.phenotype,
+        severity: pgx.severity,
+        ...opts.extra,
       }
     } else if (opts.extra) {
-      ctx.extra = { ...opts.extra };
+      ctx.extra = { ...opts.extra }
     }
-    await writeAlertProvenance(medplum, ctx);
-  } catch (err) {
-    console.error("recordResumeProvenance failed (non-fatal)", err);
+  } else if (opts.extra) {
+    ctx.extra = { ...opts.extra }
   }
+  await writeAlertProvenance(medplum, ctx)
 }

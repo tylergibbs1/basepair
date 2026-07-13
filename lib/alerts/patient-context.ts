@@ -1,8 +1,6 @@
 "use server"
 
-import { headers } from "next/headers"
-
-import { auth } from "@/lib/auth"
+import { requireConsolePrincipal } from "@/lib/authz"
 import { createMedplumClient } from "@/lib/medplum/client"
 import { makePatientContextReader } from "@/lib/alerts/from-medplum"
 import type { DialogPatientContext, PatientContext } from "@/lib/alerts/types"
@@ -22,10 +20,12 @@ export async function getPatientContext(
   // Reads patient PHI, so it guards the session before the try (an unauthorized
   // caller throws, rather than degrading to an empty context). Server actions are
   // public endpoints; the (console) layout guards pages, not direct action calls.
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) throw new Error("Unauthorized")
+  const principal = await requireConsolePrincipal()
+  if (!/^Patient\/[A-Za-z0-9.-]+$/.test(patientRef)) {
+    throw new Error("Invalid patient reference.")
+  }
   try {
-    const medplum = await createMedplumClient()
+    const medplum = await createMedplumClient(principal.tenantId)
 
     const context = await makePatientContextReader(medplum)({
       reference: patientRef,

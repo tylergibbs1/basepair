@@ -13,6 +13,7 @@ import {
   type GovernanceWatchlistItem,
 } from "@/lib/alerts/governance"
 import { cn } from "@/lib/utils"
+import { requireConsolePrincipal } from "@/lib/authz"
 
 export const metadata: Metadata = {
   title: "Audit, Basepair",
@@ -34,7 +35,7 @@ function EmptyState() {
         <p className="text-sm font-medium text-foreground">
           No audit records yet
         </p>
-        <p className="max-w-xs text-sm text-muted-foreground text-pretty">
+        <p className="max-w-xs text-sm text-pretty text-muted-foreground">
           As orders are evaluated, every considered-and-cleared order and every
           triage decision is recorded here.
         </p>
@@ -50,7 +51,7 @@ function GovernanceSummary({
 }) {
   if (watchlist.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground text-pretty">
+      <p className="text-sm text-pretty text-muted-foreground">
         No noisy-rule pattern has crossed the governance thresholds.
       </p>
     )
@@ -100,10 +101,11 @@ function GovernanceSummary({
 // ones it clears. Server component, reads the trail from Medplum on each render;
 // the filter bar + sortable table live in the client <AuditTable>.
 export default async function AuditPage() {
+  const principal = await requireConsolePrincipal()
   const [entries, signalStats, governanceThresholds] = await Promise.all([
-    getAuditEntries(),
-    getSignalStats(),
-    getGovernanceThresholds(),
+    getAuditEntries(principal.tenantId),
+    getSignalStats(principal.tenantId),
+    getGovernanceThresholds(principal.tenantId),
   ])
   // Context7's nearest Next.js App Router docs (v16.2.9; project is 16.2.6)
   // confirm deriving serializable server data in an async page before rendering
@@ -111,7 +113,7 @@ export default async function AuditPage() {
   const governanceMetrics = buildGovernanceMetrics(entries)
   const watchlist = buildNoisyRuleWatchlist(
     governanceMetrics,
-    governanceThresholds,
+    governanceThresholds
   )
   // Prescriber-interruption vs pharmacist-only split (issue #47): enacted
   // approvals reached the prescriber; everything else the pharmacist resolved
@@ -128,7 +130,7 @@ export default async function AuditPage() {
           split all read as "X of N" sentences, so the whole header is one calm
           voice. */}
       <div className="flex flex-col gap-5 border-b border-border px-4 py-5">
-        <p className="text-sm text-muted-foreground text-pretty">
+        <p className="text-sm text-pretty text-muted-foreground">
           Every order Basepair evaluated, including the ones it cleared.
         </p>
         {/* Signal quality: of everything evaluated, how much was quietly cleared
@@ -136,7 +138,7 @@ export default async function AuditPage() {
             false-alarm count is the only number that takes a status tint, and it
             already reads through its word. */}
         {signalStats.evaluated > 0 && (
-          <p className="text-sm text-muted-foreground text-pretty">
+          <p className="text-sm text-pretty text-muted-foreground">
             Basepair evaluated{" "}
             <span className="font-medium text-foreground tabular-nums">
               {signalStats.evaluated}
@@ -155,7 +157,7 @@ export default async function AuditPage() {
                 "font-medium tabular-nums",
                 signalStats.falseAlarms > 0
                   ? "text-sev-caution-fg"
-                  : "text-foreground",
+                  : "text-foreground"
               )}
             >
               {signalStats.falseAlarms}
@@ -167,7 +169,7 @@ export default async function AuditPage() {
             the loop (wrote back to the prescriber). The buyer's outcome metric,
             stated as a plain "X of N" evidence sentence rather than a bare tile. */}
         {signalStats.approved > 0 && (
-          <p className="text-sm text-muted-foreground text-pretty">
+          <p className="text-sm text-pretty text-muted-foreground">
             Pharmacists enacted{" "}
             <span className="font-medium text-foreground tabular-nums">
               {signalStats.enacted} of {signalStats.approved}
@@ -184,7 +186,7 @@ export default async function AuditPage() {
             (enacted) from those a pharmacist resolved alone. Stated as an "X of
             N" evidence sentence, matching the enactment line above. */}
         {handled > 0 && (
-          <p className="text-sm text-muted-foreground text-pretty">
+          <p className="text-sm text-pretty text-muted-foreground">
             <span className="font-medium text-foreground tabular-nums">
               {interruptions.prescriberInterruptions} of {handled}
             </span>{" "}

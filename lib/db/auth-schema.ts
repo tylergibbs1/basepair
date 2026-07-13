@@ -7,7 +7,14 @@
  * (better-auth@1.6.x). If we add plugins later (org, 2FA, …), regenerate with
  * `npx @better-auth/cli generate` and reconcile here, then migrate.
  */
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core"
+import {
+  pgTable,
+  text,
+  timestamp,
+  boolean,
+  index,
+  uuid,
+} from "drizzle-orm/pg-core"
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -15,6 +22,10 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+  // Nullable at the database layer so the migration can be applied over legacy
+  // users; authorization fails closed until every account is assigned a tenant.
+  tenantId: uuid("tenant_id"),
+  role: text("role").default("pharmacist").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -38,7 +49,7 @@ export const session = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index("session_userId_idx").on(table.userId)],
+  (table) => [index("session_userId_idx").on(table.userId)]
 )
 
 export const account = pgTable(
@@ -62,7 +73,7 @@ export const account = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("account_userId_idx").on(table.userId)],
+  (table) => [index("account_userId_idx").on(table.userId)]
 )
 
 export const verification = pgTable(
@@ -78,5 +89,5 @@ export const verification = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
   },
-  (table) => [index("verification_identifier_idx").on(table.identifier)],
+  (table) => [index("verification_identifier_idx").on(table.identifier)]
 )

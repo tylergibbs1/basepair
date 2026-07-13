@@ -6,9 +6,14 @@ import { getRedis } from "./redis"
  * Per-tenant sliding-window rate limiting for the CDS ingress
  * (docs/ARCHITECTURE.md §3 "entry guard", docs/CONVENTIONS.md §5).
  *
- * Usage in `/api/cds/prescribe`:
+ * Create a limiter once at module scope, then use it in `/api/cds/prescribe`:
  *
- *   const result = await limitCdsIngress(tenantId);
+ *   const limiter = createTenantRateLimiter({
+ *     requests: 20,
+ *     window: "10 s",
+ *     prefix: "basepair:rl:cds",
+ *   });
+ *   const result = await limiter.limit(tenantId);
  *   if (!result.success) return new Response("Rate limited", { status: 429 });
  *
  * Fail-open by design: when Upstash env is unset (local dev) or Redis errors,
@@ -33,12 +38,12 @@ export interface RateLimitResult {
   pending: Promise<unknown>
 }
 
-export interface TenantRateLimiter {
+interface TenantRateLimiter {
   /** Check-and-consume one request for the given tenant. */
   limit(tenantId: string): Promise<RateLimitResult>
 }
 
-export interface RateLimiterOptions {
+interface RateLimiterOptions {
   /** Max requests per window. */
   requests: number
   /** Window size, e.g. "10 s", "1 m". */
@@ -99,16 +104,4 @@ export function createTenantRateLimiter(
       }
     },
   }
-}
-
-/** Default entry guard for `/api/cds/prescribe`: 20 events / 10 s per tenant. */
-export const cdsIngressLimiter: TenantRateLimiter = createTenantRateLimiter({
-  requests: 20,
-  window: "10 s",
-  prefix: "basepair:rl:cds",
-})
-
-/** Convenience wrapper over {@link cdsIngressLimiter}. */
-export function limitCdsIngress(tenantId: string): Promise<RateLimitResult> {
-  return cdsIngressLimiter.limit(tenantId)
 }

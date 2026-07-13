@@ -70,6 +70,11 @@ import type {
   evaluateOrder,
   EvaluateOrderPayload,
 } from "@/trigger/evaluate-order"
+import {
+  createMedplumClient,
+  defaultTenantId,
+  ENV_TENANT_ID,
+} from "@/lib/medplum/client"
 
 export const runtime = "nodejs"
 
@@ -230,19 +235,26 @@ function asPatientRef(patientId: string): string {
  * TODO(multi-tenant): resolve `fhirServer` against the tenants table
  * (lib/db/schema.ts) to per-tenant Medplum credentials instead of rejecting.
  */
-function resolveTenant(
+async function resolveTenant(
   fhirServer?: string
-): { key: string } | { error: string } {
-  const configured = process.env.MEDPLUM_BASE_URL ?? "https://api.medplum.com/"
-  const configuredOrigin = new URL(configured).origin
-  if (!fhirServer) return { key: configuredOrigin }
+): Promise<{ key: string; tenantId: string } | { error: string }> {
+  const tenantId = defaultTenantId() ?? ENV_TENANT_ID
+  let configuredOrigin: string
+  try {
+    const client = await createMedplumClient(tenantId)
+    configuredOrigin = new URL(client.getBaseUrl().toString()).origin
+  } catch (error) {
+    console.error("[cds/prescribe] tenant resolution failed", error)
+    return { error: "The tenant's FHIR connection is not configured." }
+  }
+  if (!fhirServer) return { key: tenantId, tenantId }
   const requestedOrigin = new URL(fhirServer).origin
   if (requestedOrigin !== configuredOrigin) {
     return {
       error: `Unrecognized FHIR server ${requestedOrigin}. This deployment serves ${configuredOrigin}.`,
     }
   }
-  return { key: requestedOrigin }
+  return { key: tenantId, tenantId }
 }
 
 /* ------------------------------------------------------------------------ *
@@ -263,7 +275,7 @@ async function triggerEvaluation(
   const handle = await tasks.trigger<typeof evaluateOrder>(
     "evaluate-order",
     payload,
-    { idempotencyKey }
+    { idempotencyKey, idempotencyKeyTTL: "365d" }
   )
   return { orderId: payload.orderId, runId: handle.id }
 }
@@ -336,7 +348,7 @@ async function handleCdsHooks(body: unknown): Promise<Response> {
     )
   }
 
-  const tenant = resolveTenant(fhirServer)
+  const tenant = await resolveTenant(fhirServer)
   if ("error" in tenant) {
     return Response.json({ error: tenant.error }, { status: 422 })
   }
@@ -360,20 +372,22 @@ async function handleCdsHooks(body: unknown): Promise<Response> {
   let evaluations: TriggeredEvaluation[]
   try {
     evaluations = await Promise.all(
-      orders.map((resource, index) =>
-        triggerEvaluation(
+      orders.map((resource, index) => {
+        const orderId = resource.id ?? `${hookInstance}:${index}`
+        return triggerEvaluation(
           {
             patientRef: resource.subject?.reference ?? patientRef,
             drug: drugOf(resource)!,
-            orderId: resource.id,
+            orderId,
             orderedBy: context.userId ?? "",
+            tenantId: tenant.tenantId,
           },
           // Draft orders normally carry an id; a draft without one falls back
           // to the hookInstance (stable across retried deliveries of the same
           // invocation), so retries still dedupe.
-          resource.id ?? `${hookInstance}:${index}`
+          `${tenant.tenantId}:${orderId}`
         )
-      )
+      })
     )
   } catch (error) {
     console.error("[cds/prescribe] tasks.trigger failed:", error)
@@ -437,7 +451,7 @@ async function handleSubscription(body: unknown): Promise<Response> {
     )
   }
 
-  const tenant = resolveTenant()
+  const tenant = await resolveTenant()
   if ("error" in tenant) {
     return Response.json({ error: tenant.error }, { status: 422 })
   }
@@ -451,8 +465,9 @@ async function handleSubscription(body: unknown): Promise<Response> {
         drug,
         orderId: order.id,
         orderedBy: order.requester?.display ?? order.requester?.reference ?? "",
+        tenantId: tenant.tenantId,
       },
-      order.id
+      `${tenant.tenantId}:${order.id}`
     )
     return Response.json({ accepted: true, ...evaluation }, { status: 202 })
   } catch (error) {

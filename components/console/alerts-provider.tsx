@@ -257,7 +257,7 @@ export function AlertsProvider({
       runWithUndo(id, {
         verb: "enacted",
         description,
-        persist: () => enactAlert(id, choice),
+        persist: () => enactAlert(id),
         undo: () => unenactAlert(id),
       })
     },
@@ -293,9 +293,7 @@ export function AlertsProvider({
         const label = dismissReasonByCode(reason.code)?.label ?? "Dismissed"
         const alert = byId.get(id)
         const detail = reason.note?.trim() || label
-        const description = alert
-          ? `${detail} · ${alert.patientName}`
-          : detail
+        const description = alert ? `${detail} · ${alert.patientName}` : detail
         runWithUndo(id, {
           verb: "dismissed",
           description,

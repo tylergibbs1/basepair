@@ -1,0 +1,38 @@
+{
+  "tag": "desloppify",
+  "target_files": [
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    "components/**/*.ts",
+    "components/**/*.tsx",
+    "lib/**/*.ts",
+    "lib/**/*.tsx",
+    "bots/**/*.ts",
+    "trigger/**/*.ts"
+  ],
+  "exclude_files": [
+    "**/*.test.*",
+    "components/ui/**",
+    "**/node_modules/**",
+    "**/.next/**"
+  ],
+  "test_command": "bun test && bun run typecheck && bun run build",
+  "metric_command": "find app components lib bots trigger -type f \\( -name '*.ts' -o -name '*.tsx' \\) ! -name '*.test.*' ! -path 'components/ui/*' -print0 | xargs -0 wc -l | tail -1 | awk '{print $1}'",
+  "metric_name": "production_source_lines",
+  "metric_direction": "lower",
+  "secondary_metrics": [
+    "oxlint_findings",
+    "largest_file_lines"
+  ],
+  "timeout_seconds": 300,
+  "max_files_per_iteration": 1,
+  "strategies": [
+    "remove-dead-code",
+    "reduce-duplication",
+    "simplify-conditionals",
+    "reduce-complexity",
+    "extract-functions",
+    "fix-lint-warnings",
+    "improve-naming"
+  ]
+}

@@ -2,7 +2,7 @@
 
 An always-on, EHR-embedded pharmacogenomics (PGx) safety service. It catches dangerous drug-gene mismatches at the moment of prescribing and holds them for a clinical pharmacist's one-click sign-off, with the exact published guideline citation.
 
-Built for the **Built with Claude: Life Sciences** hackathon (Build track) with Claude Code and the Vercel AI SDK.
+Built for the **Built with Claude: Life Sciences** hackathon (Build track) with Claude Code and the Vercel AI SDK. For how Claude Code built it, including an autonomous refactor loop and a run where Claude dogfooded its own console, see [docs/CLAUDE_USAGE.md](./docs/CLAUDE_USAGE.md).
 
 ## The idea in one paragraph
 
@@ -14,7 +14,7 @@ Next.js 16, TypeScript, Bun, Drizzle, Supabase (app config + RLS), Better Auth (
 
 ## Status
 
-The durable, approval-gated loop runs end to end against the Medplum hosted free tier: CDS Hooks/Subscription → `tasks.trigger` → Trigger.dev task (Medplum read → deterministic CPIC lookup + agent cross-check → verifier → write DetectedIssue/Task + wait token) → console approve → `wait.completeToken` → task resumes → Communication/AuditEvent/Provenance. The CPIC catalog covers **2,115 rules across 22 genes**, and the pharmacist console, audit view, and prescriber-facing CDS card are all live.
+The durable, approval-gated loop runs end to end against the Medplum hosted free tier: CDS Hooks/Subscription → `tasks.trigger` → Trigger.dev task (Medplum read → deterministic CPIC lookup + agent cross-check → verifier → write DetectedIssue/Task + wait token) → console approve → `wait.completeToken` → task resumes → Communication/AuditEvent/Provenance. The CPIC catalog covers **2,115 rules across 19 genes**, and the pharmacist console, audit view, and prescriber-facing CDS card are all live.
 
 Honest scope: runs against a demo Medplum with synthetic patients (no PHI); multi-tenancy is structurally present but effectively single-tenant (RLS migration generated, not yet applied to a live DB); rate limiting is fail-open by design.
 

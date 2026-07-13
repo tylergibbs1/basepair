@@ -7,7 +7,8 @@ import {
   DEFAULT_GOVERNANCE_THRESHOLDS,
   type GovernanceThresholdConfig,
 } from "@/lib/alerts/governance"
-import { createMedplumClient, defaultTenantId } from "@/lib/medplum/client"
+import { createMedplumClient } from "@/lib/medplum/client"
+import { ifMatch } from "@/lib/medplum/concurrency"
 
 const IDENTIFIER_SYSTEM = "https://basepair.health/governance-config"
 const EXTENSION_URL =
@@ -20,24 +21,22 @@ const schema = z.object({
   agentAnomalyThreshold: z.number().int().min(1).max(100),
 })
 
-function tenantKey(): string {
-  return defaultTenantId() ?? "environment-default"
-}
-
-async function findConfig(): Promise<Basic | undefined> {
-  const medplum = await createMedplumClient()
+async function findConfig(tenantId: string): Promise<Basic | undefined> {
+  const medplum = await createMedplumClient(tenantId)
   const resources = await medplum.searchResources("Basic", {
-    identifier: `${IDENTIFIER_SYSTEM}|${tenantKey()}`,
+    identifier: `${IDENTIFIER_SYSTEM}|${tenantId}`,
     _count: 1,
   })
   return resources[0]
 }
 
-export async function getGovernanceThresholds(): Promise<GovernanceThresholdConfig> {
+export async function getGovernanceThresholds(
+  tenantId: string
+): Promise<GovernanceThresholdConfig> {
   try {
-    const resource = await findConfig()
+    const resource = await findConfig(tenantId)
     const raw = resource?.extension?.find(
-      (extension) => extension.url === EXTENSION_URL,
+      (extension) => extension.url === EXTENSION_URL
     )?.valueString
     if (!raw) return DEFAULT_GOVERNANCE_THRESHOLDS
     const parsed = schema.safeParse(JSON.parse(raw))
@@ -49,15 +48,16 @@ export async function getGovernanceThresholds(): Promise<GovernanceThresholdConf
 }
 
 export async function saveGovernanceThresholds(
-  input: GovernanceThresholdConfig,
+  tenantId: string,
+  input: GovernanceThresholdConfig
 ): Promise<GovernanceThresholdConfig> {
   const config = schema.parse(input)
-  const medplum = await createMedplumClient()
-  const existing = await findConfig()
+  const medplum = await createMedplumClient(tenantId)
+  const existing = await findConfig(tenantId)
   const next: Basic = {
     ...existing,
     resourceType: "Basic",
-    identifier: [{ system: IDENTIFIER_SYSTEM, value: tenantKey() }],
+    identifier: [{ system: IDENTIFIER_SYSTEM, value: tenantId }],
     code: {
       coding: [
         {
@@ -74,7 +74,7 @@ export async function saveGovernanceThresholds(
       },
     ],
   }
-  if (existing?.id) await medplum.updateResource(next)
+  if (existing?.id) await medplum.updateResource(next, ifMatch(existing))
   else await medplum.createResource(next)
   return config
 }

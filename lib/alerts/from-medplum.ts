@@ -9,11 +9,7 @@ import type {
 
 import { createMedplumClient } from "@/lib/medplum/client"
 import { isPgxRelevantDrug } from "@/lib/cpic-catalog"
-import {
-  sortAlerts,
-  type Alert,
-  type PatientContext,
-} from "@/lib/alerts/types"
+import { sortAlerts, type Alert, type PatientContext } from "@/lib/alerts/types"
 import {
   LOINC,
   RENAL_LOINC,
@@ -39,7 +35,7 @@ import {
  * dropping the alert.
  */
 function makePgxDrugCounter(
-  medplum: Awaited<ReturnType<typeof createMedplumClient>>,
+  medplum: Awaited<ReturnType<typeof createMedplumClient>>
 ) {
   const cache = new Map<string, Promise<number>>()
   return (patientRef: Reference<Patient>): Promise<number> => {
@@ -78,7 +74,7 @@ function makePgxDrugCounter(
  * alert. Every field is independent: renal can be present while allergies aren't.
  */
 export function makePatientContextReader(
-  medplum: Awaited<ReturnType<typeof createMedplumClient>>,
+  medplum: Awaited<ReturnType<typeof createMedplumClient>>
 ) {
   const cache = new Map<string, Promise<PatientContext>>()
 
@@ -178,8 +174,8 @@ export function makePatientContextReader(
  * never surface. The isCleared guard is a belt-and-braces skip in case a Task
  * ever pointed at a cleared record.
  */
-export async function getOpenAlerts(): Promise<Alert[]> {
-  const medplum = await createMedplumClient()
+export async function getOpenAlerts(tenantId: string): Promise<Alert[]> {
+  const medplum = await createMedplumClient(tenantId)
 
   const tasks = await medplum.searchResources("Task", {
     status: "requested",
@@ -213,7 +209,7 @@ export async function getOpenAlerts(): Promise<Alert[]> {
 
     const pgxDrugCount = await countPgxDrugs(task.for as Reference<Patient>)
     const patientContext = await readPatientContext(
-      task.for as Reference<Patient>,
+      task.for as Reference<Patient>
     )
 
     alerts.push({

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { NuqsAdapter } from "nuqs/adapters/next/app"
 
 import { auth } from "@/lib/auth"
+import { requireConsolePrincipal } from "@/lib/authz"
 import { AppSidebar } from "@/components/console/app-sidebar"
 import { AlertsProvider } from "@/components/console/alerts-provider"
 import { SignalStatsProvider } from "@/components/console/signal-stats-provider"
@@ -34,15 +35,16 @@ export default async function ConsoleLayout({
   // the console never renders or reads clinical data for an unauthenticated user.
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) redirect("/login")
+  const principal = await requireConsolePrincipal()
 
   // The console shell lives in this layout so it persists across the queue and
   // the `/alerts/[id]` detail page — navigating between them never re-fetches
   // or re-mounts the shell (and the AlertsProvider keeps the optimistic queue
   // + undo state alive across the two routes).
   const [alerts, patients, signalStats] = await Promise.all([
-    getOpenAlerts(),
-    getOrderablePatients(),
-    getSignalStats(),
+    getOpenAlerts(principal.tenantId),
+    getOrderablePatients(principal.tenantId),
+    getSignalStats(principal.tenantId),
   ])
 
   return (

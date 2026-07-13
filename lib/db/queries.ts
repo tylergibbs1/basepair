@@ -20,12 +20,12 @@ import {
   type MedplumCreds,
 } from "@/lib/db/tenant-creds";
 
-export async function getTenantById(id: string): Promise<Tenant | undefined> {
+async function getTenantById(id: string): Promise<Tenant | undefined> {
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, id)).limit(1);
   return tenant;
 }
 
-export async function getTenantByName(name: string): Promise<Tenant | undefined> {
+async function getTenantByName(name: string): Promise<Tenant | undefined> {
   const [tenant] = await db
     .select()
     .from(tenants)
@@ -35,7 +35,7 @@ export async function getTenantByName(name: string): Promise<Tenant | undefined>
 }
 
 /** A tenant's Medplum wiring with the stored creds decrypted, ready for login. */
-export type TenantMedplumConfig = {
+type TenantMedplumConfig = {
   tenantId: string;
   baseUrl: string;
 } & MedplumCreds;
@@ -57,7 +57,7 @@ export async function getTenantMedplumConfig(
   return { tenantId, baseUrl: tenant.medplumBaseUrl, ...creds };
 }
 
-export type UpsertTenantInput = {
+type UpsertTenantInput = {
   name: string;
   medplumBaseUrl: string;
   /** Plaintext creds; sealed (AES-256-GCM) before they touch the database. */

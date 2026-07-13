@@ -29,8 +29,10 @@ function patientMrn(patient: Patient): string {
  * Load every patient in Medplum for the "New Order" picker. Server-only,
  * never import into a client component (it constructs the Medplum client).
  */
-export async function getOrderablePatients(): Promise<OrderablePatient[]> {
-  const medplum = await createMedplumClient()
+export async function getOrderablePatients(
+  tenantId: string
+): Promise<OrderablePatient[]> {
+  const medplum = await createMedplumClient(tenantId)
 
   const patients = await medplum.searchResources("Patient", { _count: 50 })
 

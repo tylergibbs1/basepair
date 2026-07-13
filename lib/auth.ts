@@ -31,6 +31,17 @@ export const auth = betterAuth({
     enabled: true,
     disableSignUp: true,
   },
+  user: {
+    additionalFields: {
+      tenantId: { type: "string", input: false, required: false },
+      role: {
+        type: "string",
+        input: false,
+        required: true,
+        defaultValue: "pharmacist",
+      },
+    },
+  },
   trustedOrigins: ["http://localhost:3000", "https://basepairrx.com"],
   plugins: [nextCookies()],
 })

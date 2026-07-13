@@ -4,27 +4,27 @@ Companion to [PRD.md](./PRD.md). This describes the system as **shipped**: the t
 
 Two load-bearing facts to hold before reading further:
 
-1. **The deterministic CPIC engine is authoritative; the agent is a cross-check.** `lib/cpic-catalog.ts` `lookupRule` is always the source of truth for the clinical decision. `lib/ai/evaluate-agent.ts` `decideWithAgent` runs a real multi-step agent loop *alongside* it, only to compare and emit a `DecisionPath` (`agent` / `agent-mismatch` / `agent-fallback`) surfaced in the Audit view. The model never owns the recommendation.
+1. **The deterministic CPIC engine is authoritative; the agent is a cross-check.** `lib/cpic-catalog.ts` `lookupRule` is always the source of truth for the clinical decision. `lib/ai/evaluate-agent.ts` `decideWithAgent` runs a real multi-step agent loop _alongside_ it, only to compare and emit a `DecisionPath` (`agent` / `agent-mismatch` / `agent-fallback`) surfaced in the Audit view. The model never owns the recommendation.
 2. **Human-in-the-loop is a durable Trigger.dev wait token.** The evaluation task writes the proposed alert, then pauses on `wait.forToken().unwrap()` for up to 48h; the console completes the token; the task resumes and writes the clinical outcome back to Medplum. The write-back lives in one durable, resumable run.
 
 ---
 
 ## Status: implemented vs. spec
 
-| Subsystem | Status | Issue |
-|---|---|---|
-| Deterministic engine authoritative + agent cross-check (`DecisionPath`) | **Shipped** | core pivot |
-| Durable wait-token HITL (evaluate → pause → approve → resume → write-back) | **Shipped** | [#21](https://github.com/tylergibbs1/basepair/issues/21) |
-| FHIR `AuditEvent` / `Provenance` at every lifecycle transition | **Shipped** | [#22](https://github.com/tylergibbs1/basepair/issues/22) |
-| Production CDS ingress — `/api/cds/prescribe` (CDS Hooks + Subscription) | **Shipped** | [#23](https://github.com/tylergibbs1/basepair/issues/23) |
-| Multi-tenancy — per-tenant Medplum client + RLS (migration generated, not yet applied) | **Shipped** | [#24](https://github.com/tylergibbs1/basepair/issues/24) |
-| Verifier policy — **surface-with-flag** (false verdict marks "needs review", never suppresses) | **Shipped** | [#25](https://github.com/tylergibbs1/basepair/issues/25) |
-| `normalizeDrug` — RxNav / RxClass drug normalization | **Shipped** | [#26](https://github.com/tylergibbs1/basepair/issues/26) |
-| Upstash Redis — per-tenant rate limit + terminology cache (graceful fallback) | **Shipped** | [#27](https://github.com/tylergibbs1/basepair/issues/27) |
-| Pinecone vector search — guideline-prose retrieval (`guidelineSearch`), integrated inference | **Shipped** — reverses the original "decided against" call | [#28](https://github.com/tylergibbs1/basepair/issues/28) |
-| Direct Anthropic provider + per-step model tiers | **Shipped** | [#29](https://github.com/tylergibbs1/basepair/issues/29) |
-| Live queue via `createUIMessageStream` streaming rebuild | **Decided against** — kept Realtime-signaled reconciliation | [#30](https://github.com/tylergibbs1/basepair/issues/30) |
-| CPIC catalog: **2,115 rules across 22 genes** (33 phenotype values; ~1,940 actionable) | **Shipped** | core |
+| Subsystem                                                                                      | Status                                                      | Issue                                                    |
+| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------- |
+| Deterministic engine authoritative + agent cross-check (`DecisionPath`)                        | **Shipped**                                                 | core pivot                                               |
+| Durable wait-token HITL (evaluate → pause → approve → resume → write-back)                     | **Shipped**                                                 | [#21](https://github.com/tylergibbs1/basepair/issues/21) |
+| FHIR `AuditEvent` / `Provenance` at every lifecycle transition                                 | **Shipped**                                                 | [#22](https://github.com/tylergibbs1/basepair/issues/22) |
+| Production CDS ingress — `/api/cds/prescribe` (CDS Hooks + Subscription)                       | **Shipped**                                                 | [#23](https://github.com/tylergibbs1/basepair/issues/23) |
+| Multi-tenancy — tenant-bound users, per-tenant Medplum client, tenant-scoped task keys         | **Implemented; migrations applied**                         | [#24](https://github.com/tylergibbs1/basepair/issues/24) |
+| Verifier policy — **surface-with-flag** (false verdict marks "needs review", never suppresses) | **Shipped**                                                 | [#25](https://github.com/tylergibbs1/basepair/issues/25) |
+| `normalizeDrug` — RxNav / RxClass drug normalization                                           | **Shipped**                                                 | [#26](https://github.com/tylergibbs1/basepair/issues/26) |
+| Upstash Redis — per-tenant rate limit + terminology cache (graceful fallback)                  | **Shipped**                                                 | [#27](https://github.com/tylergibbs1/basepair/issues/27) |
+| Pinecone vector search — guideline-prose retrieval (`guidelineSearch`), integrated inference   | **Shipped** — reverses the original "decided against" call  | [#28](https://github.com/tylergibbs1/basepair/issues/28) |
+| Direct Anthropic provider + per-step model tiers                                               | **Shipped**                                                 | [#29](https://github.com/tylergibbs1/basepair/issues/29) |
+| Live queue via `createUIMessageStream` streaming rebuild                                       | **Decided against** — kept Realtime-signaled reconciliation | [#30](https://github.com/tylergibbs1/basepair/issues/30) |
+| CPIC catalog: **2,115 rules across 22 genes** (33 phenotype values; ~1,940 actionable)         | **Shipped**                                                 | core                                                     |
 
 Anything not in this table and not marked "Future" below is present in the codebase today. The two **Decided-against** rows are explained in [§10](#10-considered-not-built).
 
@@ -36,8 +36,8 @@ Anything not in this table and not marked "Future" below is present in the codeb
 - **Runtime / package manager:** **Bun** (install, scripts, test runner) for the app; the heavy `ai` + Medplum work runs in Trigger.dev's managed Node runtime.
 - **EHR / clinical substrate:** **Medplum** — FHIR-native datastore, SMART on FHIR auth, **CDS Hooks** (`order-sign`), and Subscriptions/Bots. This is the EHR layer: it holds the clinical data (as FHIR resources), authenticates, and fires the prescribe trigger. Hosted free tier for the demo; open-source self-host is the production story. Accessed via the headless SDK (`@medplum/core`, `@medplum/fhirtypes`).
 - **App database:** **Supabase** (managed Postgres) — app-only config (tenants, optional local alert read-cache) plus the auth tables. RLS keyed on the `app.current_tenant_id` GUC. Clinical data lives in Medplum as FHIR, not here.
-- **Auth:** **Better Auth** (`better-auth`) — the pharmacist console login (email + password only), on the same Supabase Postgres via the Drizzle adapter (`lib/auth.ts`, tables in `lib/db/auth-schema.ts`). Public sign-up is **disabled** (clinical tool); accounts are provisioned with `bun run db:seed:user`. Access is gated by `proxy.ts` (optimistic cookie redirect at the boundary) plus the authoritative `auth.api.getSession` check in the console layout. The active tenant is still resolved from `BASEPAIR_TENANT_ID`; wiring a per-user `tenantId` is a clean follow-up.
-- **ORM / migrations:** **Drizzle** (`drizzle-orm` + `drizzle-kit`) against Supabase, for the small app-config schema. Migrations in `drizzle/` (`0000` base schema; `0001` adds RLS — generated, **not yet applied** to a live DB).
+- **Auth:** **Better Auth** (`better-auth`) — the pharmacist console login (email + password only), on the same Supabase Postgres via the Drizzle adapter. Public sign-up is disabled. Provisioned users carry server-only `tenantId` and `role` fields; every PHI read and clinical mutation resolves the Medplum client from that authenticated tenant and enforces an allowed role. `proxy.ts` remains an optimistic cookie redirect, while `requireConsolePrincipal` is the authorization boundary.
+- **ORM / migrations:** **Drizzle** (`drizzle-orm` + `drizzle-kit`) against Supabase, for the small app-config schema. Migrations `0000`–`0003` are applied to the deployment database; `0001` enables RLS and `0003` adds tenant/role fields to Better Auth users.
 - **Cache / rate limit:** **Upstash Redis** (serverless) — per-tenant sliding-window rate limiting and a get-or-set cache for RxNorm terminology lookups. Falls back gracefully to an allow-all limiter + in-process map when the Upstash env is unset ([#27](https://github.com/tylergibbs1/basepair/issues/27)). Event **dedupe** is handled by Trigger.dev idempotency keys, not Redis.
 - **Vector search:** **Pinecone** (serverless, **integrated inference** — text in, Pinecone embeds server-side with a hosted model, so there's no separate embedding provider). One index ([#28](https://github.com/tylergibbs1/basepair/issues/28)): `basepair-guidelines` (guideline prose for the verifier's citation retrieval), a **general English dense** model (`llama-text-embed-v2`) reranked with `bge-reranker-v2-m3`. **Optional** and no-op when `PINECONE_API_KEY` is unset — the verifier falls back to the catalog's own `guidelineText`. Built by `bun run pinecone:guidelines`. `lib/pinecone/client.ts`. (A drug-synonym index was tried and **removed**: resolving a drug by semantic guess gave a false sense of success in a safety tool — `normalizeDrug` is authoritative-only, see §3 step 3.)
 - **UI:** **shadcn/ui** + Tailwind. The pharmacist console is a bespoke queue UI, not a chat window. (Deliberately **not** `@medplum/react`, which is Mantine-based and would clash with shadcn — use the headless Medplum SDK for data, render in shadcn.)
@@ -47,9 +47,10 @@ Anything not in this table and not marked "Future" below is present in the codeb
 - **Model access:** Claude via the direct **`@ai-sdk/anthropic` provider** (`ANTHROPIC_API_KEY`). Model **tier is picked per step** (`lib/ai/models.ts` `resolveModel(tier)`): an Opus tier for fuzzy work (genetics parsing, the verifier) and a cheaper Sonnet tier for the deterministic CPIC agent loop. `BASEPAIR_MODEL` is a local-only override ([#29](https://github.com/tylergibbs1/basepair/issues/29)).
 - **Deploy:** Vercel (the app + the trigger call). Medplum is the separate clinical backend; Trigger.dev runs the durable tasks.
 
-> **Integration boundary (the key decision):** Medplum is the **clinical substrate** (FHIR store, SMART auth, CDS Hooks trigger, prescriber-facing card). The **agentic evaluation runs as a durable Trigger.dev task** that wraps the deterministic engine plus the AI SDK agent cross-check. Medplum *triggers* the app; the CDS ingress enqueues the Trigger.dev task; the task evaluates, persists a `DetectedIssue` + a pharmacist `Task` to Medplum, then **pauses on a Trigger.dev wait token** until the pharmacist acts. Approval completes the token, the task resumes and writes the `Communication` + `AuditEvent`/`Provenance`. This is a genuinely durable, resumable clinical service (Trigger.dev holds the waitpoint up to a 48h timeout). The evaluation is deliberately **not** a Medplum Bot — CDS Hooks Bots are synchronous and that would collapse the durable pharmacist gate.
+> **Integration boundary (the key decision):** Medplum is the **clinical substrate** (FHIR store, SMART auth, CDS Hooks trigger, prescriber-facing card). The **agentic evaluation runs as a durable Trigger.dev task** that wraps the deterministic engine plus the AI SDK agent cross-check. Medplum _triggers_ the app; the CDS ingress enqueues the Trigger.dev task; the task evaluates, persists a `DetectedIssue` + a pharmacist `Task` to Medplum, then **pauses on a Trigger.dev wait token** until the pharmacist acts. Approval completes the token, the task resumes and writes the `Communication` + `AuditEvent`/`Provenance`. This is a genuinely durable, resumable clinical service (Trigger.dev holds the waitpoint up to a 48h timeout). The evaluation is deliberately **not** a Medplum Bot — CDS Hooks Bots are synchronous and that would collapse the durable pharmacist gate.
 
 > Stack notes:
+>
 > - **Bun + Next 16:** use `bun install` and `bunx --bun next dev` for the app. The heavy `ai` + Medplum work runs inside the Trigger.dev task (Node runtime), so Bun only needs to run the Next app + the trigger call (`tasks.trigger`) + Upstash/Supabase clients.
 > - **Medplum:** register the hosted free tier; create a ClientApplication for machine auth; the trigger is modeled as **both** a CDS Hooks service (`order-sign`, synchronous prescriber card) and a `Subscription` on `MedicationRequest` create → rest-hook to the Vercel route (async pharmacist evaluation). See [§9](#9-open-questions--now-resolved).
 > - **Drizzle + Supabase:** app-config only. Tenant isolation via RLS keyed on the `app.current_tenant_id` GUC.
@@ -101,26 +102,26 @@ One order event = one run of a durable **Trigger.dev task** (`evaluate-order`). 
 
 **Entry guard (`app/api/cds/prescribe/route.ts`, [#23](https://github.com/tylergibbs1/basepair/issues/23)):** the route handles two ingress shapes — a CDS Hooks `order-sign` request (returns a synchronous info card acknowledging that pharmacist review has started) and a Medplum `Subscription` rest-hook (returns `202` with the `orderId`/`runId`). Before triggering it **rate-limits per tenant** with Upstash (`429` when over limit) and verifies an **HMAC-SHA256** signature. It then calls `tasks.trigger("evaluate-order", payload, { idempotencyKey })` where the **idempotencyKey is the order id** — Trigger.dev's native idempotency drops duplicate redeliveries, so a redelivered CDS event cannot start a second evaluation. The legacy server-action path (`placeOrder`) and a Medplum Bot are both **kept** as alternate ingress.
 
-**Trigger payload** carries the patient/order references, the Medplum base, and the **`tenantId`** (threaded through so the task builds a per-tenant Medplum client, [#24](https://github.com/tylergibbs1/basepair/issues/24)).
+**Trigger payload** is Zod-validated and requires the patient reference, source order id, drug, and **`tenantId`**. Trigger and waitpoint idempotency keys are namespaced as `tenantId:orderId` with an explicit 365-day TTL. The same tenant id is reused after approval and timeout, so a resumed run cannot fall back to another deployment credential.
 
 **Steps** (implemented in `lib/alerts/evaluate.ts` `evaluateAndWrite`, phase-reported to the console via `onPhase`):
 
 1. **Read genetics** (`reading-genetics`) — read the patient's genomic `Observation` resources and the `MedicationRequest` from Medplum via the headless SDK, using the per-tenant Medplum client. `readGenetics` folds them into a `{ gene → { diplotype, phenotype } }` map. Terminology/RxNorm lookups are cached in Upstash (stable, repeat across orders).
-2. **Parse genetics** — resolve `{ gene, diplotype, phenotype, phenotypeSource }` per the precedence in §5d: a coded phenotype (LOINC 53040-2 + LL3856-3) is used directly; else a diplotype (LOINC 84413-4) is mapped via the deterministic CPIC diplotype→phenotype table (`catalog.json` `phenotypeByDiplotype`); else messy-input intake first extracts PGx report PDFs to markdown with **Mistral OCR** (`lib/ai/ocr.ts`, default `mistral-ocr-latest`) and then normalizes called results into the same coded Observations. The model/OCR work is only the unstructured→structured path; the phenotype→recommendation mapping is always the published table.
+2. **Parse genetics safely** — only final/amended/corrected Observations are eligible, and the newest result is selected deterministically. A diplotype is independently mapped through the CPIC allele table while the coded lab phenotype is preserved as a separate source fact. When the two conflict, every relevant phenotype combination is checked and the most severe actionable interpretation wins; a conflict can escalate to pharmacist review but cannot suppress an actionable rule. Messy-input OCR only normalizes unstructured reports into these same coded Observations.
 3. **`normalizeDrug`** (`normalizing-drug`, [#26](https://github.com/tylergibbs1/basepair/issues/26)) — `lib/ai/parse/drug.ts` resolves the ordered drug to an ingredient + ATC class via the free NLM **RxNav** API: `rxcui.json` for the RxCUI, then `rxclass/class/byRxcui.json?relaSource=ATC` for the class, normalizing brand/product to ingredient via `minConcept`. Resolution is **authoritative-only** and never throws: **RxNav** (`source: "rxnav"`, cached) → a curated `DRUG_ALIASES` hit to a CPIC-covered drug (`source: "alias"`) → otherwise **`source: "unresolved"`**. There is deliberately **no semantic-guess fallback** and the raw string is never passed off as a match — a safety tool must not present a guess as success. An unresolved drug is surfaced in the feed as a caution ("Couldn't identify the drug"), not a green check. Only RxNav hits are cached.
 4. **`lookupRule`** (`matching-cpic`) — **the authoritative clinical decision.** `lib/cpic-catalog.ts` `lookupRule({ drug, genePhenotypes })` does a deterministic lookup against the encoded CPIC catalog (2,115 rules) for the ordered drug and the patient's phenotypes. Returns the applicable rule + recommendation + severity + citation, or "no rule applies."
-5. **`decideWithAgent`** (cross-check) — `lib/ai/evaluate-agent.ts` runs a real multi-step `generateText` ToolLoopAgent (`cpicResolvePhenotype`, `cpicLookupRule` tools) *alongside* the deterministic call. Every tool's `execute` itself runs the deterministic engine, and the module compares the agent's lookup to a direct `lookupRule`. It emits a `DecisionPath`:
+5. **`decideWithAgent`** (cross-check) — `lib/ai/evaluate-agent.ts` runs a real multi-step `generateText` ToolLoopAgent (`cpicResolvePhenotype`, `cpicLookupRule` tools) _alongside_ the deterministic call. Every tool's `execute` itself runs the deterministic engine, and the module compares the agent's lookup to a direct `lookupRule`. It emits a `DecisionPath`:
    - `agent` — the agent's lookup matched the engine (a trust signal);
    - `agent-mismatch` — the agent reached a different rule (e.g. passed a partial gene map); the deterministic result wins and the mismatch is logged;
    - `agent-fallback` — the agent never called the lookup tool or the loop errored; the deterministic result wins.
-   In every path the **deterministic rule is what ships**; the agent buys observability and messy-input reasoning, not decision authority. The `DecisionPath` is written into the alert and shown in the Audit view.
-6. **`citeAndVerify`** (`verifying`) — `lib/ai/verify.ts` runs an isolated verifier (Opus tier) that grades the drafted alert against the rule's **literal `guidelineText`** and returns pass/fail plus the matched sentence. The citation source can come from the **Pinecone guideline-prose index** (`lib/ai/guideline-search.ts`, [#28](https://github.com/tylergibbs1/basepair/issues/28)): before the verifier runs, `evaluate.ts` retrieves the best-matching passage and — only when it belongs to the **same rule** (`ruleKey` match) — uses it as the `guidelineText` the verifier quotes and the alert stores, so the verbatim highlight stays valid. The verdict is **always graded against the catalog `implications`, never the retrieved span**, and it falls back to the rule's own `guidelineText` when Pinecone is unset or nothing matches — so retrieval is additive to the citation and never a new failure mode for the verdict (see [§10](#10-considered-not-built) for the honest redundancy caveat). Per the **surface-with-flag policy** ([#25](https://github.com/tylergibbs1/basepair/issues/25), and [§7](#7-trust-safety-and-compliance-posture)): a `fail` verdict marks the alert **"needs review"** and it is **still queued** — it is *never* suppressed, because the deterministic engine is authoritative and the verifier is a secondary check. Suppressing on a verifier miss would hide a true, rule-backed contraindication. See `docs/decisions/verifier-suppression-policy.md`.
+     In every path the **deterministic rule is what ships**; the agent buys observability and messy-input reasoning, not decision authority. The `DecisionPath` is written into the alert and shown in the Audit view.
+6. **`citeAndVerify`** (`verifying`) — `lib/ai/verify.ts` runs an isolated verifier (Opus tier) that grades the drafted alert against the rule's **literal `guidelineText`** and returns pass/fail plus the matched sentence. The citation source can come from the **Pinecone guideline-prose index** (`lib/ai/guideline-search.ts`, [#28](https://github.com/tylergibbs1/basepair/issues/28)): before the verifier runs, `evaluate.ts` retrieves the best-matching passage and — only when it belongs to the **same rule** (`ruleKey` match) — uses it as the `guidelineText` the verifier quotes and the alert stores, so the verbatim highlight stays valid. The verdict is **always graded against the catalog `implications`, never the retrieved span**, and it falls back to the rule's own `guidelineText` when Pinecone is unset or nothing matches — so retrieval is additive to the citation and never a new failure mode for the verdict (see [§10](#10-considered-not-built) for the honest redundancy caveat). Per the **surface-with-flag policy** ([#25](https://github.com/tylergibbs1/basepair/issues/25), and [§7](#7-trust-safety-and-compliance-posture)): a `fail` verdict marks the alert **"needs review"** and it is **still queued** — it is _never_ suppressed, because the deterministic engine is authoritative and the verifier is a secondary check. Suppressing on a verifier miss would hide a true, rule-backed contraindication. See `docs/decisions/verifier-suppression-policy.md`.
 7. **Assemble the alert** — `Output.object` produces the typed alert record (schema in §5c) carrying `citedSentence`, `verified`, `verifierRationale`, and `decisionPath`.
 8. **Write to Medplum** — write the proposed alert as a `DetectedIssue` plus a pharmacist `Task` with status `requested`, keyed idempotently on the order id via `createResourceIfNoneExist`. Create a Trigger.dev **wait token**, and stamp its id on the `Task` as an identifier (`system: https://basepair.health/fhir/wait-token`) so the console can complete it. A `Provenance` is written now linking the source genotype `Observation`, the phenotype derivation, the matched CPIC rule + citation, and the verifier verdict + cited sentence ([#22](https://github.com/tylergibbs1/basepair/issues/22)).
 9. **`wait.forToken`** — the task pauses durably on `await wait.forToken<{approved:boolean}>(token).unwrap()`. Nothing is communicated to the clinician while it waits. Trigger.dev holds the waitpoint up to a 48h timeout; on timeout the task cancels the `Task` (if still `requested`) and logs it.
 10. **Resume (write-back)** — when the pharmacist acts, the console completes the token; the task wakes and the write-back in `lib/alerts/write-back.ts` runs: **approved** → write a `Communication` to the ordering clinician, complete the Medplum `Task`, emit `AuditEvent`/`Provenance`; **rejected** → cancel the `Task`, emit `AuditEvent`. Both branches are idempotent.
 
-> **Synchronous fallback:** a direct `Task.status` mutation path (the pre-[#21](https://github.com/tylergibbs1/basepair/issues/21) approval mechanism, in `lib/alerts/actions.ts`) is **kept as a fallback** until the durable path is fully verified in production. Both are idempotent and write the same clinical outcome; the durable wait-token path is the intended primary.
+> **Approval state machine:** the server action version-checks and persists the authoritative `Task` transition first, then completes the wait token with that FHIR version. The resumed run performs side effects only when the current Task still has the same terminal status and version. Legacy Tasks without a token call the same version-checked write-back directly; there is no second status writer.
 
 If `lookupRule` returns "no rule applies," the order path writes a **considered-and-cleared** `DetectedIssue` (the Audit view's suppression proof) with a logged `AuditEvent` and **no** `Task`/token — so it appears in Audit, not the pharmacist queue. (The population sweep skips the cleared record to avoid flooding Audit; see §6.) This rule-level "no rule applies" is the **only** real suppression in the system.
 
@@ -139,18 +140,18 @@ Why a wait token rather than a plain Task mutation: it keeps the entire lifecycl
 
 ## 4. Vercel AI SDK (`ai@7`) — API-to-feature map
 
-| Feature | Primitive | Why it is load-bearing |
-|---|---|---|
-| Durable, resumable per-order evaluation with retries | **Trigger.dev** `task({ id, run })`, triggered via `tasks.trigger(..., { idempotencyKey })` — *not* an AI SDK API | The "unattended, resumable clinical service": ingress returns fast, task survives crashes, retries per step, dedupes by idempotency key. |
-| Durable human-in-the-loop approval (pause hours, resume) | **Trigger.dev wait tokens**: `wait.createToken` + `wait.forToken().unwrap()` in the task; `wait.completeToken(id, { approved })` from the console | The pharmacist gate as a genuinely durable waitpoint — the real version of "waits for sign-off". |
-| The clinical decision | **Deterministic engine** `lib/cpic-catalog.ts` `lookupRule` — *not* the model | Correctness bar is a document, not a judgment. This is authoritative in every path. |
-| Agent cross-check over the decision | **`generateText` ToolLoopAgent** (`stopWhen: isStepCount(n)`) whose tools wrap the deterministic engine; emits a `DecisionPath` | Observability + messy-input reasoning **without** moving the published-rule decision into the model's hands. |
-| Parse messy genotype + free-text order into typed data | **`Output.object({ schema })`** | The genuine model cognition; answers "it's just a switch statement." Used only on the messy-input path. |
-| Drug normalization | **RxNav / RxClass** HTTP calls wrapped by `normalizeDrug`; static alias map fallback | Resolve brand/product order strings to an ingredient + ATC class deterministically. |
-| Independently verify each alert against source | **isolated verifier** (`citeAndVerify`, Opus tier) that grades the alert against the rule's literal `guidelineText` | Verification-as-product. A `fail` flags "needs review" — it never suppresses (surface-with-flag). |
-| Live pharmacist queue: cards appear and flip in place | **Trigger.dev Realtime** (`useRealtimeRun`) fires a targeted `router.refresh()` + an id-reconciled `seenIds` merge — **no polling timer** | The "second surface beyond chat" that separates polished from toy. `createUIMessageStream` was rejected as the wrong primitive (see [§10](#10-considered-not-built)). |
-| Cost/latency control | Direct Anthropic model ids + per-step model tiers (`resolveModel(tier)`: Opus for fuzzy parse + verifier, Sonnet for the deterministic agent loop) | Cost-maturity: the right model per step without adding a routing layer. |
-| Multi-tenancy for FHIR calls | Per-tenant Medplum client (`createMedplumClient(tenantId)`), creds resolved from the Supabase `tenants` table | Each tenant's FHIR calls use their own Medplum credential. |
+| Feature                                                  | Primitive                                                                                                                                          | Why it is load-bearing                                                                                                                                                |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Durable, resumable per-order evaluation with retries     | **Trigger.dev** `task({ id, run })`, triggered via `tasks.trigger(..., { idempotencyKey })` — _not_ an AI SDK API                                  | The "unattended, resumable clinical service": ingress returns fast, task survives crashes, retries per step, dedupes by idempotency key.                              |
+| Durable human-in-the-loop approval (pause hours, resume) | **Trigger.dev wait tokens**: `wait.createToken` + `wait.forToken().unwrap()` in the task; `wait.completeToken(id, { approved })` from the console  | The pharmacist gate as a genuinely durable waitpoint — the real version of "waits for sign-off".                                                                      |
+| The clinical decision                                    | **Deterministic engine** `lib/cpic-catalog.ts` `lookupRule` — _not_ the model                                                                      | Correctness bar is a document, not a judgment. This is authoritative in every path.                                                                                   |
+| Agent cross-check over the decision                      | **`generateText` ToolLoopAgent** (`stopWhen: isStepCount(n)`) whose tools wrap the deterministic engine; emits a `DecisionPath`                    | Observability + messy-input reasoning **without** moving the published-rule decision into the model's hands.                                                          |
+| Parse messy genotype + free-text order into typed data   | **`Output.object({ schema })`**                                                                                                                    | The genuine model cognition; answers "it's just a switch statement." Used only on the messy-input path.                                                               |
+| Drug normalization                                       | **RxNav / RxClass** HTTP calls wrapped by `normalizeDrug`; static alias map fallback                                                               | Resolve brand/product order strings to an ingredient + ATC class deterministically.                                                                                   |
+| Independently verify each alert against source           | **isolated verifier** (`citeAndVerify`, Opus tier) that grades the alert against the rule's literal `guidelineText`                                | Verification-as-product. A `fail` flags "needs review" — it never suppresses (surface-with-flag).                                                                     |
+| Live pharmacist queue: cards appear and flip in place    | **Trigger.dev Realtime** (`useRealtimeRun`) fires a targeted `router.refresh()` + an id-reconciled `seenIds` merge — **no polling timer**          | The "second surface beyond chat" that separates polished from toy. `createUIMessageStream` was rejected as the wrong primitive (see [§10](#10-considered-not-built)). |
+| Cost/latency control                                     | Direct Anthropic model ids + per-step model tiers (`resolveModel(tier)`: Opus for fuzzy parse + verifier, Sonnet for the deterministic agent loop) | Cost-maturity: the right model per step without adding a routing layer.                                                                                               |
+| Multi-tenancy for FHIR calls                             | Per-tenant Medplum client (`createMedplumClient(tenantId)`), creds resolved from the Supabase `tenants` table                                      | Each tenant's FHIR calls use their own Medplum credential.                                                                                                            |
 
 ---
 
@@ -162,44 +163,48 @@ Two stores, cleanly split.
 
 The alert and its lifecycle are stored **as FHIR resources in Medplum**, not in Postgres. This keeps everything standards-native and auditable and means the pharmacist queue and audit trail are just FHIR searches.
 
-| Concept | FHIR resource in Medplum |
-|---|---|
-| The alert (drug-gene issue + evidence + citation) | **`DetectedIssue`** (severity, evidence, `detail` = recommendation, `reference` = guideline). A `DecisionPath` extension + `verified` flag are stamped for a fast read. |
-| Pharmacist worklist item | **`Task`** (status `requested`→`completed`/`cancelled`, `focus` → the `DetectedIssue`, `owner` → pharmacist; carries the wait-token id identifier) |
-| Sign-off / provenance | **`AuditEvent`** + **`Provenance`** — written at every lifecycle transition (evaluation-flagged/cleared, approve, dismiss, reopen, enact, unenact), linking the recommendation to its source genotype `Observation`, phenotype derivation, matched CPIC rule + citation, verifier verdict + cited sentence, and approver + timestamp ([#22](https://github.com/tylergibbs1/basepair/issues/22)) |
-| Alert to the ordering clinician | **`Communication`** (written on approval, in the resume-side write-back) |
-| Prescriber-facing card at order time | CDS Hooks **card** returned synchronously by `/api/cds/prescribe` |
+| Concept                                           | FHIR resource in Medplum                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The alert (drug-gene issue + evidence + citation) | **`DetectedIssue`** (severity, evidence, `detail` = recommendation, `reference` = guideline). A `DecisionPath` extension + `verified` flag are stamped for a fast read.                                                                                                                                                                                                                         |
+| Pharmacist worklist item                          | **`Task`** (status `requested`→`completed`/`cancelled`, `focus` → the `DetectedIssue`, `owner` → pharmacist; carries the wait-token id identifier)                                                                                                                                                                                                                                              |
+| Sign-off / provenance                             | **`AuditEvent`** + **`Provenance`** — written at every lifecycle transition (evaluation-flagged/cleared, approve, dismiss, reopen, enact, unenact), linking the recommendation to its source genotype `Observation`, phenotype derivation, matched CPIC rule + citation, verifier verdict + cited sentence, and approver + timestamp ([#22](https://github.com/tylergibbs1/basepair/issues/22)) |
+| Alert to the ordering clinician                   | **`Communication`** (written on approval, in the resume-side write-back)                                                                                                                                                                                                                                                                                                                        |
+| Prescriber-facing card at order time              | CDS Hooks **card** returned synchronously by `/api/cds/prescribe`                                                                                                                                                                                                                                                                                                                               |
 
-The FHIR `AuditEvent`/`Provenance` resources are the **authoritative** audit record; the `DetectedIssue` extension is a fast read that the Audit view cross-checks against the FHIR resources. `buildAuditEvent`/`buildProvenance` live in `lib/medplum/fhir.ts`; `writeAlertProvenance` in `lib/alerts/provenance.ts`.
+The FHIR `AuditEvent`/`Provenance` resources are the **authoritative** audit record; the `DetectedIssue` extension is a fast read that the Audit view cross-checks against the FHIR resources. Each pair commits in one atomic FHIR transaction. Transitions are idempotent on a version-specific Task reference, so retries cannot duplicate an event while Undo→Redo remains distinct.
 
 The pharmacist console is a live search over `Task` (open items) joined to their `DetectedIssue`.
 
 ### 5b. App-only config — Supabase Postgres via Drizzle
 
-Postgres holds only what is not clinical: tenant→Medplum wiring, plus an optional read-cache. Small schema, `lib/db/schema.ts`. **RLS** is enabled on `tenants` and `alert_cache`, keyed on the `app.current_tenant_id` GUC via migration `drizzle/0001` — **generated but not yet applied** to any live DB; a single seeded tenant proves the path ([#24](https://github.com/tylergibbs1/basepair/issues/24)). `lib/db/queries.ts` provides typed tenant lookups and a `withTenant()` GUC helper.
+Postgres holds only what is not clinical: tenant→Medplum wiring, Better Auth identities, and an optional read-cache. Application server connections bypass RLS by design, so isolation there is enforced by `requireConsolePrincipal` and explicit tenant-scoped clients. RLS remains defense-in-depth for Supabase client-facing roles. Migration `0003` added Better Auth `user.tenant_id` and `user.role`; existing users were backfilled to the deployment's pinned tenant.
 
 ```ts
-import { pgTable, uuid, text, jsonb, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, text, jsonb, timestamp } from "drizzle-orm/pg-core"
 
-export const tenants = pgTable('tenants', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  name: text('name').notNull(),
-  medplumBaseUrl: text('medplum_base_url').notNull(),
-  medplumClientCreds: jsonb('medplum_client_creds').notNull(),  // AES-256-GCM encrypted; key from TENANT_CREDS_KEY
-  settings: jsonb('settings').default({}),
-  createdAt: timestamp('created_at').defaultNow(),
+export const tenants = pgTable("tenants", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  medplumBaseUrl: text("medplum_base_url").notNull(),
+  medplumClientCreds: jsonb("medplum_client_creds").notNull(), // AES-256-GCM encrypted; key from TENANT_CREDS_KEY
+  settings: jsonb("settings").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
 })
 
 // Optional thin read-cache of open alerts for fast console loads;
 // the authoritative copy always lives in Medplum as DetectedIssue/Task.
-export const alertCache = pgTable('alert_cache', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
-  detectedIssueRef: text('detected_issue_ref').notNull(),  // Medplum resource ref
-  taskRef: text('task_ref').notNull(),
-  gene: text('gene'), drug: text('drug'), phenotype: text('phenotype'),
-  status: text('status').notNull().default('pending'),
-  updatedAt: timestamp('updated_at').defaultNow(),
+export const alertCache = pgTable("alert_cache", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id),
+  detectedIssueRef: text("detected_issue_ref").notNull(), // Medplum resource ref
+  taskRef: text("task_ref").notNull(),
+  gene: text("gene"),
+  drug: text("drug"),
+  phenotype: text("phenotype"),
+  status: text("status").notNull().default("pending"),
+  updatedAt: timestamp("updated_at").defaultNow(),
 })
 ```
 
@@ -211,33 +216,34 @@ The typed record the loop assembles before it becomes a Medplum `DetectedIssue`:
 
 ```ts
 const Alert = z.object({
-  gene: z.string(),                 // "CYP2C19"
-  diplotype: z.string(),            // "*2/*2"
-  phenotype: z.string(),            // "Poor Metabolizer"
-  drug: z.string(),                 // "clopidogrel"
+  gene: z.string(), // "CYP2C19"
+  diplotype: z.string(), // "*2/*2"
+  phenotype: z.string(), // "Poor Metabolizer"
+  drug: z.string(), // "clopidogrel"
   drugClass: z.string(),
-  recommendation: z.string(),       // from the CPIC rule, verbatim
-  severity: z.enum(['critical','caution','info']),
-  citation: z.string(),             // guideline + version + section
-  citedSentence: z.string(),        // exact sentence the verifier matched
-  verified: z.boolean(),            // verifier pass; false → "needs review", still queued
+  recommendation: z.string(), // from the CPIC rule, verbatim
+  severity: z.enum(["critical", "caution", "info"]),
+  citation: z.string(), // guideline + version + section
+  citedSentence: z.string(), // exact sentence the verifier matched
+  verified: z.boolean(), // verifier pass; false → "needs review", still queued
   verifierRationale: z.string(),
-  decisionPath: z.enum(['agent','agent-mismatch','agent-fallback']),
+  decisionPath: z.enum(["agent", "agent-mismatch", "agent-fallback"]),
 })
 ```
 
 **Encoded rule** (one entry per gene(s) × phenotype × drug in `lib/cpic/catalog.json`):
+
 ```ts
 type CpicRule = {
   drug: string
   drugId: string
   genes: string[]
   key: string
-  severity: 'critical' | 'caution' | 'info'
+  severity: "critical" | "caution" | "info"
   strength: string
   recommendation: string
   implications: string
-  guidelineText: string   // literal source the verifier grades against
+  guidelineText: string // literal source the verifier grades against
   citation: string
   url: string
   comments: string
@@ -253,47 +259,130 @@ The demo hero remains **CYP2C19 Poor Metabolizer × clopidogrel** ("Avoid clopid
 The PGx result is stored in Medplum as plain FHIR `Observation`s following the **HL7 Genomics Reporting IG** conventions. Two observations per gene:
 
 **Diplotype** — Genotype profile:
+
 ```json
 {
   "resourceType": "Observation",
   "status": "final",
-  "category": [{ "coding": [{ "system": "http://terminology.hl7.org/CodeSystem/observation-category", "code": "laboratory" }] }],
-  "code": { "coding": [{ "system": "http://loinc.org", "code": "84413-4", "display": "Genotype display name" }] },
+  "category": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+          "code": "laboratory"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "system": "http://loinc.org",
+        "code": "84413-4",
+        "display": "Genotype display name"
+      }
+    ]
+  },
   "subject": { "reference": "Patient/pt-cyp2c19-pm" },
   "valueCodeableConcept": { "text": "CYP2C19 *2/*2" },
-  "component": [{
-    "code": { "coding": [{ "system": "http://loinc.org", "code": "48018-6", "display": "Gene studied [ID]" }] },
-    "valueCodeableConcept": { "coding": [{ "system": "http://www.genenames.org", "code": "HGNC:2621", "display": "CYP2C19" }] }
-  }]
+  "component": [
+    {
+      "code": {
+        "coding": [
+          {
+            "system": "http://loinc.org",
+            "code": "48018-6",
+            "display": "Gene studied [ID]"
+          }
+        ]
+      },
+      "valueCodeableConcept": {
+        "coding": [
+          {
+            "system": "http://www.genenames.org",
+            "code": "HGNC:2621",
+            "display": "CYP2C19"
+          }
+        ]
+      }
+    }
+  ]
 }
 ```
 
 **Phenotype (metabolizer status)** — derived, may or may not be present:
+
 ```json
 {
   "resourceType": "Observation",
   "status": "final",
-  "category": [{ "coding": [{ "system": "http://terminology.hl7.org/CodeSystem/observation-category", "code": "laboratory" }] }],
-  "code": { "coding": [{ "system": "http://loinc.org", "code": "53040-2", "display": "Genetic variation's effect on drug metabolism" }] },
+  "category": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+          "code": "laboratory"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "system": "http://loinc.org",
+        "code": "53040-2",
+        "display": "Genetic variation's effect on drug metabolism"
+      }
+    ]
+  },
   "subject": { "reference": "Patient/pt-cyp2c19-pm" },
   "derivedFrom": [{ "reference": "Observation/<diplotype-obs-id>" }],
-  "valueCodeableConcept": { "coding": [{ "system": "http://loinc.org", "code": "LA9657-3", "display": "Poor metabolizer" }] },
-  "component": [{
-    "code": { "coding": [{ "system": "http://loinc.org", "code": "48018-6", "display": "Gene studied [ID]" }] },
-    "valueCodeableConcept": { "coding": [{ "system": "http://www.genenames.org", "code": "HGNC:2621", "display": "CYP2C19" }] }
-  }]
+  "valueCodeableConcept": {
+    "coding": [
+      {
+        "system": "http://loinc.org",
+        "code": "LA9657-3",
+        "display": "Poor metabolizer"
+      }
+    ]
+  },
+  "component": [
+    {
+      "code": {
+        "coding": [
+          {
+            "system": "http://loinc.org",
+            "code": "48018-6",
+            "display": "Gene studied [ID]"
+          }
+        ]
+      },
+      "valueCodeableConcept": {
+        "coding": [
+          {
+            "system": "http://www.genenames.org",
+            "code": "HGNC:2621",
+            "display": "CYP2C19"
+          }
+        ]
+      }
+    }
+  ]
 }
 ```
 
 **Reference values (verified against LOINC / HL7 Genomics Reporting IG):**
+
 - Genotype display name: **LOINC 84413-4**; diplotype in `valueCodeableConcept.text`.
 - Gene studied: **LOINC 48018-6**; value is HGNC (`http://www.genenames.org`, code `HGNC:<id>`, display the symbol).
 - Metabolizer effect: **LOINC 53040-2**; value from the CPIC answer list **LL3856-3**: Poor `LA9657-3`, Intermediate `LA10317-8`, Normal `LA25391-6`, Rapid `LA25390-8`, Ultrarapid `LA10315-2`.
 
-**`readGenetics` / `parseGenetics` contract** → `{ gene, diplotype, phenotype, phenotypeSource }` where `phenotypeSource ∈ 'coded' | 'derived-from-diplotype' | 'inferred-from-text'`. Precedence, most-trusted first:
-1. **Coded phenotype present** (a 53040-2 Observation with an LL3856-3 answer) → use directly. Deterministic, no model judgment.
-2. **Diplotype present** (84413-4) but no coded phenotype → map via the deterministic CPIC diplotype→phenotype table (`catalog.json` `phenotypeByDiplotype`).
-3. **Only messy source** (free-text note, lab PDF `DocumentReference`, consumer raw genotype/rsIDs) → PDF reports are extracted to page-level markdown via Mistral OCR (`mistral-ocr-latest` by default, `MISTRAL_OCR_MODEL` can pin a local override), then the called result is normalized into `{ gene, diplotype }` / coded FHIR Observations and mapped via the CPIC table. The genuine unstructured→structured work lives here only.
+**`readGenetics` contract** preserves `{ sourcePhenotype, derivedPhenotype, phenotypeSource }` rather than overwriting one value with the other:
+
+1. Accept only final/amended/corrected Observations and select the newest per gene and result type.
+2. Derive a phenotype from every resolvable diplotype using the deterministic CPIC table.
+3. Preserve a coded lab phenotype independently. If it disagrees with the derived value, evaluate both interpretations and keep the most severe actionable rule; record the concordance verdict on the alert and provenance.
+4. Normalize messy source material into the same FHIR Observations before applying these rules.
 
 In every path the phenotype→recommendation step is the published CPIC catalog, never model judgment.
 
@@ -346,7 +435,7 @@ trigger.config.ts         → Trigger.dev project config
   genetics/actions.ts
 scripts/
   build-guideline-index.ts → build basepair-guidelines (per-rule guidelineText → Pinecone) (#28)
-drizzle/                   → 0000 base schema; 0001 RLS (generated, not applied) (#24)
+drizzle/                   → 0000–0003 applied schema and auth/RLS migrations (#24)
 drizzle.config.ts
 ```
 
@@ -383,7 +472,7 @@ drizzle.config.ts
 - **Live console mechanism:** RESOLVED — Trigger.dev Realtime reconciliation, not a streaming rebuild (see [§10](#10-considered-not-built), [#30](https://github.com/tylergibbs1/basepair/issues/30)).
 - **Bun compatibility:** RESOLVED — the app runs under Bun; the `ai` + Medplum work runs in the Trigger.dev task (Node).
 
-**Future work:** apply the RLS migration (`drizzle/0001`) to a live DB and seed multiple tenants; `useRealtimeRunsWithTag` as the push path for **ingress-originated** alerts (alerts created outside a live console session, so the queue updates without a manual refresh); de-identification / BAA / regulatory pathways.
+**Future work:** test with multiple distinct Medplum projects; add `useRealtimeRunsWithTag` for ingress-originated alerts; complete de-identification / BAA / regulatory pathways.
 
 ---
 
@@ -392,16 +481,16 @@ drizzle.config.ts
 Two subsystems the original spec described were deliberately **not** built. They are recorded here (not silently dropped) so the doc and backlog stay honest.
 
 - **Guideline vector search — Pinecone / `guidelineSearch` ([#28](https://github.com/tylergibbs1/basepair/issues/28)) — originally decided against, later BUILT.** This was first scoped out (the per-rule `guidelineText` + `citation` + `url` in `catalog.json` already provided the citable span, so a vector index looked like infrastructure and a new failure mode for no gain). It was **subsequently built** — see the Pinecone row in §Status, the retrieval wiring in [§3](#3-the-evaluation-loop-heart-of-the-system) step 6, and the module map in [§6](#6-key-routes--modules). One **guideline-prose** index (`lib/ai/guideline-search.ts`) via Pinecone **integrated inference** (text in, Pinecone embeds server-side; no separate embedding provider), a no-op when `PINECONE_API_KEY` is unset. (A companion **drug-synonym** index was also built, then **removed** — see the note below.)
-  **Honest status (the original #28 rationale still bites):** with today's CPIC-only corpus, a guideline hit for a rule returns that rule's *own* `guidelineText` — the same span the caller already had — so it is a no-op *improvement* now; it becomes genuinely additive only once broader prose (DPWG / FDA), not stored per-rule in the catalog, is ingested. Crucially the verdict is **still graded against the catalog `implications`, never the retrieved span** — retrieval only sources the citation text, and only when the hit matches the *same rule* (`ruleKey`), preserving the verifier's verbatim-highlight contract and its de-circularization.
-  **Drug-synonym index — built, then removed.** A Pinecone `basepair-drugs` index was added as `normalizeDrug`'s last-resort fallback for messy/brand/misspelled order strings. It was **removed**: resolving a drug by *semantic guess* is exactly a "false sense of success" in a safety tool — a plausible-but-unverified drug reading as a match. `normalizeDrug` is now **authoritative-only** (RxNav or a curated alias, else `unresolved`, surfaced as a caution). The guideline index above is unaffected.
+  **Honest status (the original #28 rationale still bites):** with today's CPIC-only corpus, a guideline hit for a rule returns that rule's _own_ `guidelineText` — the same span the caller already had — so it is a no-op _improvement_ now; it becomes genuinely additive only once broader prose (DPWG / FDA), not stored per-rule in the catalog, is ingested. Crucially the verdict is **still graded against the catalog `implications`, never the retrieved span** — retrieval only sources the citation text, and only when the hit matches the _same rule_ (`ruleKey`), preserving the verifier's verbatim-highlight contract and its de-circularization.
+  **Drug-synonym index — built, then removed.** A Pinecone `basepair-drugs` index was added as `normalizeDrug`'s last-resort fallback for messy/brand/misspelled order strings. It was **removed**: resolving a drug by _semantic guess_ is exactly a "false sense of success" in a safety tool — a plausible-but-unverified drug reading as a match. `normalizeDrug` is now **authoritative-only** (RxNav or a curated alias, else `unresolved`, surfaced as a caution). The guideline index above is unaffected.
 - **`createUIMessageStream` live-queue rebuild ([#30](https://github.com/tylergibbs1/basepair/issues/30)).** The spec proposed streaming the queue through the AI SDK's `createUIMessageStream` / `useChat` data parts. It was **decided against**: that primitive is designed for a single chat turn's message stream, not a multi-producer alert queue fed by many concurrent evaluation runs. Live-ness instead comes from **Trigger.dev Realtime** (`useRealtimeRun`) firing a targeted `router.refresh()` plus an id-reconciled `seenIds` merge — no polling timer, and each run's completion pushes its own card. `useRealtimeRunsWithTag` is the named future path for ingress-originated alerts.
 
 ## 11. Known limitations & honest status
 
 Where the system is weaker than a feature name suggests. Kept explicit so nobody (including us) mistakes a demo affordance or a graceful fallback for production strength. Several of these came out of a self-audit; the code-level ones were fixed, the rest are documented reality.
 
-- **Runs against a demo Medplum with seeded patients.** Marcus Ellery, Nadia Rahman, etc. are seeded demo `Patient`s in a demo FHIR project; the orders placed through the console are test orders. "Production CDS on prod" means the Trigger.dev *prod* environment executing against this demo data — nothing is fabricated at runtime, but it is not real clinical data. Signal-quality counts (evaluated / flagged / false-alarms) reflect that demo + test traffic.
-- **Multi-tenancy is structurally present but effectively single-tenant.** The `tenants` table holds one seeded row (`basepair-dev`) whose Medplum credentials are the *same* env dev `ClientApplication`, and the per-tenant client factory silently falls back to that env credential on any miss outside production. RLS is enabled and keyed on `tenant_id`, but with one tenant it is unexercised. Real isolation needs more than one tenant onboarded with distinct credentials.
-- **Rate limiting is fail-open by design.** `lib/cache/ratelimit.ts` *allows* a request when Upstash is unset or Redis errors — a cache outage must never block a prescribe event. So when Upstash isn't configured in a runtime there is effectively no rate limiting, and the terminology cache degrades to a per-instance `Map` (not shared). This is a deliberate availability-over-enforcement choice, not a hard gate; treat "per-tenant rate limiting" as best-effort.
-- **Silent degradations are logged, not surfaced.** A couple of steps still degrade quietly and only log to the server console: the AI verifier emits an *unverified* alert on any model error rather than dropping the flag; `writeAlertProvenance` is best-effort and swallows write failures. (`normalizeDrug` used to belong here — it silently fell back to a guess — but is now **authoritative-only** and surfaces an unidentified drug as a caution in the feed, not a false match.) This resilience is intentional, but it means a real outage is invisible in the UI (there is no degraded-mode indicator). Surfacing degraded state to the pharmacist is future work. Note: the swallowed provenance write is exactly what hid a provenance-not-writing regression during a stale-deploy window until it was caught by querying Medplum directly.
+- **Runs against a demo Medplum with seeded patients.** Marcus Ellery, Nadia Rahman, etc. are seeded demo `Patient`s in a demo FHIR project; the orders placed through the console are test orders. "Production CDS on prod" means the Trigger.dev _prod_ environment executing against this demo data — nothing is fabricated at runtime, but it is not real clinical data. Signal-quality counts (evaluated / flagged / false-alarms) reflect that demo + test traffic.
+- **Tenant isolation is fail-closed in console workflows.** A session without a valid UUID tenant or allowed clinical role cannot read PHI or mutate an alert. The env-backed `environment-default` tenant remains only for explicit development/Bot payloads; an explicit tenant id never falls back to another credential. Production validation still needs at least two tenants backed by distinct Medplum projects.
+- **Rate limiting is fail-open by design.** `lib/cache/ratelimit.ts` _allows_ a request when Upstash is unset or Redis errors — a cache outage must never block a prescribe event. So when Upstash isn't configured in a runtime there is effectively no rate limiting, and the terminology cache degrades to a per-instance `Map` (not shared). This is a deliberate availability-over-enforcement choice, not a hard gate; treat "per-tenant rate limiting" as best-effort.
+- **Silent degradations are logged, not surfaced.** A couple of steps still degrade quietly and only log to the server console: the AI verifier emits an _unverified_ alert on any model error rather than dropping the flag; `writeAlertProvenance` is best-effort and swallows write failures. (`normalizeDrug` used to belong here — it silently fell back to a guess — but is now **authoritative-only** and surfaces an unidentified drug as a caution in the feed, not a false match.) This resilience is intentional, but it means a real outage is invisible in the UI (there is no degraded-mode indicator). Surfacing degraded state to the pharmacist is future work. Note: the swallowed provenance write is exactly what hid a provenance-not-writing regression during a stale-deploy window until it was caught by querying Medplum directly.
 - **`BASEPAIR_MODEL` is a local-only testing override.** It pins every step to one model. It is ignored in production (`lib/ai/models.ts`) and no longer synced to the Trigger env (`trigger.config.ts`), because pinning it in prod silently disabled the per-step model tiers (issue #29) — which is exactly what happened until the self-audit caught it. Any pre-existing value in the prod Trigger environment should be deleted so the fix is belt-and-suspenders.

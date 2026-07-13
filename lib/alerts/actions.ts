@@ -1,11 +1,12 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { headers } from "next/headers"
 import { tasks, wait } from "@trigger.dev/sdk"
+import { z } from "zod"
 
-import { auth } from "@/lib/auth"
-import { createMedplumClient, defaultTenantId } from "@/lib/medplum/client"
+import { requireConsolePrincipal } from "@/lib/authz"
+import { createMedplumClient } from "@/lib/medplum/client"
+import { ifMatch } from "@/lib/medplum/concurrency"
 import {
   buildMedicationRequest,
   buildCommunication,
@@ -24,6 +25,7 @@ import {
 import {
   findWaitTokenId,
   orderKeyOf,
+  writeBackDecision,
   type ApprovalDecision,
 } from "@/lib/alerts/write-back"
 import type { AuditLifecycle } from "@/lib/medplum/fhir"
@@ -32,7 +34,6 @@ import {
   dismissReasonByCode,
   type DismissReasonInput,
 } from "@/lib/alerts/dismiss-reasons"
-import type { RecommendedAlternative } from "@/lib/cpic-catalog"
 import type { evaluateOrder } from "@/trigger/evaluate-order"
 import type { MedplumClient } from "@medplum/core"
 import type {
@@ -59,43 +60,49 @@ async function recordTriageProvenance(
   task: Task,
   lifecycle: AuditLifecycle,
   extraTargets: Reference<Resource>[] = [],
-  extra?: Record<string, unknown>,
+  extra?: Record<string, unknown>
 ): Promise<void> {
-  try {
-    const ctx: AlertProvenanceContext = {
-      lifecycle,
-      agent: PHARMACIST_AGENT,
-      targets: [
-        { reference: `Task/${task.id}` },
-        ...(task.focus?.reference ? [{ reference: task.focus.reference }] : []),
-        ...extraTargets,
-      ],
-    }
-    const issueRef = task.focus as Reference<DetectedIssue> | undefined
-    if (issueRef?.reference) {
-      const issue = (await medplum.readReference(issueRef)) as DetectedIssue
-      ctx.patient = issue.patient
-      const pgx = parsePgxAlert(issue)
-      if (pgx && !isCleared(pgx)) {
-        ctx.citation = pgx.citation
-        ctx.citedSentence = pgx.citedSentence
-        ctx.verifierVerdict = pgx.verified ? "pass" : "fail"
-        ctx.verifierModel = pgx.verifierModel
-        ctx.verifierRationale = pgx.verifierRationale
-        ctx.decisionPath = pgx.decisionPath
-        ctx.extra = {
-          drug: pgx.drug,
-          gene: pgx.gene,
-          phenotype: pgx.phenotype,
-          severity: pgx.severity,
-          ...extra,
-        }
+  const taskRef = `Task/${task.id}`
+  const versionedTaskRef = task.meta?.versionId
+    ? `${taskRef}/_history/${task.meta.versionId}`
+    : taskRef
+  const ctx: AlertProvenanceContext = {
+    lifecycle,
+    agent: {
+      ...PHARMACIST_AGENT,
+      name:
+        typeof extra?.actor === "string" ? extra.actor : PHARMACIST_AGENT.name,
+    },
+    targets: [
+      { reference: versionedTaskRef },
+      ...(versionedTaskRef === taskRef ? [] : [{ reference: taskRef }]),
+      ...(task.focus?.reference ? [{ reference: task.focus.reference }] : []),
+      ...extraTargets,
+    ],
+    idempotent: true,
+  }
+  const issueRef = task.focus as Reference<DetectedIssue> | undefined
+  if (issueRef?.reference) {
+    const issue = (await medplum.readReference(issueRef)) as DetectedIssue
+    ctx.patient = issue.patient
+    const pgx = parsePgxAlert(issue)
+    if (pgx && !isCleared(pgx)) {
+      ctx.citation = pgx.citation
+      ctx.citedSentence = pgx.citedSentence
+      ctx.verifierVerdict = pgx.verified ? "pass" : "fail"
+      ctx.verifierModel = pgx.verifierModel
+      ctx.verifierRationale = pgx.verifierRationale
+      ctx.decisionPath = pgx.decisionPath
+      ctx.extra = {
+        drug: pgx.drug,
+        gene: pgx.gene,
+        phenotype: pgx.phenotype,
+        severity: pgx.severity,
+        ...extra,
       }
     }
-    await writeAlertProvenance(medplum, ctx)
-  } catch (err) {
-    console.error("recordTriageProvenance failed (non-fatal)", err)
   }
+  await writeAlertProvenance(medplum, ctx)
 }
 
 /**
@@ -108,14 +115,25 @@ async function recordTriageProvenance(
  * must never fail the pharmacist's click. Tasks without a token (pre-token
  * alerts, population-sweep alerts) are a silent no-op.
  */
-async function completeApprovalToken(task: Task, approved: boolean): Promise<void> {
+async function completeApprovalToken(
+  task: Task,
+  decision: ApprovalDecision
+): Promise<boolean> {
   const tokenId = findWaitTokenId(task)
-  if (!tokenId) return
-  try {
-    await wait.completeToken<ApprovalDecision>(tokenId, { approved })
-  } catch (err) {
-    console.error(`completeToken failed for Task/${task.id}`, err)
+  if (!tokenId) return false
+  const token = await wait.retrieveToken<ApprovalDecision>(tokenId)
+  if (token.status === "COMPLETED") {
+    if (
+      token.output?.approved !== decision.approved ||
+      token.output?.taskVersion !== decision.taskVersion
+    ) {
+      throw new Error(`Task/${task.id} waitpoint already has another decision.`)
+    }
+    return true
   }
+  if (token.status === "TIMED_OUT") return false
+  await wait.completeToken<ApprovalDecision>(tokenId, decision)
+  return true
 }
 
 /**
@@ -126,23 +144,51 @@ async function completeApprovalToken(task: Task, approved: boolean): Promise<voi
  * Reopen (Undo) completes no token — a waitpoint is one-shot.
  */
 async function setTaskStatus(
+  tenantId: string,
+  actor: string,
   taskId: string,
   status: TaskStatus,
   lifecycle: AuditLifecycle,
-  statusReason?: Task["statusReason"],
+  statusReason?: Task["statusReason"]
 ): Promise<void> {
-  const medplum = await createMedplumClient()
+  const medplum = await createMedplumClient(tenantId)
   const task = await medplum.readResource("Task", taskId)
-  if (status !== "requested") {
-    await completeApprovalToken(task, status === "completed")
+  const allowed =
+    task.status === status ||
+    (status === "requested"
+      ? task.status === "completed" || task.status === "cancelled"
+      : task.status === "requested")
+  if (!allowed) {
+    throw new Error(
+      `Task/${taskId} cannot transition from ${task.status} to ${status}.`
+    )
   }
   // A dismiss carries a reason on statusReason; every other transition clears it
   // so a reopen→re-dismiss (or an approve) never inherits a stale reason.
   const next = { ...task, status }
   if (statusReason) next.statusReason = statusReason
   else delete next.statusReason
-  await medplum.updateResource(next)
-  await recordTriageProvenance(medplum, task, lifecycle)
+  const saved =
+    task.status === status
+      ? task
+      : await medplum.updateResource(next, ifMatch(task))
+  if (status === "requested") {
+    await recordTriageProvenance(medplum, saved, lifecycle, [], { actor })
+  } else {
+    const taskVersion = saved.meta?.versionId
+    if (!taskVersion) throw new Error("Updated Task has no version id.")
+    const decision: ApprovalDecision = {
+      approved: status === "completed",
+      actor,
+      taskVersion,
+    }
+    const resumed = await completeApprovalToken(saved, decision)
+    if (!resumed) {
+      // Legacy or narrowly raced Tasks without a stamped token still use the
+      // same version-checked write-back implementation; approval cannot be lost.
+      await writeBackDecision({ medplum, taskId, decision })
+    }
+  }
   revalidatePath("/")
 }
 
@@ -153,15 +199,16 @@ async function setTaskStatus(
  * Medplum (mirrors app/(console)/audit/actions.ts). Throws "Unauthorized" for an
  * unauthenticated caller, before any read or write.
  */
-async function requireSession(): Promise<void> {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) throw new Error("Unauthorized")
-}
-
 /** Approve an alert, the pharmacist accepted the recommendation. */
 export async function approveAlert(taskId: string): Promise<void> {
-  await requireSession()
-  await setTaskStatus(taskId, "completed", "approve")
+  const principal = await requireConsolePrincipal(["pharmacist", "admin"])
+  await setTaskStatus(
+    principal.tenantId,
+    principal.name,
+    taskId,
+    "completed",
+    "approve"
+  )
 }
 
 /**
@@ -177,21 +224,34 @@ export async function approveAlert(taskId: string): Promise<void> {
  */
 export async function dismissAlert(
   taskId: string,
-  reason: DismissReasonInput,
+  reason: DismissReasonInput
 ): Promise<void> {
-  await requireSession()
+  const principal = await requireConsolePrincipal(["pharmacist", "admin"])
   const known = dismissReasonByCode(reason.code)
+  if (!known || known.kind === "system") {
+    throw new Error("Unknown dismissal reason.")
+  }
   const note = reason.note?.trim() || undefined
-  await setTaskStatus(taskId, "cancelled", "dismiss", {
-    coding: [
-      {
-        system: DISMISS_REASON_SYSTEM,
-        code: reason.code,
-        display: known?.label,
-      },
-    ],
-    text: note,
-  })
+  if (known.requiresNote && !note) {
+    throw new Error(`Dismissal reason “${known.label}” requires a note.`)
+  }
+  await setTaskStatus(
+    principal.tenantId,
+    principal.name,
+    taskId,
+    "cancelled",
+    "dismiss",
+    {
+      coding: [
+        {
+          system: DISMISS_REASON_SYSTEM,
+          code: reason.code,
+          display: known?.label,
+        },
+      ],
+      text: note,
+    }
+  )
 }
 
 /**
@@ -200,8 +260,33 @@ export async function dismissAlert(
  * (a stale reason on a reopened alert would be a lie waiting to happen).
  */
 export async function reopenAlert(taskId: string): Promise<void> {
-  await requireSession()
-  await setTaskStatus(taskId, "requested", "reopen")
+  const principal = await requireConsolePrincipal(["pharmacist", "admin"])
+  await setTaskStatus(
+    principal.tenantId,
+    principal.name,
+    taskId,
+    "requested",
+    "reopen"
+  )
+
+  // Undo a plain approval's prescriber notification as well as the Task state.
+  const medplum = await createMedplumClient(principal.tenantId)
+  const task = await medplum.readResource("Task", taskId)
+  const key = orderKeyOf(task)
+  const communications = await medplum.searchResources(
+    "Communication",
+    `identifier=${COMMUNICATION_ORDER_SYSTEM}|${key}`
+  )
+  await Promise.all(
+    communications
+      .filter((communication) => communication.status !== "entered-in-error")
+      .map((communication) =>
+        medplum.updateResource(
+          { ...communication, status: "entered-in-error" },
+          ifMatch(communication)
+        )
+      )
+  )
 }
 
 /**
@@ -219,24 +304,31 @@ export async function reopenAlert(taskId: string): Promise<void> {
  * (re-activating it if a prior undo had reversed it) — no path can create a
  * duplicate prescription.
  */
-export async function enactAlert(
-  taskId: string,
-  choice: RecommendedAlternative,
-): Promise<void> {
-  await requireSession()
-  const medplum = await createMedplumClient()
+export async function enactAlert(taskId: string): Promise<void> {
+  const principal = await requireConsolePrincipal(["pharmacist", "admin"])
+  const medplum = await createMedplumClient(principal.tenantId)
   const task = await medplum.readResource("Task", taskId)
+  if (task.status !== "requested") {
+    throw new Error(`Task/${taskId} is no longer awaiting review.`)
+  }
 
   const issueRef = task.focus as Reference<DetectedIssue> | undefined
-  if (!issueRef?.reference) throw new Error("Alert is missing its DetectedIssue.")
+  if (!issueRef?.reference)
+    throw new Error("Alert is missing its DetectedIssue.")
   const issue = (await medplum.readReference(issueRef)) as DetectedIssue
   const pgx = parsePgxAlert(issue)
-  if (!pgx || isCleared(pgx)) throw new Error("Alert has no recommendation to enact.")
+  if (!pgx || isCleared(pgx))
+    throw new Error("Alert has no recommendation to enact.")
   const patient = issue.patient
   if (!patient) throw new Error("Alert is missing its patient.")
+  // The browser never supplies a medication choice. Only the alternative
+  // persisted by the deterministic CPIC evaluation can produce a substitute.
+  const choice = pgx.recommendedAlternative ?? ({ kind: "avoid" } as const)
 
   const key = orderKeyOf(task)
-  const orderId = task.identifier?.find((i) => i.system === ORDER_ID_SYSTEM)?.value
+  const orderId = task.identifier?.find(
+    (i) => i.system === ORDER_ID_SYSTEM
+  )?.value
   const detectedIssue: Reference<DetectedIssue> = {
     reference: `DetectedIssue/${issue.id}`,
   }
@@ -263,7 +355,7 @@ export async function enactAlert(
   }
   const savedComm = await medplum.createResourceIfNoneExist(
     communication,
-    `identifier=${COMMUNICATION_ORDER_SYSTEM}|${key}`,
+    `identifier=${COMMUNICATION_ORDER_SYSTEM}|${key}`
   )
   if (savedComm.status !== "completed") {
     await medplum.updateResource({ ...savedComm, status: "completed" })
@@ -283,7 +375,7 @@ export async function enactAlert(
     }
     const savedSub = await medplum.createResourceIfNoneExist(
       substitute,
-      `identifier=${SUBSTITUTE_ORDER_SYSTEM}|${key}`,
+      `identifier=${SUBSTITUTE_ORDER_SYSTEM}|${key}`
     )
     if (savedSub.status !== "active") {
       await medplum.updateResource({ ...savedSub, status: "active" })
@@ -291,11 +383,14 @@ export async function enactAlert(
   }
 
   // 3) Complete the Task and mark it enacted (distinct from a plain approve).
-  await medplum.updateResource({
-    ...task,
-    status: "completed",
-    businessStatus: enactedBusinessStatus(),
-  })
+  const savedTask = await medplum.updateResource(
+    {
+      ...task,
+      status: "completed",
+      businessStatus: enactedBusinessStatus(),
+    },
+    ifMatch(task)
+  )
 
   // FHIR-native provenance for the write-back (#22): the Provenance targets the
   // resources actually written (Communication + substitute order) alongside the
@@ -306,11 +401,13 @@ export async function enactAlert(
   if (choice.kind === "switch") {
     const sub = await medplum.searchResources(
       "MedicationRequest",
-      `identifier=${SUBSTITUTE_ORDER_SYSTEM}|${key}`,
+      `identifier=${SUBSTITUTE_ORDER_SYSTEM}|${key}`
     )
-    for (const s of sub) if (s.id) enactTargets.push({ reference: `MedicationRequest/${s.id}` })
+    for (const s of sub)
+      if (s.id) enactTargets.push({ reference: `MedicationRequest/${s.id}` })
   }
-  await recordTriageProvenance(medplum, task, "enact", enactTargets, {
+  await recordTriageProvenance(medplum, savedTask, "enact", enactTargets, {
+    actor: principal.name,
     action,
     ...(choice.kind === "switch" ? { altDrug: choice.altDrug } : {}),
   })
@@ -320,7 +417,13 @@ export async function enactAlert(
   // which would try to cancel this just-enacted Task. Done AFTER the writes
   // above so the resume-side conditional-creates find and reuse them (same
   // order-keyed identifiers) rather than racing them.
-  await completeApprovalToken(task, true)
+  const taskVersion = savedTask.meta?.versionId
+  if (!taskVersion) throw new Error("Updated Task has no version id.")
+  await completeApprovalToken(savedTask, {
+    approved: true,
+    actor: principal.name,
+    taskVersion,
+  })
   revalidatePath("/")
 }
 
@@ -333,40 +436,48 @@ export async function enactAlert(
  * new ones.
  */
 export async function unenactAlert(taskId: string): Promise<void> {
-  await requireSession()
-  const medplum = await createMedplumClient()
+  const principal = await requireConsolePrincipal(["pharmacist", "admin"])
+  const medplum = await createMedplumClient(principal.tenantId)
   const task = await medplum.readResource("Task", taskId)
   const key = orderKeyOf(task)
 
   const [subs, comms] = await Promise.all([
     medplum.searchResources(
       "MedicationRequest",
-      `identifier=${SUBSTITUTE_ORDER_SYSTEM}|${key}`,
+      `identifier=${SUBSTITUTE_ORDER_SYSTEM}|${key}`
     ),
     medplum.searchResources(
       "Communication",
-      `identifier=${COMMUNICATION_ORDER_SYSTEM}|${key}`,
+      `identifier=${COMMUNICATION_ORDER_SYSTEM}|${key}`
     ),
   ])
 
   await Promise.all([
-    ...subs.map((s) => medplum.updateResource({ ...s, status: "cancelled" })),
+    ...subs.map((s) =>
+      medplum.updateResource({ ...s, status: "cancelled" }, ifMatch(s))
+    ),
     ...comms.map((c) =>
-      medplum.updateResource({ ...c, status: "entered-in-error" }),
+      medplum.updateResource({ ...c, status: "entered-in-error" }, ifMatch(c))
     ),
   ])
 
   const reopened = { ...task, status: "requested" as const }
   delete reopened.businessStatus
-  await medplum.updateResource(reopened)
+  const savedTask = await medplum.updateResource(reopened, ifMatch(task))
 
   // FHIR-native provenance for the reversal (#22): targets the reversed
   // Communication + substitute order so the undo is itself auditable.
   const undoTargets: Reference<Resource>[] = [
-    ...comms.filter((c) => c.id).map((c) => ({ reference: `Communication/${c.id}` })),
-    ...subs.filter((s) => s.id).map((s) => ({ reference: `MedicationRequest/${s.id}` })),
+    ...comms
+      .filter((c) => c.id)
+      .map((c) => ({ reference: `Communication/${c.id}` })),
+    ...subs
+      .filter((s) => s.id)
+      .map((s) => ({ reference: `MedicationRequest/${s.id}` })),
   ]
-  await recordTriageProvenance(medplum, task, "unenact", undoTargets)
+  await recordTriageProvenance(medplum, savedTask, "unenact", undoTargets, {
+    actor: principal.name,
+  })
   revalidatePath("/")
 }
 
@@ -401,14 +512,23 @@ export type PlaceOrderResult = {
 export async function placeOrder(
   patientRef: string,
   drug: string,
-  orderedBy: string,
+  orderedBy: string
 ): Promise<PlaceOrderResult> {
-  await requireSession()
-  const medplum = await createMedplumClient()
-  const patient: Reference<Patient> = { reference: patientRef }
+  const principal = await requireConsolePrincipal(["pharmacist", "admin"])
+  const parsed = z
+    .object({
+      patientRef: z.string().regex(/^Patient\/[A-Za-z0-9.-]+$/),
+      drug: z.string().trim().min(1).max(200),
+      orderedBy: z.string().trim().min(1).max(200),
+    })
+    .parse({ patientRef, drug, orderedBy })
+  const medplum = await createMedplumClient(principal.tenantId)
+  // Prove the patient belongs to this tenant's FHIR project before ordering.
+  await medplum.readReference({ reference: parsed.patientRef })
+  const patient: Reference<Patient> = { reference: parsed.patientRef }
 
   const order = await medplum.createResource(
-    buildMedicationRequest(patient, drug),
+    buildMedicationRequest(patient, parsed.drug)
   )
   if (!order.id) throw new Error("Medplum did not return an order id.")
 
@@ -420,8 +540,17 @@ export async function placeOrder(
   // console auth it becomes the session's tenant claim).
   const handle = await tasks.trigger<typeof evaluateOrder>(
     "evaluate-order",
-    { patientRef, drug, orderId: order.id, orderedBy, tenantId: defaultTenantId() },
-    { idempotencyKey: order.id },
+    {
+      patientRef: parsed.patientRef,
+      drug: parsed.drug,
+      orderId: order.id,
+      orderedBy: parsed.orderedBy,
+      tenantId: principal.tenantId,
+    },
+    {
+      idempotencyKey: `${principal.tenantId}:${order.id}`,
+      idempotencyKeyTTL: "365d",
+    }
   )
 
   revalidatePath("/")
@@ -431,4 +560,3 @@ export async function placeOrder(
     accessToken: handle.publicAccessToken,
   }
 }
-

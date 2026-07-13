@@ -11,41 +11,49 @@
  * only types (erased at deploy time) and uses the Bot runtime's global `fetch`.
  * The Trigger secret is read from the project secret `TRIGGER_SECRET_KEY`.
  */
-import type { BotEvent, MedplumClient } from "@medplum/core";
-import type { MedicationRequest } from "@medplum/fhirtypes";
+import type { BotEvent, MedplumClient } from "@medplum/core"
+import type { MedicationRequest } from "@medplum/fhirtypes"
 
 const TRIGGER_ENDPOINT =
-  "https://api.trigger.dev/api/v1/tasks/evaluate-order/trigger";
+  "https://api.trigger.dev/api/v1/tasks/evaluate-order/trigger"
 
 export async function handler(
   _medplum: MedplumClient,
-  event: BotEvent<MedicationRequest>,
+  event: BotEvent<MedicationRequest>
 ): Promise<unknown> {
-  const mr = event.input;
+  const mr = event.input
 
-  const patientRef = mr.subject?.reference;
-  const drug = mr.medicationCodeableConcept?.text;
+  const patientRef = mr.subject?.reference
+  const drug = mr.medicationCodeableConcept?.text
 
-  if (!patientRef || !drug) {
+  if (!patientRef || !drug || !mr.id) {
     console.log(
       `[order-trigger] Skipping MedicationRequest/${mr.id ?? "?"}: missing ${
-        !patientRef ? "subject.reference" : "medicationCodeableConcept.text"
-      }.`,
-    );
-    return { triggered: false, reason: "incomplete order" };
+        !patientRef
+          ? "subject.reference"
+          : !drug
+            ? "medicationCodeableConcept.text"
+            : "id"
+      }.`
+    )
+    return { triggered: false, reason: "incomplete order" }
   }
 
-  const triggerKey = event.secrets["TRIGGER_SECRET_KEY"]?.valueString;
+  const triggerKey = event.secrets["TRIGGER_SECRET_KEY"]?.valueString
+  const tenantId = event.secrets["BASEPAIR_TENANT_ID"]?.valueString
   if (!triggerKey) {
     console.log(
-      "[order-trigger] Missing project secret TRIGGER_SECRET_KEY, cannot trigger evaluate-order.",
-    );
-    return { triggered: false, reason: "missing TRIGGER_SECRET_KEY" };
+      "[order-trigger] Missing project secret TRIGGER_SECRET_KEY, cannot trigger evaluate-order."
+    )
+    return { triggered: false, reason: "missing TRIGGER_SECRET_KEY" }
+  }
+  if (!tenantId) {
+    throw new Error("Missing project secret BASEPAIR_TENANT_ID")
   }
 
   console.log(
-    `[order-trigger] Triggering evaluate-order for ${patientRef} / "${drug}" (order ${mr.id ?? "?"}).`,
-  );
+    `[order-trigger] Triggering evaluate-order for ${patientRef} / "${drug}" (order ${mr.id ?? "?"}).`
+  )
 
   const response = await fetch(TRIGGER_ENDPOINT, {
     method: "POST",
@@ -54,23 +62,26 @@ export async function handler(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      payload: { patientRef, drug },
-      options: { idempotencyKey: mr.id },
+      payload: { patientRef, drug, orderId: mr.id, tenantId },
+      options: {
+        idempotencyKey: `${tenantId}:${mr.id}`,
+        idempotencyKeyTTL: "365d",
+      },
     }),
-  });
+  })
 
   if (!response.ok) {
-    const body = await response.text();
+    const body = await response.text()
     console.log(
-      `[order-trigger] Trigger call failed (${response.status}): ${body}`,
-    );
-    throw new Error(`Trigger.dev returned ${response.status}`);
+      `[order-trigger] Trigger call failed (${response.status}): ${body}`
+    )
+    throw new Error(`Trigger.dev returned ${response.status}`)
   }
 
-  const result = (await response.json()) as { id?: string };
+  const result = (await response.json()) as { id?: string }
   console.log(
-    `[order-trigger] Triggered evaluate-order run ${result.id ?? "?"} for order ${mr.id ?? "?"}.`,
-  );
+    `[order-trigger] Triggered evaluate-order run ${result.id ?? "?"} for order ${mr.id ?? "?"}.`
+  )
 
-  return { triggered: true, runId: result.id ?? null, drug, patientRef };
+  return { triggered: true, runId: result.id ?? null, drug, patientRef }
 }

@@ -1,4 +1,4 @@
-import { MedplumClient } from "@medplum/core";
+import { MedplumClient } from "@medplum/core"
 
 /**
  * Server-to-server Medplum client factory (client-credentials auth). Used by
@@ -35,75 +35,80 @@ import { MedplumClient } from "@medplum/core";
  */
 // Medplum default access-token lifetime is 3600s; re-login a few minutes early
 // so a request never lands on a just-expired token.
-const ACCESS_TOKEN_TTL_MS = 60 * 60 * 1000;
-const REFRESH_BEFORE_EXPIRY_MS = 5 * 60 * 1000;
+const ACCESS_TOKEN_TTL_MS = 60 * 60 * 1000
+const REFRESH_BEFORE_EXPIRY_MS = 5 * 60 * 1000
 
 type CacheEntry = {
-  clientPromise: Promise<MedplumClient>;
-  authenticatedAt: number;
-};
+  clientPromise: Promise<MedplumClient>
+  authenticatedAt: number
+}
 
 /** One authenticated client per tenant key ("env" = the dev fallback). */
-const clients = new Map<string, CacheEntry>();
+const clients = new Map<string, CacheEntry>()
+
+/** Explicit key for the env-backed single-tenant development configuration. */
+export const ENV_TENANT_ID = "environment-default"
 
 /**
  * The deployment's pinned tenant, if any. Zero-arg `createMedplumClient()`
  * callers resolve through this; explicit payload-carried tenant ids win.
  */
 export function defaultTenantId(): string | undefined {
-  return process.env.BASEPAIR_TENANT_ID || undefined;
+  return process.env.BASEPAIR_TENANT_ID || undefined
 }
 
-type MedplumConfig = { baseUrl: string; clientId: string; clientSecret: string };
+type MedplumConfig = { baseUrl: string; clientId: string; clientSecret: string }
 
 function envConfig(): MedplumConfig {
-  const clientId = process.env.MEDPLUM_CLIENT_ID;
-  const clientSecret = process.env.MEDPLUM_CLIENT_SECRET;
-  const baseUrl = process.env.MEDPLUM_BASE_URL ?? "https://api.medplum.com/";
+  const clientId = process.env.MEDPLUM_CLIENT_ID
+  const clientSecret = process.env.MEDPLUM_CLIENT_SECRET
+  const baseUrl = process.env.MEDPLUM_BASE_URL ?? "https://api.medplum.com/"
 
   if (!clientId || !clientSecret) {
     throw new Error(
-      "MEDPLUM_CLIENT_ID / MEDPLUM_CLIENT_SECRET not set (create a ClientApplication in the Medplum project).",
-    );
+      "MEDPLUM_CLIENT_ID / MEDPLUM_CLIENT_SECRET not set (create a ClientApplication in the Medplum project)."
+    )
   }
-  return { baseUrl, clientId, clientSecret };
+  return { baseUrl, clientId, clientSecret }
 }
 
-async function resolveConfig(tenantId: string | undefined): Promise<MedplumConfig> {
-  if (!tenantId) return envConfig();
+async function resolveConfig(
+  tenantId: string | undefined
+): Promise<MedplumConfig> {
+  if (!tenantId || tenantId === ENV_TENANT_ID) return envConfig()
   // Lazy import: the queries module requires DATABASE_URL at import time, and
   // the env-only dev fallback must keep working with no database configured.
-  const { getTenantMedplumConfig } = await import("@/lib/db/queries");
-  return getTenantMedplumConfig(tenantId);
+  const { getTenantMedplumConfig } = await import("@/lib/db/queries")
+  return getTenantMedplumConfig(tenantId)
 }
 
 async function login(tenantId: string | undefined): Promise<MedplumClient> {
-  const { baseUrl, clientId, clientSecret } = await resolveConfig(tenantId);
-  const medplum = new MedplumClient({ baseUrl });
-  await medplum.startClientLogin(clientId, clientSecret);
-  return medplum;
+  const { baseUrl, clientId, clientSecret } = await resolveConfig(tenantId)
+  const medplum = new MedplumClient({ baseUrl })
+  await medplum.startClientLogin(clientId, clientSecret)
+  return medplum
 }
 
 export function createMedplumClient(tenantId?: string): Promise<MedplumClient> {
-  const effectiveTenantId = tenantId ?? defaultTenantId();
-  const cacheKey = effectiveTenantId ?? "env";
+  const effectiveTenantId = tenantId ?? defaultTenantId()
+  const cacheKey = effectiveTenantId ?? "env"
 
-  const cached = clients.get(cacheKey);
+  const cached = clients.get(cacheKey)
   const nearExpiry =
     !cached ||
     Date.now() - cached.authenticatedAt >=
-      ACCESS_TOKEN_TTL_MS - REFRESH_BEFORE_EXPIRY_MS;
-  if (cached && !nearExpiry) return cached.clientPromise;
+      ACCESS_TOKEN_TTL_MS - REFRESH_BEFORE_EXPIRY_MS
+  if (cached && !nearExpiry) return cached.clientPromise
 
-  const clientPromise = login(effectiveTenantId);
-  clients.set(cacheKey, { clientPromise, authenticatedAt: Date.now() });
+  const clientPromise = login(effectiveTenantId)
+  clients.set(cacheKey, { clientPromise, authenticatedAt: Date.now() })
 
   // Don't cache a rejected login, let the next call try again.
   clientPromise.catch(() => {
     if (clients.get(cacheKey)?.clientPromise === clientPromise) {
-      clients.delete(cacheKey);
+      clients.delete(cacheKey)
     }
-  });
+  })
 
-  return clientPromise;
+  return clientPromise
 }

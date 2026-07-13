@@ -8,6 +8,7 @@ import type { MedplumClient } from "@medplum/core"
 
 import { createMedplumClient } from "@/lib/medplum/client"
 import { genesForDrug } from "@/lib/cpic-catalog"
+import { ORDER_ID_SYSTEM } from "@/lib/medplum/fhir"
 import {
   provenanceLifecycle,
   PGX_AUDIT_LIFECYCLE_SYSTEM,
@@ -18,8 +19,16 @@ import type {
   PhenotypeConcordanceVerdict,
   PhenotypeConcordanceSeverity,
 } from "@/lib/pgx/phenotype-concordance"
-import type { FormularyStatus, LocalActionPlan } from "@/lib/alerts/local-action"
-import { isCleared, isEnacted, parsePgxAlert, patientName } from "@/lib/alerts/pgx"
+import type {
+  FormularyStatus,
+  LocalActionPlan,
+} from "@/lib/alerts/local-action"
+import {
+  isCleared,
+  isEnacted,
+  parsePgxAlert,
+  patientName,
+} from "@/lib/alerts/pgx"
 import {
   DISMISS_REASON_SYSTEM,
   dismissReasonByCode,
@@ -29,8 +38,13 @@ import {
 /** The dismiss reason recorded on a cancelled Task, resolved through the
  *  taxonomy. `null` for a legacy/seed dismissal that carries no reason code. */
 function readDismissReason(
-  task: Task,
-): { code: string; label: string; kind: DismissReasonKind; note?: string } | null {
+  task: Task
+): {
+  code: string
+  label: string
+  kind: DismissReasonKind
+  note?: string
+} | null {
   const reason = task.statusReason
   const coding = reason?.coding?.find((c) => c.system === DISMISS_REASON_SYSTEM)
   if (!coding?.code) return null
@@ -195,12 +209,11 @@ type FhirAuditIndex = {
 }
 
 /** Read the lifecycle code off an AuditEvent's Basepair subtype. */
-function auditEventLifecycle(subtype?: { system?: string; code?: string }[]):
-  | AuditLifecycle
-  | undefined {
+function auditEventLifecycle(
+  subtype?: { system?: string; code?: string }[]
+): AuditLifecycle | undefined {
   return subtype?.find((s) => s.system === PGX_AUDIT_LIFECYCLE_SYSTEM)?.code as
-    | AuditLifecycle
-    | undefined
+    AuditLifecycle | undefined
 }
 
 /**
@@ -209,7 +222,7 @@ function auditEventLifecycle(subtype?: { system?: string; code?: string }[]):
  * off the DetectedIssue/Task extension. Never throws.
  */
 async function loadFhirAuditIndex(
-  medplum: MedplumClient,
+  medplum: MedplumClient
 ): Promise<FhirAuditIndex> {
   const provenanceByKey = new Map<string, { id?: string; recorded: string }>()
   const auditEventByKey = new Map<string, string>()
@@ -233,7 +246,8 @@ async function loadFhirAuditIndex(
         if (!t.reference) continue
         const key = `${t.reference}|${lifecycle}`
         // Newest-first sort means the first write per key is the latest.
-        if (!provenanceByKey.has(key)) provenanceByKey.set(key, { id: p.id, recorded })
+        if (!provenanceByKey.has(key))
+          provenanceByKey.set(key, { id: p.id, recorded })
       }
     }
 
@@ -260,7 +274,7 @@ function fhirRefsFor(
   index: FhirAuditIndex,
   targetRef: string,
   lifecycle: AuditLifecycle,
-  fallbackAt: string,
+  fallbackAt: string
 ): FhirProvenance & { at: string } {
   const key = `${targetRef}|${lifecycle}`
   const prov = index.provenanceByKey.get(key)
@@ -276,8 +290,8 @@ function fhirRefsFor(
  * the approve/dismiss history from triaged Tasks, unified and sorted
  * most-recent-first. Server-only, never import into a client component.
  */
-export async function getAuditEntries(): Promise<AuditEntry[]> {
-  const medplum = await createMedplumClient()
+export async function getAuditEntries(tenantId: string): Promise<AuditEntry[]> {
+  const medplum = await createMedplumClient(tenantId)
 
   // Cleared records (DetectedIssues with status "mitigated", no Task), triaged
   // Tasks (completed = approved, cancelled = dismissed), and the FHIR-native
@@ -322,7 +336,7 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
         fhirIndex,
         `DetectedIssue/${issue.id}`,
         "evaluation-cleared",
-        resourceTimestamp(issue),
+        resourceTimestamp(issue)
       )
 
       return {
@@ -338,13 +352,14 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
         provenanceId: fhir.provenanceId,
         auditEventId: fhir.auditEventId,
       }
-    }),
+    })
   )
 
   const triagedEntries = await Promise.all(
     triagedTasks.map(async (task): Promise<AuditEntry | null> => {
       if (!task.id || !task.for || !task.focus) return null
-      if (task.status !== "completed" && task.status !== "cancelled") return null
+      if (task.status !== "completed" && task.status !== "cancelled")
+        return null
 
       let patient: Patient
       let issue: DetectedIssue
@@ -381,7 +396,7 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
         fhirIndex,
         `Task/${task.id}`,
         lifecycle,
-        task.lastModified ?? resourceTimestamp(task),
+        task.lastModified ?? resourceTimestamp(task)
       )
 
       return {
@@ -415,11 +430,11 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
         provenanceId: fhir.provenanceId,
         auditEventId: fhir.auditEventId,
       }
-    }),
+    })
   )
 
   const entries = [...clearedEntries, ...triagedEntries].filter(
-    (entry): entry is AuditEntry => entry !== null,
+    (entry): entry is AuditEntry => entry !== null
   )
 
   return entries
@@ -431,6 +446,33 @@ export async function getAuditEntries(): Promise<AuditEntry[]> {
  *  demo's data scale; scoping to a rolling `_lastUpdated` window is a trivial
  *  follow-up if the trail ever outgrows a single page. */
 const STATS_LIMIT = 1000
+
+async function collectTasks(
+  medplum: MedplumClient,
+  status: "cancelled" | "completed"
+): Promise<Task[]> {
+  const tasks: Task[] = []
+  for await (const page of medplum.searchResourcePages("Task", {
+    status,
+    identifier: `${ORDER_ID_SYSTEM}|`,
+    _count: 200,
+  })) {
+    tasks.push(...page)
+  }
+  return tasks
+}
+
+async function collectPgxIssues(
+  medplum: MedplumClient
+): Promise<DetectedIssue[]> {
+  const issues: DetectedIssue[] = []
+  for await (const page of medplum.searchResourcePages("DetectedIssue", {
+    _count: 200,
+  })) {
+    issues.push(...page.filter((issue) => parsePgxAlert(issue) !== null))
+  }
+  return issues
+}
 
 /**
  * Live signal-quality counts for the trust metric (topbar + Audit header),
@@ -454,26 +496,24 @@ const STATS_LIMIT = 1000
  * records the Audit table shows. Server-only, never import into a client
  * component.
  */
-export async function getSignalStats(): Promise<SignalStats> {
-  const medplum = await createMedplumClient()
+export async function getSignalStats(tenantId: string): Promise<SignalStats> {
+  const medplum = await createMedplumClient(tenantId)
 
   const [issues, dismissedTasks, approvedTasks, openTasks] = await Promise.all([
-    medplum.searchResources("DetectedIssue", { _count: STATS_LIMIT }),
-    medplum.searchResources("Task", {
-      status: "cancelled",
-      _count: STATS_LIMIT,
-    }),
+    collectPgxIssues(medplum),
+    collectTasks(medplum, "cancelled"),
     // Approved (completed) Tasks, resources not just a count: we tally how many
     // also carry the enacted marker (isEnacted), so the enactment rate is
     // enacted-of-approved. Consistent with falseAlarms counting cancelled Tasks
     // directly — every triage Task is a pgx alert task.
-    medplum.searchResources("Task", {
-      status: "completed",
-      _count: STATS_LIMIT,
-    }),
+    collectTasks(medplum, "completed"),
     // Just the count of currently-open alerts (the actionable queue, matching
     // the sidebar badge). `_summary=count` returns the total only, no resources.
-    medplum.searchResources("Task", { status: "requested", _summary: "count" }),
+    medplum.searchResources("Task", {
+      status: "requested",
+      identifier: `${ORDER_ID_SYSTEM}|`,
+      _summary: "count",
+    }),
   ])
 
   let flagged = 0
@@ -496,7 +536,7 @@ export async function getSignalStats(): Promise<SignalStats> {
   for (const task of dismissedTasks) {
     const reason = readDismissReason(task)
     if (reason?.kind === "override") overrides++
-    else falseAlarms++
+    else if (reason?.kind !== "system") falseAlarms++
   }
 
   return {

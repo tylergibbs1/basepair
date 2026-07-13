@@ -1,4 +1,5 @@
 import type { DetectedIssue, Patient, Task } from "@medplum/fhirtypes"
+import { z } from "zod"
 
 import {
   PGX_ALERT_EXTENSION_URL,
@@ -68,6 +69,72 @@ export type ClearedPgxPayload = {
 
 export type PgxPayload = FlaggedPgxPayload | ClearedPgxPayload
 
+const decisionPathSchema = z.enum(["agent", "agent-mismatch", "agent-fallback"])
+const recommendedAlternativeSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("switch"), altDrug: z.string().min(1) }),
+  z.object({ kind: z.literal("dose") }),
+  z.object({ kind: z.literal("avoid") }),
+])
+const phenotypeConcordanceSchema = z.object({
+  gene: z.string().min(1),
+  diplotype: z.string(),
+  sourcePhenotype: z.string().optional(),
+  derivedPhenotype: z.string().optional(),
+  verdict: z.enum([
+    "match",
+    "missing-source",
+    "unresolved-derived",
+    "mismatch-same-action",
+    "mismatch-changes-action",
+  ]),
+  severity: z.enum(["none", "review", "high-impact"]),
+  recommendationChanged: z.boolean(),
+  reason: z.string(),
+})
+const flaggedPgxSchema = z
+  .object({
+    outcome: z.literal("flagged").optional(),
+    gene: z.string().min(1),
+    diplotype: z.string(),
+    phenotype: z.string().min(1),
+    contributingGenes: z
+      .array(
+        z.object({
+          gene: z.string().min(1),
+          diplotype: z.string(),
+          phenotype: z.string().min(1),
+        })
+      )
+      .optional(),
+    drug: z.string().min(1),
+    severity: z.enum(["critical", "caution", "info"]),
+    recommendation: z.string().min(1),
+    citation: z.string(),
+    citedSentence: z.string(),
+    guidelineText: z.string().optional(),
+    orderedBy: z.string(),
+    foundBy: z.enum(["order", "sweep"]).optional(),
+    sweptAt: z.string().optional(),
+    verified: z.boolean().optional(),
+    verifierRationale: z.string().optional(),
+    verifierModel: z.string().optional(),
+    verifierHighlight: z.string().optional(),
+    recommendedAlternative: recommendedAlternativeSchema.optional(),
+    phenotypeConcordance: phenotypeConcordanceSchema.optional(),
+    decisionPath: decisionPathSchema.optional(),
+  })
+  .passthrough()
+const clearedPgxSchema = z
+  .object({
+    outcome: z.literal("cleared"),
+    drug: z.string().min(1),
+    genePhenotypes: z.record(z.string(), z.string()),
+    reason: z.string(),
+    decisionPath: decisionPathSchema.optional(),
+  })
+  .passthrough()
+const pgxPayloadSchema = z.union([clearedPgxSchema, flaggedPgxSchema])
+
 /** Narrowing guard: is this the considered-and-cleared shape? */
 export function isCleared(pgx: PgxPayload): pgx is ClearedPgxPayload {
   return pgx.outcome === "cleared"
@@ -81,7 +148,7 @@ export function isCleared(pgx: PgxPayload): pgx is ClearedPgxPayload {
 export function isEnacted(task: Task): boolean {
   return (
     task.businessStatus?.coding?.some(
-      (c) => c.system === ENACTMENT_STATUS_SYSTEM && c.code === ENACTED_CODE,
+      (c) => c.system === ENACTMENT_STATUS_SYSTEM && c.code === ENACTED_CODE
     ) ?? false
   )
 }
@@ -95,7 +162,9 @@ export function patientName(patient: Patient): string {
 }
 
 export function patientMrn(patient: Patient): string {
-  const value = patient.identifier?.find((id) => id.system === MRN_SYSTEM)?.value
+  const value = patient.identifier?.find(
+    (id) => id.system === MRN_SYSTEM
+  )?.value
   return value ? `MRN ${value}` : "MRN -"
 }
 
@@ -103,11 +172,12 @@ export function patientMrn(patient: Patient): string {
  *  or unparseable. Callers narrow flagged vs cleared via isCleared(). */
 export function parsePgxAlert(issue: DetectedIssue): PgxPayload | null {
   const raw = issue.extension?.find(
-    (ext) => ext.url === PGX_ALERT_EXTENSION_URL,
+    (ext) => ext.url === PGX_ALERT_EXTENSION_URL
   )?.valueString
   if (!raw) return null
   try {
-    return JSON.parse(raw) as PgxPayload
+    const parsed = pgxPayloadSchema.safeParse(JSON.parse(raw))
+    return parsed.success ? (parsed.data as PgxPayload) : null
   } catch {
     return null
   }

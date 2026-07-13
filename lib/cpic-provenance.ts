@@ -39,7 +39,7 @@ export const CATALOG_PROVENANCE = {
 } as const
 
 /** Count of distinct CPIC guideline versions captured (0 if none). */
-export function cpicGuidelineCount(): number {
+function cpicGuidelineCount(): number {
   return dataVersions ? Object.keys(dataVersions.cpicGuidelines).length : 0
 }
 

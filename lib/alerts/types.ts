@@ -188,31 +188,6 @@ export interface SignalStats {
   open: number
 }
 
-/** Below ~95% precision pharmacists start tuning alerts out — alert fatigue is
- *  the documented failure mode of PGx alerting — so the target is the line the
- *  director defends, not decoration. */
-export const PRECISION_TARGET = 0.95
-
-/**
- * Positive predictive value: of the alerts a pharmacist reviewed and that were
- * clinically valid, what share were correct.
- *
- * validReviewed / (validReviewed + falseAlarms), where validReviewed = approved
- * + overrides. Both an approve and an *override* are true positives — the alert
- * correctly flagged a real interaction; an override just means the pharmacist
- * made a clinical decision not to act. Only a *false alarm* (wrong result or
- * duplicate) is a false positive. Deliberately not flagged-based — a pending
- * alert nobody has reviewed is neither, and counting it would let the metric
- * overclaim. `null` when nothing has been reviewed yet — precision is undefined
- * then, not a perfect score.
- */
-export function precision(stats: SignalStats): number | null {
-  const validReviewed = stats.approved + stats.overrides
-  const reviewed = validReviewed + stats.falseAlarms
-  if (reviewed === 0) return null
-  return validReviewed / reviewed
-}
-
 /** Result of the AI verification step (see lib/ai/verify.ts). */
 export interface Verification {
   /** Did the model confirm the guideline supports the recommendation? */

@@ -11,8 +11,7 @@
  *      (minConcept), so "Plavix" and "5-FU" surface as "clopidogrel" /
  *      "fluorouracil" — exactly the canonical name the CPIC catalog keys on.
  *
- * The typed result is validated through {@link NormalizedDrugSchema}, declared in
- * AI-SDK terms via {@link normalizedDrugOutput} (`Output.object`).
+ * The typed result is validated through {@link NormalizedDrugSchema}.
  *
  * SAFETY — resolution is AUTHORITATIVE-ONLY. A safety tool must never present a
  * guess as a match ("false sense of success"), so there are only two ways to
@@ -25,7 +24,6 @@
  *      caller surfaces "couldn't identify the drug" instead of a green check.
  * Never throws. Only RxNav hits are cached.
  */
-import { Output } from "ai";
 import { z } from "zod";
 import { resolveDrugAlias, isPgxRelevantDrug } from "@/lib/cpic-catalog";
 import { getRedis } from "@/lib/cache/redis";
@@ -37,7 +35,7 @@ import {
 const RXNAV_BASE = "https://rxnav.nlm.nih.gov/REST";
 
 /** The cached, typed normalization result. */
-export const NormalizedDrugSchema = z.object({
+const NormalizedDrugSchema = z.object({
   /** RxNorm ingredient RxCUI, or null when RxNav had no match / was unreachable. */
   rxcui: z.string().nullable(),
   /** Canonical drug name — RxNav's ingredient name, else the alias-resolved order string. */
@@ -55,29 +53,16 @@ export const NormalizedDrugSchema = z.object({
 });
 export type NormalizedDrug = z.infer<typeof NormalizedDrugSchema>;
 
-/** True when the drug was authoritatively identified (RxNav or a curated alias). */
-export function isDrugResolved(d: NormalizedDrug): boolean {
-  return d.source !== "unresolved";
-}
-
-/**
- * The `Output.object` wrapper for the normalization result (ARCHITECTURE §3
- * step 3: "Output.object wraps the result"). Ready to drop into a `generateText`
- * step if/when the messy-input path grows a model-driven synonym resolver; the
- * deterministic RxNav path validates against the same schema below.
- */
-export const normalizedDrugOutput = Output.object({ schema: NormalizedDrugSchema });
-
 /* ------------------------------------------------------------------------- *
  * Cache — small get/set interface, Redis-backed with an in-process fallback.
  *
  * The default cache uses the shared Upstash Redis (#27) so terminology hits are
  * shared across server/task instances; when Upstash env is unset, getRedis()
  * returns null and it degrades to a per-instance Map. RxCUIs are stable, so
- * caching is safe indefinitely. We keep an explicit get/set (rather than
- * getOrSetTerminology) because normalizeDrug caches authoritative RxNav hits
- * ONLY — a fallback result must never be written, or a transient outage would
- * poison later lookups.
+ * caching is safe indefinitely. We keep an explicit get/set rather than a
+ * generic read-through helper because normalizeDrug caches authoritative RxNav
+ * hits ONLY — a fallback result must never be written, or a transient outage
+ * would poison later lookups.
  * ------------------------------------------------------------------------- */
 
 export interface TerminologyCache {
@@ -121,8 +106,7 @@ class RedisTerminologyCache implements TerminologyCache {
   }
 }
 
-export const defaultTerminologyCache: TerminologyCache =
-  new RedisTerminologyCache();
+const defaultTerminologyCache: TerminologyCache = new RedisTerminologyCache();
 
 export type NormalizeDrugOptions = {
   /** Cache to read/write. Defaults to the in-process Map. */

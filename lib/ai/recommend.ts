@@ -19,7 +19,7 @@ import { z } from "zod"
 import { resolveModel, modelLabel } from "@/lib/ai/models"
 import { recommenderTools } from "@/lib/ai/tools/guidelines"
 
-export const RecommendationSchema = z.object({
+const RecommendationSchema = z.object({
   severity: z
     .enum(["critical", "caution", "info", "no alert", "uncertain"])
     .describe(
@@ -45,9 +45,9 @@ export const RecommendationSchema = z.object({
     .string()
     .describe("One or two plain-language sentences explaining the call, for a pharmacist."),
 })
-export type Recommendation = z.infer<typeof RecommendationSchema>
+type Recommendation = z.infer<typeof RecommendationSchema>
 
-export type RecommendResult = Recommendation & {
+type RecommendResult = Recommendation & {
   model: string
   /** Tool calls the agent made — how many times it actually grounded itself. */
   retrievals: number

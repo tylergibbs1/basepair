@@ -33,7 +33,7 @@ import {
  * is the mapping the model must NOT do itself (§5d precedence). Give the model
  * this tool so it never guesses "*2/*2 → poor metabolizer".
  */
-export const cpicResolvePhenotype = tool({
+const cpicResolvePhenotype = tool({
   description:
     "Resolve a gene diplotype (e.g. CYP2C19 *2/*2) to its authoritative CPIC " +
     "phenotype (e.g. 'Poor Metabolizer'). Use this instead of inferring the " +
@@ -66,7 +66,7 @@ export const cpicResolvePhenotype = tool({
  * the returned recommendation against the returned guidelineText; the model
  * never authors either.
  */
-export const cpicLookupRule = tool({
+const cpicLookupRule = tool({
   description:
     "Look up the authoritative CPIC recommendation for a drug given the " +
     "patient's gene→phenotype map. Returns the published recommendation, the " +
@@ -118,7 +118,7 @@ export function toLookupOutput(result: LookupResult): CpicLookupOutput {
   };
 }
 
-export type CpicLookupOutput =
+type CpicLookupOutput =
   | { applies: false; reason: "no-rule" | "missing-genes"; requiredGenes: string[] }
   | {
       applies: true;

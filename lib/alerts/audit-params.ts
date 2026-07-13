@@ -9,15 +9,15 @@ import type { AuditEntry } from "@/lib/alerts/audit"
 /** The three outcomes the audit trail can be filtered by. Kept as a const tuple
  *  so it drives both the nuqs literal parser and the TS union. Each value maps
  *  1:1 to an `AuditEntry["kind"]`. */
-export const OUTCOME_VALUES = ["approved", "cleared", "dismissed"] as const
+const OUTCOME_VALUES = ["approved", "cleared", "dismissed"] as const
 /** Columns the trail can sort on. `when` is the default (most-recent-first). */
-export const AUDIT_SORT_COLUMNS = [
+const AUDIT_SORT_COLUMNS = [
   "when",
   "patient",
   "drug",
   "outcome",
 ] as const
-export const AUDIT_SORT_DIRECTIONS = ["asc", "desc"] as const
+const AUDIT_SORT_DIRECTIONS = ["asc", "desc"] as const
 
 export type OutcomeFilter = (typeof OUTCOME_VALUES)[number]
 export type AuditSortColumn = (typeof AUDIT_SORT_COLUMNS)[number]

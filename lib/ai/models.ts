@@ -21,7 +21,7 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import type { LanguageModel } from "ai";
 
-export type ModelTier = "opus" | "fast";
+type ModelTier = "opus" | "fast";
 
 /** Direct @ai-sdk/anthropic ids (hyphen-versioned). */
 const ANTHROPIC_ID: Record<ModelTier, string> = {

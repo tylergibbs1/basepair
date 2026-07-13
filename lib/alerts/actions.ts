@@ -123,13 +123,15 @@ async function completeApprovalToken(
   if (!tokenId) return false
   const token = await wait.retrieveToken<ApprovalDecision>(tokenId)
   if (token.status === "COMPLETED") {
-    if (
-      token.output?.approved !== decision.approved ||
-      token.output?.taskVersion !== decision.taskVersion
-    ) {
-      throw new Error(`Task/${task.id} waitpoint already has another decision.`)
-    }
-    return true
+    // A one-shot waitpoint that was already spent — by the first decision before
+    // an Undo→redo (reopen leaves the stamped token COMPLETED, and no path mints
+    // a fresh one), or by a benign retry. The token's frozen output.taskVersion
+    // can never match a re-triaged Task's newer version, so an equality guard
+    // here would throw on the supported approve/dismiss → reopen → redo flow.
+    // Fall through to the version-checked, idempotent writeBackDecision instead:
+    // it converges on the current Task state and never overwrites newer
+    // human-authored state. A spent token must never fail the pharmacist's click.
+    return false
   }
   if (token.status === "TIMED_OUT") return false
   await wait.completeToken<ApprovalDecision>(tokenId, decision)

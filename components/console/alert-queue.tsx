@@ -28,11 +28,7 @@ import { Button } from "@/components/ui/button"
 import { SeverityChip, severityActionVerb } from "@/components/ui/severity-chip"
 import { VerificationChip } from "@/components/ui/verification-chip"
 import { spring } from "@/lib/springs"
-import {
-  formatFiredAt,
-  formatFiredAtAbsolute,
-  type Alert,
-} from "@/lib/alerts/types"
+import { formatFiredAt, type Alert } from "@/lib/alerts/types"
 import type { SortColumn } from "@/lib/alerts/query-params"
 import { useAlerts } from "@/components/console/alerts-provider"
 import { useCommand } from "@/components/console/command-provider"
@@ -293,15 +289,11 @@ function AlertRow({
         className="text-muted-foreground tabular-nums"
         suppressHydrationWarning
       >
-        {/* Relative time reads at a glance; the exact fired time is one hover
-            away. Raised above the row's stretched link so the native tooltip
-            surfaces (the overlay would otherwise swallow the hover). */}
-        <span
-          className="relative z-20"
-          title={formatFiredAtAbsolute(alert.firedAt)}
-        >
-          {formatFiredAt(alert.firedAt)}
-        </span>
+        {/* Plain relative time — no raised span. Raising it for a native
+            title tooltip put it above the row's stretched link (z-10), which
+            swallowed clicks on the timestamp text; a fully clickable row wins
+            over the exact-time hover here. */}
+        {formatFiredAt(alert.firedAt)}
       </TableCell>
       <TableCell className="w-8 pr-4 text-right">
         <ChevronRight

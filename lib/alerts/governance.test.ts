@@ -14,7 +14,7 @@ import {
 } from "./governance"
 
 function cleared(
-  overrides: Partial<Extract<AuditEntry, { kind: "cleared" }>> = {},
+  overrides: Partial<Extract<AuditEntry, { kind: "cleared" }>> = {}
 ): Extract<AuditEntry, { kind: "cleared" }> {
   return {
     kind: "cleared",
@@ -30,7 +30,7 @@ function cleared(
 }
 
 function approved(
-  overrides: Partial<Extract<AuditEntry, { kind: "approved" }>> = {},
+  overrides: Partial<Extract<AuditEntry, { kind: "approved" }>> = {}
 ): Extract<AuditEntry, { kind: "approved" }> {
   return {
     kind: "approved",
@@ -46,7 +46,7 @@ function approved(
 }
 
 function dismissed(
-  overrides: Partial<Extract<AuditEntry, { kind: "dismissed" }>> = {},
+  overrides: Partial<Extract<AuditEntry, { kind: "dismissed" }>> = {}
 ): Extract<AuditEntry, { kind: "dismissed" }> {
   return {
     kind: "dismissed",
@@ -62,7 +62,7 @@ function dismissed(
 }
 
 function metric(
-  overrides: Partial<GovernanceRuleMetric> = {},
+  overrides: Partial<GovernanceRuleMetric> = {}
 ): GovernanceRuleMetric {
   return {
     key: "clopidogrel|cyp2c19|poor metabolizer",
@@ -150,6 +150,20 @@ describe("buildGovernanceMetrics", () => {
       dismissed: 3,
       overrides: 1,
       falseAlarms: 2,
+    })
+  })
+
+  test("does not classify a system review timeout as a false alarm", () => {
+    const metrics = buildGovernanceMetrics([
+      dismissed({
+        dismissReason: { label: "Review window expired", kind: "system" },
+      }),
+    ])
+
+    expect(metrics[0]).toMatchObject({
+      dismissed: 1,
+      overrides: 0,
+      falseAlarms: 0,
     })
   })
 
@@ -262,8 +276,16 @@ describe("buildDurationStats", () => {
 
   test("skips rows with no fired timestamp, a bad timestamp, or a negative span", () => {
     const stats = buildDurationStats([
-      approved({ id: "no-fired", firedAt: undefined, at: "2026-07-02T12:00:00.000Z" }),
-      approved({ id: "bad-fired", firedAt: "not-a-date", at: "2026-07-02T12:00:00.000Z" }),
+      approved({
+        id: "no-fired",
+        firedAt: undefined,
+        at: "2026-07-02T12:00:00.000Z",
+      }),
+      approved({
+        id: "bad-fired",
+        firedAt: "not-a-date",
+        at: "2026-07-02T12:00:00.000Z",
+      }),
       // enacted BEFORE it fired (clock skew) — dropped, not clamped to 0.
       approved({
         id: "skewed",
@@ -316,7 +338,7 @@ describe("buildGovernanceMetrics durations and citation", () => {
 describe("ruleInterruptionSplit", () => {
   test("counts enacted approvals as prescriber interruptions and the rest as pharmacist-only", () => {
     const split = ruleInterruptionSplit(
-      metric({ approved: 5, enacted: 2, dismissed: 3 }),
+      metric({ approved: 5, enacted: 2, dismissed: 3 })
     )
 
     // 2 enacted reached the prescriber; (5 - 2) acknowledged-only + 3 dismissed
@@ -329,7 +351,7 @@ describe("ruleInterruptionSplit", () => {
 
   test("a rule with no enactments is entirely pharmacist-only", () => {
     const split = ruleInterruptionSplit(
-      metric({ approved: 1, enacted: 0, dismissed: 4 }),
+      metric({ approved: 1, enacted: 0, dismissed: 4 })
     )
 
     expect(split).toEqual({
@@ -377,7 +399,7 @@ describe("buildNoisyRuleWatchlist", () => {
         falseAlarmRateThreshold: 0.5,
         dismissalRateThreshold: 1,
         agentAnomalyThreshold: 99,
-      },
+      }
     )
 
     expect(watchlist).toEqual([
@@ -405,7 +427,7 @@ describe("buildNoisyRuleWatchlist", () => {
         falseAlarmRateThreshold: 1,
         dismissalRateThreshold: 0.75,
         agentAnomalyThreshold: 99,
-      },
+      }
     )
 
     expect(watchlist[0]?.reasons).toEqual(["High dismissal rate (3/4)"])
@@ -424,7 +446,7 @@ describe("buildNoisyRuleWatchlist", () => {
       {
         minReviewed: 10,
         agentAnomalyThreshold: 2,
-      },
+      }
     )
 
     expect(watchlist[0]?.reasons).toEqual(["Repeated agent anomalies (2)"])
@@ -461,7 +483,7 @@ describe("buildNoisyRuleWatchlist", () => {
         falseAlarmRateThreshold: 0.5,
         dismissalRateThreshold: 0.75,
         agentAnomalyThreshold: 3,
-      },
+      }
     )
 
     expect(watchlist.map((item) => item.metric.key)).toEqual([
